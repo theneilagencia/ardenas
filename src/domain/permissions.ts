@@ -1,0 +1,281 @@
+/**
+ * Arden.AS — motor de permissões.
+ * Permissão se aplica a rota, componente, botão, campo e exportação — nunca apenas ao menu.
+ * Extraído de docs/handoff/PERMISSIONS.md.
+ */
+
+import type { Operation, Person, RoleKey } from './types';
+
+export type Permission =
+  | 'organization.view'
+  | 'organization.manage'
+  | 'people.view'
+  | 'people.create'
+  | 'people.edit'
+  | 'people.suspend'
+  | 'role.view'
+  | 'role.manage'
+  | 'operation.view'
+  | 'operation.create'
+  | 'operation.edit'
+  | 'operation.publish'
+  | 'operation.pause'
+  | 'execution.view'
+  | 'execution.start'
+  | 'execution.pause'
+  | 'execution.resume'
+  | 'approval.view'
+  | 'approval.resolve'
+  | 'policy.view'
+  | 'policy.manage'
+  | 'policy.publish'
+  | 'risk.view'
+  | 'risk.manage'
+  | 'integration.view'
+  | 'integration.manage'
+  | 'context.view'
+  | 'context.manage'
+  | 'file.view'
+  | 'file.quarantine'
+  | 'file.restore'
+  | 'file.delete.request'
+  | 'file.delete.approve'
+  | 'security.view'
+  | 'security.manage'
+  | 'budget.view'
+  | 'budget.manage'
+  | 'budget.overage.approve'
+  | 'audit.view'
+  | 'report.export'
+  | 'onboarding.execute';
+
+export const ALL_PERMISSIONS: Permission[] = [
+  'organization.view',
+  'organization.manage',
+  'people.view',
+  'people.create',
+  'people.edit',
+  'people.suspend',
+  'role.view',
+  'role.manage',
+  'operation.view',
+  'operation.create',
+  'operation.edit',
+  'operation.publish',
+  'operation.pause',
+  'execution.view',
+  'execution.start',
+  'execution.pause',
+  'execution.resume',
+  'approval.view',
+  'approval.resolve',
+  'policy.view',
+  'policy.manage',
+  'policy.publish',
+  'risk.view',
+  'risk.manage',
+  'integration.view',
+  'integration.manage',
+  'context.view',
+  'context.manage',
+  'file.view',
+  'file.quarantine',
+  'file.restore',
+  'file.delete.request',
+  'file.delete.approve',
+  'security.view',
+  'security.manage',
+  'budget.view',
+  'budget.manage',
+  'budget.overage.approve',
+  'audit.view',
+  'report.export',
+  'onboarding.execute',
+];
+
+/** Permissões concedidas por perfil, derivadas da matriz do handoff. */
+export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
+  corporate_admin: [...ALL_PERMISSIONS],
+  financial_admin: [
+    'organization.view',
+    'budget.view',
+    'budget.manage',
+    'budget.overage.approve',
+    'audit.view',
+    'report.export',
+    'people.view',
+    'operation.view',
+    'execution.view',
+  ],
+  operation_owner: [
+    'organization.view',
+    'operation.view',
+    'operation.create',
+    'operation.edit',
+    'operation.pause',
+    'execution.view',
+    'execution.start',
+    'execution.pause',
+    'execution.resume',
+    'approval.view',
+    'risk.view',
+    'context.view',
+    'integration.view',
+    'file.view',
+    'budget.view',
+    'audit.view',
+    'report.export',
+  ],
+  supervisor: [
+    'organization.view',
+    'operation.view',
+    'execution.view',
+    'execution.pause',
+    'execution.resume',
+    'approval.view',
+    'risk.view',
+    'audit.view',
+    'file.view',
+  ],
+  approver: [
+    'organization.view',
+    'operation.view',
+    'execution.view',
+    'approval.view',
+    'approval.resolve',
+    'audit.view',
+    'risk.view',
+  ],
+  security_admin: [
+    'organization.view',
+    'security.view',
+    'security.manage',
+    'policy.view',
+    'policy.manage',
+    'policy.publish',
+    'role.view',
+    'role.manage',
+    'integration.view',
+    'integration.manage',
+    'risk.view',
+    'risk.manage',
+    'audit.view',
+    'file.view',
+    'file.quarantine',
+    'file.restore',
+  ],
+  analyst: [
+    'organization.view',
+    'operation.view',
+    'execution.view',
+    'audit.view',
+    'report.export',
+  ],
+  auditor: [
+    'organization.view',
+    'audit.view',
+    'approval.view',
+    'operation.view',
+    'execution.view',
+    'risk.view',
+    'file.view',
+  ],
+};
+
+/** Módulos que o Auditor recebe em leitura (selo no cabeçalho). */
+export const AUDITOR_READ_MODULES = [
+  'audit',
+  'operations',
+  'executions',
+  'approvals',
+  'evidence',
+  'risk',
+  'files',
+  'reports',
+] as const;
+
+export interface Session {
+  person: Person;
+  organizationId: ID;
+  roleKeys: RoleKey[];
+  permissions: Permission[];
+}
+
+type ID = string;
+
+export function permissionsFor(roleKeys: RoleKey[]): Permission[] {
+  const set = new Set<Permission>();
+  for (const key of roleKeys) {
+    for (const p of ROLE_PERMISSIONS[key] ?? []) set.add(p);
+  }
+  return [...set];
+}
+
+export interface CanArgs {
+  action: Permission;
+  session: Session;
+  subject?: Operation | { organizationId?: string; companyId?: string } | null;
+}
+
+export interface CanResult {
+  allowed: boolean;
+  reason?:
+    | 'suspended'
+    | 'missing_permission'
+    | 'cross_organization'
+    | 'cross_company'
+    | 'read_only';
+}
+
+/**
+ * Motor central de autorização.
+ *   can({ action: "operation.publish", subject: operation, session })
+ *
+ * A autoridade real é barreira de servidor; esta validação é ergonomia.
+ */
+export function can({ action, session, subject }: CanArgs): CanResult {
+  // 8. Usuário suspenso não acessa nenhuma rota.
+  if (session.person.status === 'suspended') {
+    return { allowed: false, reason: 'suspended' };
+  }
+
+  if (!session.permissions.includes(action)) {
+    return { allowed: false, reason: 'missing_permission' };
+  }
+
+  // Dados não cruzam entre organizações.
+  if (subject && 'organizationId' in subject && subject.organizationId) {
+    if (subject.organizationId !== session.organizationId) {
+      return { allowed: false, reason: 'cross_organization' };
+    }
+  }
+
+  // 7. Proprietário não administra operação de outra empresa.
+  if (
+    subject &&
+    'companyId' in subject &&
+    subject.companyId &&
+    session.person.companyId &&
+    subject.companyId !== session.person.companyId &&
+    !session.roleKeys.includes('corporate_admin') &&
+    !session.roleKeys.includes('security_admin')
+  ) {
+    return { allowed: false, reason: 'cross_company' };
+  }
+
+  return { allowed: true };
+}
+
+/** Conveniência booleana. */
+export function allowed(args: CanArgs): boolean {
+  return can(args).allowed;
+}
+
+/** Quem concede uma permissão — usado na tela de acesso negado. */
+export function grantedBy(permission: Permission): RoleKey {
+  if (permission.startsWith('budget')) return 'financial_admin';
+  if (permission.startsWith('policy') || permission.startsWith('security'))
+    return 'security_admin';
+  if (permission.startsWith('role')) return 'security_admin';
+  return 'corporate_admin';
+}

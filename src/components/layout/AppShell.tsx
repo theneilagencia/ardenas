@@ -1,0 +1,32 @@
+import { Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Eye } from 'lucide-react';
+import { Sidebar } from './Sidebar';
+import { Topbar } from './Topbar';
+import { AssistantPanel } from './AssistantPanel';
+import { useSession } from '@/hooks/use-session';
+
+export function AppShell() {
+  const { t } = useTranslation();
+  const session = useSession();
+  const isAuditor = session?.roleKeys.includes('auditor') ?? false;
+
+  return (
+    <div className="shell">
+      <Sidebar />
+      <div className="main">
+        <Topbar />
+        <main className="content">
+          {isAuditor && (
+            <div className="auditor-seal" style={{ marginBottom: 'var(--sp-4)' }}>
+              <Eye size={13} aria-hidden />
+              {t('common.readOnlyBadge')} — {t('role.auditor')}
+            </div>
+          )}
+          <Outlet />
+        </main>
+      </div>
+      <AssistantPanel />
+    </div>
+  );
+}

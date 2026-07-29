@@ -1,0 +1,106 @@
+/*
+ * Arden.AS — design tokens.
+ * Fonte da verdade da identidade visual, extraída do handoff.
+ * O acento aparece apenas em CTA principal, foco, seleção e trabalho ativo.
+ * Nunca como fundo de seção, gradiente ou brilho.
+ */
+
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f7f7f5; /* fundo */
+  --sf: #ffffff; /* superfície */
+  --mut: #efefec; /* superfície secundária */
+  --tx: #111111; /* texto primário */
+  --tx2: #6d6d6a; /* texto secundário */
+  --bd: #e4e4e0; /* borda */
+  --ac: #b8f34a; /* acento */
+  --ac-fg: #111111; /* texto sobre acento */
+
+  /* Estados operacionais */
+  --st-working: #2878d4;
+  --st-completed: #29845a;
+  --st-waiting: #b7791f;
+  --st-failed: #c54444;
+  --st-paused: #777773;
+
+  /* elevação: só em overlay */
+  --shadow-overlay: 0 12px 32px -12px rgb(17 17 17 / 22%);
+  --shadow-menu: 0 6px 20px -8px rgb(17 17 17 / 18%);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #111111;
+  --sf: #181818;
+  --mut: #222222;
+  --tx: #f7f7f5;
+  --tx2: #a3a3a0;
+  --bd: #313131;
+  --ac: #b8f34a;
+  --ac-fg: #111111;
+
+  --st-working: #6ba6e8;
+  --st-completed: #4fb183;
+  --st-waiting: #d9a441;
+  --st-failed: #e28585;
+  --st-paused: #8a8a86;
+
+  --shadow-overlay: 0 12px 32px -12px rgb(0 0 0 / 55%);
+  --shadow-menu: 0 6px 20px -8px rgb(0 0 0 / 50%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #111111;
+    --sf: #181818;
+    --mut: #222222;
+    --tx: #f7f7f5;
+    --tx2: #a3a3a0;
+    --bd: #313131;
+    --ac: #b8f34a;
+    --ac-fg: #111111;
+    --st-working: #6ba6e8;
+    --st-completed: #4fb183;
+    --st-waiting: #d9a441;
+    --st-failed: #e28585;
+    --st-paused: #8a8a86;
+    --shadow-overlay: 0 12px 32px -12px rgb(0 0 0 / 55%);
+    --shadow-menu: 0 6px 20px -8px rgb(0 0 0 / 50%);
+  }
+}
+
+:root {
+  /* Tipografia */
+  --font-sans:
+    'Geist', 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+
+  /* Geometria — raio */
+  --r-chip: 6px;
+  --r-control: 8px;
+  --r-control-lg: 9px;
+  --r-card: 12px;
+  --r-card-lg: 14px;
+  --r-pill: 999px;
+
+  /* Espaçamento (base 4px) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* Movimento */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-hover: 120ms;
+  --dur-menu: 170ms;
+  --dur-panel: 220ms;
+  --dur-state: 240ms;
+  --dur-progress: 700ms;
+}

@@ -1,0 +1,97 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--tx);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Escala tipográfica do handoff */
+.t-module {
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+  font-weight: 550;
+  line-height: 1.15;
+}
+
+.t-section {
+  font-size: 1.0625rem;
+  letter-spacing: -0.018em;
+  font-weight: 550;
+}
+
+.t-micro {
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  color: var(--tx2);
+}
+
+.t-metric {
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+  font-family: var(--font-mono);
+}
+
+/* Dados operacionais sempre em mono */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: var(--r-chip);
+}
+
+::selection {
+  background: var(--ac);
+  color: var(--ac-fg);
+}
+
+/* Scrollbar discreta */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
