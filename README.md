@@ -96,24 +96,33 @@ Coberto por testes (`npm run test` e `npm run test:e2e`):
 - **Arquivos e quarentena** com recuperação em 30 dias; arquivo crítico vinculado a
   operação ativa não pode ser movido (o botão não existe); exclusão definitiva exige
   **dois aprovadores nomeados distintos**. *(unidade)*
+- **Ações administrativas gravando na store**, com auditoria por transição: Pessoas
+  (convite, troca de papel, suspensão e reativação), Políticas (criação, submissão,
+  publicação e suspensão), Integrações (conectar, testar, desconectar), Contexto
+  (adicionar fonte e versionar), Work Units (solicitar e aprovar excedente), Orçamento
+  (definir teto), Ambientes (promover e reverter com trava de ordem) e Exceções
+  (resolver e reprocessar). *(unidade)*
 - **Matriz de risco** por ação, com classificação sempre em texto ao lado da cor.
 - **Assistente contextual** determinístico, composto a partir da store, sem API externa.
-- **Auditoria** com estado anterior e novo em cada evento.
+- **Auditoria** com estado anterior e novo em cada evento; a central de Segurança
+  destaca as tentativas negadas.
 - **Acessibilidade**: a tela de acesso negado passa o axe (WCAG 2 A/AA) sem violações
   críticas ou sérias.
+
+Módulos com tela real: Visão geral, Operações (catálogo, detalhe, wizard), Execuções,
+Aprovações, Exceções, Evidências, Implantação, Riscos, Políticas, Segurança, Auditoria,
+Arquivos, Pessoas, Papéis, Integrações, Contexto, Work Units, Orçamento, Ambientes e
+Relatórios.
 
 ## Pendências conhecidas
 
 Declaradas, não escondidas. Trabalho restante da reconstrução:
 
-- Detalhamento de tela dos módulos mapeados como *placeholder* (Pessoas, Papéis,
-  Políticas, Integrações, Contexto, Work Units, Orçamento, Ambientes, Segurança,
-  Relatórios, Exceções, Evidências) — hoje roteados, com permissão e navegação.
-- Ações administrativas de Pessoas, Papéis e Políticas gravando na store (o motor de
-  auditoria e a store já suportam; falta a UI de cada módulo).
+- Módulo de Organizações/Configurações ainda mapeado como *placeholder* (roteado, com
+  permissão e navegação).
 - Repositórios por domínio no modo `api` (o cliente HTTP, o mapa de erro e o container
   estão prontos; falta implementar cada endpoint do contrato).
-- Ampliar a cobertura E2E e de acessibilidade aos demais módulos.
+- Ampliar a cobertura E2E e de acessibilidade aos módulos administrativos.
 
 ## Handoff e referência
 

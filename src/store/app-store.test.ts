@@ -96,6 +96,82 @@ describe('implantação com trava sequencial', () => {
   });
 });
 
+describe('ações administrativas gravando na store', () => {
+  it('convida pessoa, altera papel e suspende, com auditoria', () => {
+    const store = () => useAppStore.getState();
+    const person = store().invitePerson({
+      name: 'Nova Pessoa',
+      email: 'nova@arden.as',
+      roleKeys: ['analyst'],
+    });
+    expect(store().data.people.some((p) => p.id === person.id)).toBe(true);
+    expect(person.status).toBe('invited');
+
+    store().updatePersonRoles(person.id, ['supervisor']);
+    expect(store().data.people.find((p) => p.id === person.id)!.roleKeys).toEqual(['supervisor']);
+
+    store().suspendPerson(person.id);
+    expect(store().data.people.find((p) => p.id === person.id)!.status).toBe('suspended');
+
+    const actions = store().data.auditEvents.map((e) => e.action);
+    expect(actions).toContain('people.invite');
+    expect(actions).toContain('role.change');
+    expect(actions).toContain('people.suspend');
+  });
+
+  it('cria e publica política, gravando cada transição', () => {
+    const store = () => useAppStore.getState();
+    const policy = store().createPolicy({ name: 'Regra nova', level: 'area' });
+    store().submitPolicy(policy.id);
+    store().publishPolicy(policy.id);
+    expect(store().data.policies.find((p) => p.id === policy.id)!.state).toBe('published');
+    const actions = store().data.auditEvents.map((e) => e.action);
+    expect(actions).toEqual(
+      expect.arrayContaining(['policy.create', 'policy.submit', 'policy.publish']),
+    );
+  });
+
+  it('testar integração a marca como conectada e grava auditoria', () => {
+    const store = () => useAppStore.getState();
+    store().disconnectIntegration('int_erp');
+    store().testIntegration('int_erp');
+    const i = store().data.integrations.find((x) => x.id === 'int_erp')!;
+    expect(i.status).toBe('connected');
+    expect(i.lastTestedAt).toBeTruthy();
+    expect(store().data.auditEvents.map((e) => e.action)).toContain('integration.test');
+  });
+
+  it('solicita e aprova excedente de Work Units, ampliando a capacidade', () => {
+    const store = () => useAppStore.getState();
+    const before = store().data.workUnits[0].contracted;
+    store().requestWorkUnits({ areaId: 'area_operacoes', amount: 200, justification: 'Pico sazonal' });
+    const req = store().data.workUnitRequests[0];
+    store().approveWorkUnitRequest(req.id);
+    expect(store().data.workUnits[0].contracted).toBe(before + 200);
+    expect(store().data.workUnitRequests[0].state).toBe('approved');
+  });
+
+  it('promove e reverte ambiente com trava de ordem', () => {
+    const store = () => useAppStore.getState();
+    // op_conciliacao é rascunho sem ambiente → promove para sandbox.
+    store().promoteEnvironment('op_conciliacao');
+    expect(store().data.operations.find((o) => o.id === 'op_conciliacao')!.environment).toBe(
+      'sandbox',
+    );
+    store().promoteEnvironment('op_conciliacao');
+    expect(store().data.operations.find((o) => o.id === 'op_conciliacao')!.environment).toBe(
+      'staging',
+    );
+    store().rollbackEnvironment('op_conciliacao');
+    expect(store().data.operations.find((o) => o.id === 'op_conciliacao')!.environment).toBe(
+      'sandbox',
+    );
+    expect(store().data.auditEvents.map((e) => e.action)).toEqual(
+      expect.arrayContaining(['environment.promote', 'environment.rollback']),
+    );
+  });
+});
+
 describe('exclusão de arquivo exige dois aprovadores', () => {
   it('só exclui com dois aprovadores nomeados distintos', () => {
     const store = () => useAppStore.getState();

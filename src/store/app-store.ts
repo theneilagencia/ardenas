@@ -16,6 +16,9 @@ import type {
   Execution,
   ExecutionStepResult,
   Operation,
+  Person,
+  Policy,
+  PolicyLevel,
   RoleKey,
 } from '@/domain/types';
 import { newId, now } from '@/lib/id';
@@ -107,6 +110,43 @@ export interface AppState {
   restoreFile: (id: string) => void;
   requestFileDeletion: (id: string, approverId: string) => void;
   approveFileDeletion: (id: string, approverId: string) => void;
+
+  // people (ações administrativas gravando na store)
+  invitePerson: (input: { name: string; email: string; roleKeys: RoleKey[] }) => Person;
+  updatePersonRoles: (id: string, roleKeys: RoleKey[]) => void;
+  suspendPerson: (id: string) => void;
+  reactivatePerson: (id: string) => void;
+
+  // policies
+  createPolicy: (input: { name: string; level: PolicyLevel }) => Policy;
+  submitPolicy: (id: string) => void;
+  publishPolicy: (id: string) => void;
+  suspendPolicy: (id: string) => void;
+
+  // integrations
+  connectIntegration: (id: string) => void;
+  testIntegration: (id: string) => void;
+  disconnectIntegration: (id: string) => void;
+
+  // context
+  addContextSource: (input: { name: string; kind: string }) => void;
+  versionContextSource: (id: string) => void;
+
+  // work units / budget
+  requestWorkUnits: (input: { areaId: string; amount: number; justification: string }) => void;
+  approveWorkUnitRequest: (id: string) => void;
+  setBudget: (id: string, total: number) => void;
+
+  // environments
+  promoteEnvironment: (operationId: string) => void;
+  rollbackEnvironment: (operationId: string) => void;
+
+  // exceptions
+  resolveException: (id: string) => void;
+  reprocessException: (id: string) => void;
+
+  // reports
+  exportReport: (reportId: string) => void;
 
   // notifications
   markNotificationsRead: () => void;
@@ -587,6 +627,352 @@ export const useAppStore = create<AppState>((set, get) => {
       });
     },
 
+    // ── Pessoas ──────────────────────────────────────────────────────────
+    invitePerson: (input) => {
+      const { organizationId, session } = get();
+      const person: Person = {
+        id: newId('p'),
+        organizationId,
+        companyId: session?.person.companyId,
+        name: input.name,
+        email: input.email,
+        roleKeys: input.roleKeys,
+        status: 'invited',
+      };
+      set((s) => ({ data: { ...s.data, people: [...s.data.people, person] } }));
+      get().recordAudit({
+        action: 'people.invite',
+        objectType: 'Person',
+        objectId: person.id,
+        newValue: { name: person.name, roleKeys: person.roleKeys, status: 'invited' },
+      });
+      return person;
+    },
+
+    updatePersonRoles: (id, roleKeys) => {
+      const prev = get().data.people.find((p) => p.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          people: s.data.people.map((p) => (p.id === id ? { ...p, roleKeys } : p)),
+        },
+      }));
+      get().recordAudit({
+        action: 'role.change',
+        objectType: 'Person',
+        objectId: id,
+        previousValue: { roleKeys: prev?.roleKeys },
+        newValue: { roleKeys },
+      });
+    },
+
+    suspendPerson: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          people: s.data.people.map((p) => (p.id === id ? { ...p, status: 'suspended' } : p)),
+        },
+      }));
+      get().recordAudit({
+        action: 'people.suspend',
+        objectType: 'Person',
+        objectId: id,
+        newValue: { status: 'suspended' },
+      });
+    },
+
+    reactivatePerson: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          people: s.data.people.map((p) => (p.id === id ? { ...p, status: 'active' } : p)),
+        },
+      }));
+      get().recordAudit({
+        action: 'people.reactivate',
+        objectType: 'Person',
+        objectId: id,
+        newValue: { status: 'active' },
+      });
+    },
+
+    // ── Políticas ────────────────────────────────────────────────────────
+    createPolicy: (input) => {
+      const { organizationId } = get();
+      const policy: Policy = {
+        id: newId('pol'),
+        organizationId,
+        level: input.level,
+        name: input.name,
+        state: 'draft',
+      };
+      set((s) => ({ data: { ...s.data, policies: [...s.data.policies, policy] } }));
+      get().recordAudit({
+        action: 'policy.create',
+        objectType: 'Policy',
+        objectId: policy.id,
+        newValue: { name: policy.name, level: policy.level, state: 'draft' },
+      });
+      return policy;
+    },
+
+    submitPolicy: (id) => transitionPolicy(get, set, id, 'submitted', 'policy.submit'),
+    publishPolicy: (id) => transitionPolicy(get, set, id, 'published', 'policy.publish'),
+    suspendPolicy: (id) => transitionPolicy(get, set, id, 'suspended', 'policy.suspend'),
+
+    // ── Integrações ──────────────────────────────────────────────────────
+    connectIntegration: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          integrations: s.data.integrations.map((i) =>
+            i.id === id ? { ...i, status: 'connected' } : i,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'integration.connect',
+        objectType: 'Integration',
+        objectId: id,
+        newValue: { status: 'connected' },
+      });
+    },
+
+    testIntegration: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          integrations: s.data.integrations.map((i) =>
+            i.id === id ? { ...i, status: 'connected', lastTestedAt: now() } : i,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'integration.test',
+        objectType: 'Integration',
+        objectId: id,
+        newValue: { status: 'connected', tested: true },
+      });
+    },
+
+    disconnectIntegration: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          integrations: s.data.integrations.map((i) =>
+            i.id === id ? { ...i, status: 'disconnected' } : i,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'integration.disconnect',
+        objectType: 'Integration',
+        objectId: id,
+        newValue: { status: 'disconnected' },
+      });
+    },
+
+    // ── Contexto ─────────────────────────────────────────────────────────
+    addContextSource: (input) => {
+      const { organizationId } = get();
+      const source = {
+        id: newId('ctx'),
+        organizationId,
+        name: input.name,
+        kind: input.kind,
+        version: 1,
+      };
+      set((s) => ({ data: { ...s.data, contextSources: [...s.data.contextSources, source] } }));
+      get().recordAudit({
+        action: 'context.add',
+        objectType: 'ContextSource',
+        objectId: source.id,
+        newValue: { name: source.name, version: 1 },
+      });
+    },
+
+    versionContextSource: (id) => {
+      const prev = get().data.contextSources.find((c) => c.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          contextSources: s.data.contextSources.map((c) =>
+            c.id === id ? { ...c, version: c.version + 1 } : c,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'context.version',
+        objectType: 'ContextSource',
+        objectId: id,
+        previousValue: { version: prev?.version },
+        newValue: { version: (prev?.version ?? 0) + 1 },
+      });
+    },
+
+    // ── Work Units / Orçamento ───────────────────────────────────────────
+    requestWorkUnits: (input) => {
+      const { organizationId } = get();
+      const request = {
+        id: newId('wureq'),
+        organizationId,
+        areaId: input.areaId,
+        amount: input.amount,
+        justification: input.justification,
+        state: 'pending' as const,
+      };
+      set((s) => ({
+        data: { ...s.data, workUnitRequests: [request, ...s.data.workUnitRequests] },
+      }));
+      get().recordAudit({
+        action: 'budget.overage.request',
+        objectType: 'WorkUnitRequest',
+        objectId: request.id,
+        newValue: { amount: request.amount },
+        justification: input.justification,
+      });
+    },
+
+    approveWorkUnitRequest: (id) => {
+      const req = get().data.workUnitRequests.find((r) => r.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          workUnitRequests: s.data.workUnitRequests.map((r) =>
+            r.id === id ? { ...r, state: 'approved' } : r,
+          ),
+          workUnits: s.data.workUnits.map((w) =>
+            req && w.areaId === req.areaId
+              ? { ...w, contracted: w.contracted + req.amount, available: w.available + req.amount }
+              : w,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'budget.overage.approve',
+        objectType: 'WorkUnitRequest',
+        objectId: id,
+        newValue: { state: 'approved', amount: req?.amount },
+      });
+    },
+
+    setBudget: (id, total) => {
+      const prev = get().data.budgets.find((b) => b.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          budgets: s.data.budgets.map((b) => (b.id === id ? { ...b, total } : b)),
+        },
+      }));
+      get().recordAudit({
+        action: 'budget.define',
+        objectType: 'Budget',
+        objectId: id,
+        previousValue: { total: prev?.total },
+        newValue: { total },
+      });
+    },
+
+    // ── Ambientes ────────────────────────────────────────────────────────
+    promoteEnvironment: (operationId) => {
+      const order: Array<'sandbox' | 'staging' | 'production'> = [
+        'sandbox',
+        'staging',
+        'production',
+      ];
+      const op = get().data.operations.find((o) => o.id === operationId);
+      const idx = op?.environment ? order.indexOf(op.environment) : -1;
+      const nextEnv = order[Math.min(order.length - 1, idx + 1)] ?? 'sandbox';
+      set((s) => ({
+        data: {
+          ...s.data,
+          operations: s.data.operations.map((o) =>
+            o.id === operationId ? { ...o, environment: nextEnv, updatedAt: now() } : o,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'environment.promote',
+        objectType: 'Operation',
+        objectId: operationId,
+        previousValue: { environment: op?.environment },
+        newValue: { environment: nextEnv },
+        relatedOperationId: operationId,
+      });
+    },
+
+    rollbackEnvironment: (operationId) => {
+      const order: Array<'sandbox' | 'staging' | 'production'> = [
+        'sandbox',
+        'staging',
+        'production',
+      ];
+      const op = get().data.operations.find((o) => o.id === operationId);
+      const idx = op?.environment ? order.indexOf(op.environment) : 0;
+      const prevEnv = order[Math.max(0, idx - 1)] ?? 'sandbox';
+      set((s) => ({
+        data: {
+          ...s.data,
+          operations: s.data.operations.map((o) =>
+            o.id === operationId ? { ...o, environment: prevEnv, updatedAt: now() } : o,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'environment.rollback',
+        objectType: 'Operation',
+        objectId: operationId,
+        previousValue: { environment: op?.environment },
+        newValue: { environment: prevEnv },
+        relatedOperationId: operationId,
+      });
+    },
+
+    // ── Exceções ─────────────────────────────────────────────────────────
+    resolveException: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          exceptions: s.data.exceptions.map((e) =>
+            e.id === id ? { ...e, state: 'resolved' } : e,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'exception.resolve',
+        objectType: 'OperationException',
+        objectId: id,
+        newValue: { state: 'resolved' },
+      });
+    },
+
+    reprocessException: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          exceptions: s.data.exceptions.map((e) =>
+            e.id === id ? { ...e, state: 'reprocessing' } : e,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'exception.reprocess',
+        objectType: 'OperationException',
+        objectId: id,
+        newValue: { state: 'reprocessing' },
+      });
+    },
+
+    // ── Relatórios ───────────────────────────────────────────────────────
+    exportReport: (reportId) => {
+      get().recordAudit({
+        action: 'report.export',
+        objectType: 'Report',
+        objectId: reportId,
+        newValue: { exported: true },
+      });
+    },
+
     markNotificationsRead: () => {
       set((s) => ({
         data: {
@@ -597,6 +983,32 @@ export const useAppStore = create<AppState>((set, get) => {
     },
   };
 });
+
+type SetFn = (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void;
+type GetFn = () => AppState;
+
+function transitionPolicy(
+  get: GetFn,
+  set: SetFn,
+  id: string,
+  state: Policy['state'],
+  action: string,
+) {
+  const prev = get().data.policies.find((p) => p.id === id);
+  set((s) => ({
+    data: {
+      ...s.data,
+      policies: s.data.policies.map((p) => (p.id === id ? { ...p, state } : p)),
+    },
+  }));
+  get().recordAudit({
+    action,
+    objectType: 'Policy',
+    objectId: id,
+    previousValue: { state: prev?.state },
+    newValue: { state },
+  });
+}
 
 function completeStep(d: Deployment, stepId: string): Deployment {
   const idx = d.steps.findIndex((s) => s.id === stepId);

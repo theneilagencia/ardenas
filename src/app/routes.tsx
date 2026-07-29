@@ -11,6 +11,18 @@ import { DeploymentPage } from '@/features/deployment/DeploymentPage';
 import { FilesPage } from '@/features/files/FilesPage';
 import { RiskPage } from '@/features/risk/RiskPage';
 import { AuditPage } from '@/features/audit/AuditPage';
+import { PeoplePage } from '@/features/people/PeoplePage';
+import { RolesPage } from '@/features/roles/RolesPage';
+import { PoliciesPage } from '@/features/policies/PoliciesPage';
+import { IntegrationsPage } from '@/features/integrations/IntegrationsPage';
+import { ContextPage } from '@/features/context/ContextPage';
+import { WorkUnitsPage } from '@/features/work-units/WorkUnitsPage';
+import { BudgetPage } from '@/features/budget/BudgetPage';
+import { EnvironmentsPage } from '@/features/environments/EnvironmentsPage';
+import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage';
+import { EvidencePage } from '@/features/evidence/EvidencePage';
+import { SecurityPage } from '@/features/security/SecurityPage';
+import { ReportsPage } from '@/features/reports/ReportsPage';
 import { ModulePlaceholder } from '@/features/ModulePlaceholder';
 
 export const router = createBrowserRouter([
@@ -103,12 +115,11 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // Módulos mapeados, detalhamento na sequência da reconstrução.
       {
         path: 'exceptions',
         element: (
           <RequirePermission permission="execution.view">
-            <ModulePlaceholder labelKey="nav.exceptions" />
+            <ExceptionsPage />
           </RequirePermission>
         ),
       },
@@ -116,7 +127,7 @@ export const router = createBrowserRouter([
         path: 'evidence',
         element: (
           <RequirePermission permission="audit.view">
-            <ModulePlaceholder labelKey="nav.evidence" />
+            <EvidencePage />
           </RequirePermission>
         ),
       },
@@ -124,7 +135,7 @@ export const router = createBrowserRouter([
         path: 'people',
         element: (
           <RequirePermission permission="people.view">
-            <ModulePlaceholder labelKey="nav.people" />
+            <PeoplePage />
           </RequirePermission>
         ),
       },
@@ -132,7 +143,7 @@ export const router = createBrowserRouter([
         path: 'roles',
         element: (
           <RequirePermission permission="role.view">
-            <ModulePlaceholder labelKey="nav.roles" />
+            <RolesPage />
           </RequirePermission>
         ),
       },
@@ -140,7 +151,7 @@ export const router = createBrowserRouter([
         path: 'policies',
         element: (
           <RequirePermission permission="policy.view">
-            <ModulePlaceholder labelKey="nav.policies" />
+            <PoliciesPage />
           </RequirePermission>
         ),
       },
@@ -148,7 +159,7 @@ export const router = createBrowserRouter([
         path: 'integrations',
         element: (
           <RequirePermission permission="integration.view">
-            <ModulePlaceholder labelKey="nav.integrations" />
+            <IntegrationsPage />
           </RequirePermission>
         ),
       },
@@ -156,7 +167,7 @@ export const router = createBrowserRouter([
         path: 'context',
         element: (
           <RequirePermission permission="context.view">
-            <ModulePlaceholder labelKey="nav.context" />
+            <ContextPage />
           </RequirePermission>
         ),
       },
@@ -164,7 +175,7 @@ export const router = createBrowserRouter([
         path: 'work-units',
         element: (
           <RequirePermission permission="budget.view">
-            <ModulePlaceholder labelKey="nav.workUnits" />
+            <WorkUnitsPage />
           </RequirePermission>
         ),
       },
@@ -172,7 +183,7 @@ export const router = createBrowserRouter([
         path: 'budget',
         element: (
           <RequirePermission permission="budget.view">
-            <ModulePlaceholder labelKey="nav.budget" />
+            <BudgetPage />
           </RequirePermission>
         ),
       },
@@ -180,7 +191,7 @@ export const router = createBrowserRouter([
         path: 'environments',
         element: (
           <RequirePermission permission="operation.view">
-            <ModulePlaceholder labelKey="nav.environments" />
+            <EnvironmentsPage />
           </RequirePermission>
         ),
       },
@@ -188,7 +199,7 @@ export const router = createBrowserRouter([
         path: 'security',
         element: (
           <RequirePermission permission="security.view">
-            <ModulePlaceholder labelKey="nav.security" />
+            <SecurityPage />
           </RequirePermission>
         ),
       },
@@ -196,7 +207,7 @@ export const router = createBrowserRouter([
         path: 'reports',
         element: (
           <RequirePermission permission="report.export">
-            <ModulePlaceholder labelKey="nav.reports" />
+            <ReportsPage />
           </RequirePermission>
         ),
       },

@@ -64,7 +64,19 @@ export function Topbar() {
               <DropdownMenu.Item
                 key={lng}
                 className="menu-item"
-                onSelect={() => setLang(lng)}
+                onSelect={() => {
+                  const prev = i18n.language;
+                  setLang(lng);
+                  if (prev !== lng) {
+                    useAppStore.getState().recordAudit({
+                      action: 'language.change',
+                      objectType: 'Session',
+                      objectId: session?.person.id ?? 'anon',
+                      previousValue: { lang: prev },
+                      newValue: { lang: lng },
+                    });
+                  }
+                }}
               >
                 {lng === 'pt-BR' ? 'Português (BR)' : 'English (US)'}
               </DropdownMenu.Item>
