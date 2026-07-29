@@ -63,6 +63,9 @@ const emptySnapshot: DomainSnapshot = {
   auditEvents: [],
   deployments: [],
   notifications: [],
+  resultIndicators: [],
+  authorityMatrix: [],
+  assessments: [],
 };
 
 export interface AppState {

@@ -1,19 +1,23 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { RequirePermission } from '@/components/RequirePermission';
+import type { Permission } from '@/domain/permissions';
+import type { ReactNode } from 'react';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { OperationsPage } from '@/features/operations/OperationsPage';
 import { OperationDetailPage } from '@/features/operations/OperationDetailPage';
 import { WizardPage } from '@/features/operations/wizard/WizardPage';
 import { ExecutionsPage, ExecutionDetailPage } from '@/features/executions/ExecutionsPage';
 import { ApprovalsPage } from '@/features/approvals/ApprovalsPage';
+import { ResultsPage } from '@/features/results/ResultsPage';
 import { DeploymentPage } from '@/features/deployment/DeploymentPage';
 import { FilesPage } from '@/features/files/FilesPage';
 import { RiskPage } from '@/features/risk/RiskPage';
 import { AuditPage } from '@/features/audit/AuditPage';
 import { PeoplePage } from '@/features/people/PeoplePage';
 import { RolesPage } from '@/features/roles/RolesPage';
-import { PoliciesPage } from '@/features/policies/PoliciesPage';
+import { GovernancePage } from '@/features/governance/GovernancePage';
+import { AuthorityPage } from '@/features/authority/AuthorityPage';
 import { IntegrationsPage } from '@/features/integrations/IntegrationsPage';
 import { ContextPage } from '@/features/context/ContextPage';
 import { WorkUnitsPage } from '@/features/work-units/WorkUnitsPage';
@@ -23,7 +27,13 @@ import { ExceptionsPage } from '@/features/exceptions/ExceptionsPage';
 import { EvidencePage } from '@/features/evidence/EvidencePage';
 import { SecurityPage } from '@/features/security/SecurityPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
-import { ModulePlaceholder } from '@/features/ModulePlaceholder';
+import { AssessmentPage } from '@/features/assessment/AssessmentPage';
+import { EvaluatorPage } from '@/features/assessment/EvaluatorPage';
+import { AdminPage } from '@/features/admin/AdminPage';
+
+const guard = (permission: Permission, element: ReactNode) => (
+  <RequirePermission permission={permission}>{element}</RequirePermission>
+);
 
 export const router = createBrowserRouter([
   {
@@ -32,193 +42,46 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
 
-      {
-        path: 'operations',
-        element: (
-          <RequirePermission permission="operation.view">
-            <OperationsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'operations/new',
-        element: (
-          <RequirePermission permission="operation.create">
-            <WizardPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'operations/:id',
-        element: (
-          <RequirePermission permission="operation.view">
-            <OperationDetailPage />
-          </RequirePermission>
-        ),
-      },
+      // OPERAÇÃO
+      { path: 'operations', element: guard('operation.view', <OperationsPage />) },
+      { path: 'operations/new', element: guard('operation.create', <WizardPage />) },
+      { path: 'operations/:id', element: guard('operation.view', <OperationDetailPage />) },
+      { path: 'executions', element: guard('execution.view', <ExecutionsPage />) },
+      { path: 'executions/:id', element: guard('execution.view', <ExecutionDetailPage />) },
+      { path: 'approvals', element: guard('approval.view', <ApprovalsPage />) },
 
-      {
-        path: 'executions',
-        element: (
-          <RequirePermission permission="execution.view">
-            <ExecutionsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'executions/:id',
-        element: (
-          <RequirePermission permission="execution.view">
-            <ExecutionDetailPage />
-          </RequirePermission>
-        ),
-      },
+      // RESULTADO
+      { path: 'results', element: guard('operation.view', <ResultsPage />) },
+      { path: 'evidence', element: guard('audit.view', <EvidencePage />) },
+      { path: 'exceptions', element: guard('execution.view', <ExceptionsPage />) },
 
-      {
-        path: 'approvals',
-        element: (
-          <RequirePermission permission="approval.view">
-            <ApprovalsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'deployment',
-        element: (
-          <RequirePermission permission="onboarding.execute">
-            <DeploymentPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'files',
-        element: (
-          <RequirePermission permission="file.view">
-            <FilesPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'risk',
-        element: (
-          <RequirePermission permission="risk.view">
-            <RiskPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'audit',
-        element: (
-          <RequirePermission permission="audit.view">
-            <AuditPage />
-          </RequirePermission>
-        ),
-      },
+      // CONTROLE
+      { path: 'work-units', element: guard('budget.view', <WorkUnitsPage />) },
+      { path: 'authority', element: guard('risk.view', <AuthorityPage />) },
+      { path: 'governance', element: guard('policy.view', <GovernancePage />) },
+      { path: 'risk', element: guard('risk.view', <RiskPage />) },
+      { path: 'context', element: guard('context.view', <ContextPage />) },
+      { path: 'integrations', element: guard('integration.view', <IntegrationsPage />) },
+      { path: 'files', element: guard('file.view', <FilesPage />) },
 
-      {
-        path: 'exceptions',
-        element: (
-          <RequirePermission permission="execution.view">
-            <ExceptionsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'evidence',
-        element: (
-          <RequirePermission permission="audit.view">
-            <EvidencePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'people',
-        element: (
-          <RequirePermission permission="people.view">
-            <PeoplePage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'roles',
-        element: (
-          <RequirePermission permission="role.view">
-            <RolesPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'policies',
-        element: (
-          <RequirePermission permission="policy.view">
-            <PoliciesPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'integrations',
-        element: (
-          <RequirePermission permission="integration.view">
-            <IntegrationsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'context',
-        element: (
-          <RequirePermission permission="context.view">
-            <ContextPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'work-units',
-        element: (
-          <RequirePermission permission="budget.view">
-            <WorkUnitsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'budget',
-        element: (
-          <RequirePermission permission="budget.view">
-            <BudgetPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'environments',
-        element: (
-          <RequirePermission permission="operation.view">
-            <EnvironmentsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'security',
-        element: (
-          <RequirePermission permission="security.view">
-            <SecurityPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'reports',
-        element: (
-          <RequirePermission permission="report.export">
-            <ReportsPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'organizations',
-        element: (
-          <RequirePermission permission="organization.manage">
-            <ModulePlaceholder labelKey="nav.settings" />
-          </RequirePermission>
-        ),
-      },
+      // AVALIAÇÃO
+      { path: 'assessment', element: guard('operation.view', <AssessmentPage />) },
+      { path: 'evaluator', element: guard('operation.view', <EvaluatorPage />) },
+
+      // EMPRESA
+      { path: 'deployment', element: guard('onboarding.execute', <DeploymentPage />) },
+      { path: 'people', element: guard('people.view', <PeoplePage />) },
+      { path: 'security', element: guard('security.view', <SecurityPage />) },
+      { path: 'environments', element: guard('operation.view', <EnvironmentsPage />) },
+      { path: 'audit', element: guard('audit.view', <AuditPage />) },
+      { path: 'reports', element: guard('report.export', <ReportsPage />) },
+      { path: 'admin', element: guard('organization.manage', <AdminPage />) },
+
+      // Rotas auxiliares (acessíveis por link, dobradas na navegação do mockup)
+      { path: 'roles', element: guard('role.view', <RolesPage />) },
+      { path: 'budget', element: guard('budget.view', <BudgetPage />) },
+      { path: 'policies', element: <Navigate to="/governance" replace /> },
+      { path: 'organizations', element: <Navigate to="/admin" replace /> },
 
       { path: '*', element: <Navigate to="/" replace /> },
     ],

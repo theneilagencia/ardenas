@@ -109,24 +109,37 @@ Coberto por testes (`npm run test` e `npm run test:e2e`):
 - **Acessibilidade**: a tela de acesso negado passa o axe (WCAG 2 A/AA) sem violações
   críticas ou sérias.
 
-Módulos com tela real: Visão geral, Operações (catálogo, detalhe, wizard), Execuções,
-Aprovações, Exceções, Evidências, Implantação, Riscos, Políticas, Segurança, Auditoria,
-Arquivos, Pessoas, Papéis, Integrações, Contexto, Work Units, Orçamento, Ambientes e
-Relatórios.
+### Os 23 módulos do mockup
+
+A navegação reproduz os 23 módulos do protótipo corporativo, nos cinco grupos:
+
+- **Operação** — Visão geral, Operações (catálogo, detalhe, wizard), Execuções, Aprovações
+- **Resultado** — Resultados (portfólio de indicadores com método de obtenção),
+  Evidências, Exceções
+- **Controle** — Work Units, Gradientes de Autoridade (matriz por ação), Governança
+  (políticas com herança, versões e retenção), Matriz de risco, Contexto, Integrações,
+  Arquivos
+- **Avaliação** — Assessment (Autonomous Work Assessment) e Avaliador (wizard de 12
+  etapas de operação autônoma)
+- **Empresa** — Implantação, Pessoas e equipes, Segurança, Ambientes, Auditoria,
+  Relatórios, Administração (16 áreas administrativas em cinco grupos)
 
 ## Pendências conhecidas
 
 Declaradas, não escondidas. Trabalho restante da reconstrução:
 
-- Módulo de Organizações/Configurações ainda mapeado como *placeholder* (roteado, com
-  permissão e navegação).
+- Aprofundar interações secundárias do mockup em alguns módulos (comparar versões e
+  duplicar operação, delegar/solicitar ajuste em aprovações, tour guiado, command
+  palette, painéis de detalhe em drawer). A estrutura, os 23 módulos e os fluxos
+  assinatura já estão presentes.
 - Repositórios por domínio no modo `api` (o cliente HTTP, o mapa de erro e o container
   estão prontos; falta implementar cada endpoint do contrato).
-- Ampliar a cobertura E2E e de acessibilidade aos módulos administrativos.
+- Ampliar a cobertura E2E e de acessibilidade aos módulos administrativos e de avaliação.
 - Alerta Dependabot em `brace-expansion` (GHSA-mh99-v99m-4gvg): cadeia exclusivamente
-  de ferramentas de desenvolvimento (ESLint e workbox-build), nunca no bundle
-  entregue. Fixado via `overrides` na linha 2.x mais recente; o único conserto
-  oferecido pelo npm é subir ESLint para a major 10 (quebra a config), adiado.
+  de ferramentas de desenvolvimento (ESLint e workbox-build), nunca no bundle entregue.
+  O único conserto oferecido pelo npm é subir ESLint para a major 10 (quebra a config);
+  fixar a versão via `overrides` quebra o globbing do workbox no build, então o alerta
+  fica documentado e adiado até o upstream publicar minimatch corrigido.
 
 ## Handoff e referência
 

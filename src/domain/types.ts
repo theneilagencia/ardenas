@@ -305,6 +305,12 @@ export interface Policy {
   state: PolicyState;
   justification?: string;
   expiresAt?: ISODate;
+  // Metadados exibidos na Governança
+  scopeLabel?: string;
+  ownerName?: string;
+  version?: string;
+  opsCount?: number;
+  updatedAt?: ISODate;
 }
 
 // ── Risco ─────────────────────────────────────────────────────────────────────
@@ -447,6 +453,52 @@ export interface Deployment {
   steps: DeploymentStep[];
   completed: boolean;
   completedAt?: ISODate;
+}
+
+// ── Resultados (portfólio de indicadores) ────────────────────────────────────
+
+export type ResultMethod = 'measured' | 'estimated' | 'client_reported' | 'validated' | 'unavailable';
+
+export interface ResultIndicator {
+  id: ID;
+  organizationId: ID;
+  name: string;
+  method: ResultMethod;
+  value: string;
+  delta: string;
+  before: string;
+}
+
+// ── Matriz de Gradientes de Autoridade ────────────────────────────────────────
+
+export interface AuthorityMatrixRow {
+  id: ID;
+  organizationId: ID;
+  action: string;
+  system: string;
+  condition: string;
+  reversible: boolean;
+  risk: RiskLevel;
+  authorityLevel: AuthorityLevel;
+}
+
+// ── Assessment (Autonomous Work Assessment) ───────────────────────────────────
+
+export type AssessmentStage = 'analyzing' | 'awaiting_info' | 'completed';
+
+export interface Assessment {
+  id: ID;
+  organizationId: ID;
+  operationName: string;
+  discipline: string;
+  date: string;
+  company: string;
+  responsibleId: ID;
+  responsibleName: string;
+  stage: AssessmentStage;
+  recommendation: string;
+  execScore: number;
+  workUnitsRange: string;
 }
 
 // ── Notificações ──────────────────────────────────────────────────────────────

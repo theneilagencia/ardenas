@@ -27,6 +27,9 @@ export function useScopedData() {
     deployments: data.deployments.filter((d) => d.organizationId === orgId),
     notifications: data.notifications.filter((n) => n.organizationId === orgId),
     people: data.people.filter((p) => p.organizationId === orgId),
+    resultIndicators: data.resultIndicators.filter((r) => r.organizationId === orgId),
+    authorityMatrix: data.authorityMatrix.filter((a) => a.organizationId === orgId),
+    assessments: data.assessments.filter((a) => a.organizationId === orgId),
     roles: data.roles,
     organizations: data.organizations,
   };

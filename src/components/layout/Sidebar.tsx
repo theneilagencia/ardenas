@@ -1,15 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronsUpDown, Plus } from 'lucide-react';
-import { MODULES, MODULE_GROUPS, type ModuleDef } from '@/app/modules';
+import { MODULES, MODULE_GROUPS, GROUP_LABEL_KEY } from '@/app/modules';
 import { usePermission, useScopedData } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
-
-const GROUP_LABEL: Record<ModuleDef['group'], string> = {
-  operate: 'Operar',
-  govern: 'Governar',
-  administer: 'Administrar',
-};
 
 export function Sidebar() {
   const { t } = useTranslation();
@@ -67,7 +61,7 @@ export function Sidebar() {
           if (items.length === 0) return null;
           return (
             <div key={group}>
-              <div className="t-micro nav-group-label">{GROUP_LABEL[group]}</div>
+              <div className="t-micro nav-group-label">{t(GROUP_LABEL_KEY[group])}</div>
               {items.map((m) => {
                 const Icon = m.icon;
                 return (

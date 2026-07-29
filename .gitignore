@@ -16,3 +16,6 @@ test-results
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# TS incremental build info
+*.tsbuildinfo

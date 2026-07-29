@@ -9,7 +9,9 @@ import type {
   AppNotification,
   Approval,
   Area,
+  Assessment,
   AuditEvent,
+  AuthorityMatrixRow,
   Budget,
   Company,
   ContextSource,
@@ -24,6 +26,7 @@ import type {
   Organization,
   Person,
   Policy,
+  ResultIndicator,
   Risk,
   Role,
   Team,
@@ -104,6 +107,9 @@ export interface DomainSnapshot {
   auditEvents: AuditEvent[];
   deployments: Deployment[];
   notifications: AppNotification[];
+  resultIndicators: ResultIndicator[];
+  authorityMatrix: AuthorityMatrixRow[];
+  assessments: Assessment[];
 }
 
 export type ApprovalDecision = Extract<
