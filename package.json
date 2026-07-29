@@ -6,6 +6,9 @@
   "engines": {
     "node": ">=22"
   },
+  "overrides": {
+    "brace-expansion": "^2.0.2"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -123,6 +123,10 @@ Declaradas, não escondidas. Trabalho restante da reconstrução:
 - Repositórios por domínio no modo `api` (o cliente HTTP, o mapa de erro e o container
   estão prontos; falta implementar cada endpoint do contrato).
 - Ampliar a cobertura E2E e de acessibilidade aos módulos administrativos.
+- Alerta Dependabot em `brace-expansion` (GHSA-mh99-v99m-4gvg): cadeia exclusivamente
+  de ferramentas de desenvolvimento (ESLint e workbox-build), nunca no bundle
+  entregue. Fixado via `overrides` na linha 2.x mais recente; o único conserto
+  oferecido pelo npm é subir ESLint para a major 10 (quebra a config), adiado.
 
 ## Handoff e referência
 
