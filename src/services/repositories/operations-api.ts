@@ -1,72 +1,99 @@
 /**
  * Arden.AS — OperationsRepository sobre HTTP (modo api).
- * Implementa o contrato de docs/handoff/API_CONTRACTS.md. Todo método aceita
- * AbortSignal opcional; erros passam pelo mapa de tratamento do ApiClient.
+ * Implementa o contrato de docs/handoff/API_CONTRACTS.md. Erros são normalizados
+ * para ArdenRepositoryError.
  */
 
 import type { ApiClient } from '../api-client';
-import type { OperationQuery, OperationsRepository, PaginatedResult } from '../contracts';
-import type { Execution, Operation } from '@/domain/types';
+import type {
+  CreateFromAssessmentInput,
+  CreateOperationInput,
+  ListOperationsInput,
+  OperationsRepository,
+  PaginatedResult,
+  UpdateOperationDraftInput,
+} from '../contracts';
+import type { Operation } from '@/domain/types';
+import { toRepositoryError } from '../errors';
 
 export class ApiOperationsRepository implements OperationsRepository {
   constructor(private readonly client: ApiClient) {}
 
-  async list(params?: OperationQuery): Promise<PaginatedResult<Operation>> {
-    const qs = new URLSearchParams();
-    if (params?.status) qs.set('status', params.status);
-    if (params?.search) qs.set('search', params.search);
-    if (params?.page) qs.set('page', String(params.page));
-    if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
-    const suffix = qs.toString() ? `?${qs.toString()}` : '';
-    const res = await this.client.get<Operation[]>(`/operations${suffix}`, params?.signal);
-    const items = Array.isArray(res.data) ? res.data : [];
-    return {
-      items,
-      page: res.meta?.page ?? 1,
-      pageSize: res.meta?.pageSize ?? items.length,
-      total: res.meta?.total ?? items.length,
-    };
+  private async run<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      throw toRepositoryError(err);
+    }
   }
 
-  async getById(id: string, signal?: AbortSignal): Promise<Operation> {
-    const res = await this.client.get<Operation>(`/operations/${id}`, signal);
-    return res.data;
-  }
-
-  async create(input: Operation): Promise<Operation> {
-    const res = await this.client.post<Operation>('/operations', input);
-    return res.data;
-  }
-
-  async update(id: string, input: Partial<Operation>): Promise<Operation> {
-    const res = await this.client.patch<Operation>(`/operations/${id}`, input);
-    return res.data;
-  }
-
-  async publish(id: string): Promise<Operation> {
-    const res = await this.client.post<Operation>(`/operations/${id}/publish`);
-    return res.data;
-  }
-
-  async pause(id: string): Promise<Operation> {
-    const res = await this.client.post<Operation>(`/operations/${id}/pause`);
-    return res.data;
-  }
-
-  async resume(id: string): Promise<Operation> {
-    const res = await this.client.post<Operation>(`/operations/${id}/resume`);
-    return res.data;
-  }
-
-  async createExecution(id: string, opts?: { test: boolean }): Promise<Execution> {
-    const res = await this.client.post<Execution>(`/operations/${id}/execute`, {
-      test: opts?.test ?? false,
+  list(input: ListOperationsInput): Promise<PaginatedResult<Operation>> {
+    return this.run(async () => {
+      const qs = new URLSearchParams();
+      qs.set('organizationId', input.organizationId);
+      if (input.status && input.status !== 'all') qs.set('status', input.status);
+      if (input.search) qs.set('search', input.search);
+      if (input.page) qs.set('page', String(input.page));
+      if (input.pageSize) qs.set('pageSize', String(input.pageSize));
+      const res = await this.client.get<Operation[]>(`/operations?${qs.toString()}`, input.signal);
+      const items = Array.isArray(res.data) ? res.data : [];
+      return {
+        items,
+        page: res.meta?.page ?? 1,
+        pageSize: res.meta?.pageSize ?? items.length,
+        total: res.meta?.total ?? items.length,
+      };
     });
-    return res.data;
+  }
+
+  getById(id: string, signal?: AbortSignal): Promise<Operation> {
+    return this.run(async () => (await this.client.get<Operation>(`/operations/${id}`, signal)).data);
+  }
+
+  create(input: CreateOperationInput): Promise<Operation> {
+    return this.run(async () => (await this.client.post<Operation>('/operations', input)).data);
+  }
+
+  updateDraft(id: string, input: UpdateOperationDraftInput): Promise<Operation> {
+    return this.run(async () => (await this.client.patch<Operation>(`/operations/${id}`, input)).data);
+  }
+
+  createVersion(id: string): Promise<Operation> {
+    return this.run(
+      async () => (await this.client.post<Operation>(`/operations/${id}/versions`)).data,
+    );
+  }
+
+  publishVersion(id: string): Promise<Operation> {
+    return this.run(
+      async () => (await this.client.post<Operation>(`/operations/${id}/publish`)).data,
+    );
+  }
+
+  pause(id: string): Promise<Operation> {
+    return this.run(async () => (await this.client.post<Operation>(`/operations/${id}/pause`)).data);
+  }
+
+  resume(id: string): Promise<Operation> {
+    return this.run(
+      async () => (await this.client.post<Operation>(`/operations/${id}/resume`)).data,
+    );
   }
 
   async archive(id: string): Promise<void> {
-    // O contrato não expõe endpoint dedicado de arquivamento; usa-se PATCH de estado.
-    await this.client.patch<Operation>(`/operations/${id}`, { status: 'archived' });
+    await this.run(() => this.client.patch<Operation>(`/operations/${id}`, { status: 'archived' }));
+  }
+
+  duplicate(id: string): Promise<Operation> {
+    return this.run(
+      async () => (await this.client.post<Operation>(`/operations/${id}/duplicate`)).data,
+    );
+  }
+
+  createFromAssessment(input: CreateFromAssessmentInput): Promise<Operation> {
+    return this.run(
+      async () =>
+        (await this.client.post<Operation>('/operations/from-assessment', input)).data,
+    );
   }
 }

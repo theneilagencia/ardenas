@@ -1,72 +1,85 @@
 /**
- * Arden.AS — container de serviços.
- * Resolve a implementação a partir da configuração. Se a troca exigir alterar
- * componente, o contrato está vazando — corrige-se o contrato, não o componente.
+ * Arden.AS — composição de dependências de dados (ponto único).
+ * A seleção da implementação por VITE_DATA_PROVIDER ocorre SÓ aqui. Componentes
+ * consomem `ArdenServices` (via camada de aplicação/hooks) e nunca conhecem
+ * implementações concretas, tabelas, HTTP, IndexedDB ou mocks.
  */
 
-import type { ApprovalsRepository, DataProvider, FilesRepository, OperationsRepository } from './contracts';
-import { ApiDataProvider, IndexedDbDataProvider, MockDataProvider } from './providers';
+import type { ArdenServices } from './contracts';
+import type { SnapshotStore } from './data/snapshot-store';
+import { IndexedDbSnapshotStore, MemorySnapshotStore } from './data/snapshot-store';
 import { ApiClient } from './api-client';
+import { SnapshotOperationsRepository } from './repositories/operations-snapshot';
 import { ApiOperationsRepository } from './repositories/operations-api';
-import { StoreOperationsRepository } from './repositories/operations-store';
+import { SnapshotAuditRepository } from './repositories/audit-snapshot';
+import { ApiAuditRepository } from './repositories/audit-api';
+import { SnapshotApprovalsRepository } from './repositories/approvals-snapshot';
 import { ApiApprovalsRepository } from './repositories/approvals-api';
+import { SnapshotFilesRepository } from './repositories/files-snapshot';
 import { ApiFilesRepository } from './repositories/files-api';
 
-type ProviderKind = 'mock' | 'indexeddb' | 'api';
+export type ProviderKind = 'mock' | 'indexeddb' | 'api';
 
-function resolveKind(): ProviderKind {
+export function resolveProviderKind(): ProviderKind {
   const raw = import.meta.env.VITE_DATA_PROVIDER as string | undefined;
   if (raw === 'api' || raw === 'mock' || raw === 'indexeddb') return raw;
   return 'indexeddb';
 }
 
-let provider: DataProvider | null = null;
-
-export function getDataProvider(): DataProvider {
-  if (provider) return provider;
-  const kind = resolveKind();
-  if (kind === 'api') {
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string) ?? '';
-    provider = new ApiDataProvider(baseUrl);
-  } else if (kind === 'mock') {
-    provider = new MockDataProvider();
-  } else {
-    provider = new IndexedDbDataProvider();
-  }
-  return provider;
-}
-
-/** Usado por testes para injetar um provider determinístico. */
-export function setDataProvider(next: DataProvider): void {
-  provider = next;
-}
-
-/** Cliente HTTP para o modo api. Base URL vem de VITE_API_BASE_URL. */
 function apiClient(): ApiClient {
   const baseUrl = (import.meta.env.VITE_API_BASE_URL as string) ?? '';
   return new ApiClient({ baseUrl });
 }
 
+// ── Gateway físico (modos mock/indexeddb) ────────────────────────────────────
+
+let snapshotStore: SnapshotStore | null = null;
+
 /**
- * Repositórios de domínio resolvidos por configuração. Componentes consomem o
- * contrato; a troca mock/indexeddb ↔ api não altera nenhum componente.
+ * Gateway de snapshot local. Só existe nos modos mock/indexeddb; no modo api os
+ * dados vêm dos repositórios HTTP e não há snapshot local.
  */
-export function getOperationsRepository(): OperationsRepository {
-  return resolveKind() === 'api'
-    ? new ApiOperationsRepository(apiClient())
-    : new StoreOperationsRepository();
+export function getSnapshotStore(): SnapshotStore {
+  if (snapshotStore) return snapshotStore;
+  snapshotStore =
+    resolveProviderKind() === 'mock' ? new MemorySnapshotStore() : new IndexedDbSnapshotStore();
+  return snapshotStore;
 }
 
-export function getApprovalsRepository(): ApprovalsRepository {
-  if (resolveKind() === 'api') return new ApiApprovalsRepository(apiClient());
-  throw new Error(
-    'ApprovalsRepository: em demonstração use a store (useAppStore). Repo HTTP só no modo api.',
-  );
+/** Injeta um gateway determinístico (testes). Reseta os serviços derivados. */
+export function setSnapshotStore(next: SnapshotStore): void {
+  snapshotStore = next;
+  services = null;
 }
 
-export function getFilesRepository(): FilesRepository {
-  if (resolveKind() === 'api') return new ApiFilesRepository(apiClient());
-  throw new Error(
-    'FilesRepository: em demonstração use a store (useAppStore). Repo HTTP só no modo api.',
-  );
+// ── Serviços de domínio ───────────────────────────────────────────────────────
+
+let services: ArdenServices | null = null;
+
+export function getServices(): ArdenServices {
+  if (services) return services;
+  const kind = resolveProviderKind();
+  if (kind === 'api') {
+    const client = apiClient();
+    services = {
+      operations: new ApiOperationsRepository(client),
+      audit: new ApiAuditRepository(client),
+      approvals: new ApiApprovalsRepository(client),
+      files: new ApiFilesRepository(client),
+    };
+  } else {
+    const store = getSnapshotStore();
+    services = {
+      operations: new SnapshotOperationsRepository(store),
+      audit: new SnapshotAuditRepository(store),
+      approvals: new SnapshotApprovalsRepository(store),
+      files: new SnapshotFilesRepository(store),
+    };
+  }
+  return services;
+}
+
+/** Injeta serviços (testes). */
+export function setServices(next: ArdenServices | null): void {
+  services = next;
 }

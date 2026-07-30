@@ -55,8 +55,8 @@ export interface PaginatedResult<T> {
   total: number;
 }
 
-export interface OperationQuery {
-  organizationId?: string;
+export interface ListOperationsInput {
+  organizationId: string;
   status?: string;
   search?: string;
   page?: number;
@@ -64,17 +64,56 @@ export interface OperationQuery {
   signal?: AbortSignal;
 }
 
-/** Contrato de exemplo do handoff. Todo método aceita AbortSignal opcional. */
+/** Rascunho criado pelo wizard (o domínio já monta o objeto Operation). */
+export type CreateOperationInput = Operation;
+export type UpdateOperationDraftInput = Partial<Operation>;
+
+export interface CreateFromAssessmentInput {
+  assessmentId: string;
+  operationName: string;
+  discipline: string;
+  execScore: number;
+  responsibleId: string;
+  organizationId: string;
+  companyId?: string;
+}
+
+/**
+ * Contrato do agregado Operação. Todo método aceita AbortSignal quando aplicável.
+ * `publishVersion` é comando explícito — publicar não é atualização de campo.
+ */
 export interface OperationsRepository {
-  list(params?: OperationQuery): Promise<PaginatedResult<Operation>>;
+  list(input: ListOperationsInput): Promise<PaginatedResult<Operation>>;
   getById(id: string, signal?: AbortSignal): Promise<Operation>;
-  create(input: Operation): Promise<Operation>;
-  update(id: string, input: Partial<Operation>): Promise<Operation>;
-  publish(id: string): Promise<Operation>;
+  create(input: CreateOperationInput): Promise<Operation>;
+  updateDraft(id: string, input: UpdateOperationDraftInput): Promise<Operation>;
+  createVersion(id: string): Promise<Operation>;
+  publishVersion(id: string): Promise<Operation>;
   pause(id: string): Promise<Operation>;
   resume(id: string): Promise<Operation>;
-  createExecution(id: string, opts?: { test: boolean }): Promise<Execution>;
   archive(id: string): Promise<void>;
+  duplicate(id: string): Promise<Operation>;
+  createFromAssessment(input: CreateFromAssessmentInput): Promise<Operation>;
+}
+
+export interface AuditQuery {
+  organizationId: string;
+  result?: AuditEvent['result'];
+  signal?: AbortSignal;
+}
+
+/** Fronteira única de escrita/leitura de eventos de auditoria. */
+export interface AuditRepository {
+  list(input: AuditQuery): Promise<AuditEvent[]>;
+  append(event: AuditEvent): Promise<AuditEvent>;
+}
+
+/** Ponto único de composição das dependências de dados. */
+export interface ArdenServices {
+  operations: OperationsRepository;
+  audit: AuditRepository;
+  approvals: ApprovalsRepository;
+  files: FilesRepository;
 }
 
 /**
