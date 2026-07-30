@@ -23,6 +23,8 @@ export function Topbar() {
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const setDrawerOpen = useAppStore((s) => s.setDrawerOpen);
   const setAssistantOpen = useAppStore((s) => s.setAssistantOpen);
+  const setCmdOpen = useAppStore((s) => s.setCmdOpen);
+  const startTour = useAppStore((s) => s.startTour);
   const switchProfile = useAppStore((s) => s.switchProfile);
   const markRead = useAppStore((s) => s.markNotificationsRead);
   const session = useSession();
@@ -43,13 +45,37 @@ export function Topbar() {
         <Menu size={16} aria-hidden />
       </button>
 
-      <input
+      <button
+        type="button"
         className="topbar-search"
-        placeholder={t('app.searchPlaceholder')}
+        onClick={() => setCmdOpen(true)}
         aria-label={t('app.searchPlaceholder')}
-      />
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          cursor: 'pointer',
+          color: 'var(--tx2)',
+          textAlign: 'left',
+        }}
+      >
+        <span>{t('app.searchPlaceholder')}</span>
+        <span className="chip mono" style={{ fontSize: '0.7rem' }}>
+          ⌘K
+        </span>
+      </button>
 
       <div style={{ flex: 1 }} />
+
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        onClick={startTour}
+        title={t('app.demoMode')}
+      >
+        {t('app.demoMode')}
+      </button>
 
       {/* Idioma */}
       <DropdownMenu.Root>

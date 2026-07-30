@@ -14,6 +14,7 @@ export function OperationDetailPage() {
   const startExecution = useAppStore((s) => s.startExecution);
   const pauseOperation = useAppStore((s) => s.pauseOperation);
   const resumeOperation = useAppStore((s) => s.resumeOperation);
+  const duplicateOperation = useAppStore((s) => s.duplicateOperation);
 
   const op = operations.find((o) => o.id === id);
   if (!op) {
@@ -34,6 +35,18 @@ export function OperationDetailPage() {
         subtitle={`${op.problem}`}
         actions={
           <>
+            {can('operation.create') && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  const copy = duplicateOperation(op.id);
+                  if (copy) navigate(`/operations/${copy.id}`);
+                }}
+              >
+                {t('operations.duplicate')}
+              </button>
+            )}
             {can('execution.start', op) && (
               <button type="button" className="btn btn-ghost" onClick={runTest}>
                 {t('operations.testRun')}
@@ -148,6 +161,37 @@ export function OperationDetailPage() {
             <Field label={t('wizard.field.budget')} value={`R$ ${op.budget.toLocaleString('pt-BR')}`} />
             <Field label="Work Units" value={String(op.workUnits)} />
             <Field label={t('wizard.field.evidencePolicy')} value={op.evidencePolicy} />
+          </div>
+        </section>
+
+        <section className="card">
+          <h2 className="t-section" style={{ marginBottom: 'var(--sp-3)' }}>
+            {t('operations.versions')}
+          </h2>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="mono">{t('common.version')}</th>
+                  <th>{t('operations.publishedAt')}</th>
+                  <th>{t('common.status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="mono">
+                    v{op.version}{' '}
+                    <span className="chip" style={{ marginLeft: 6 }}>
+                      {t('operations.current')}
+                    </span>
+                  </td>
+                  <td className="mono">{op.publishedAt ? op.publishedAt.slice(0, 10) : '—'}</td>
+                  <td>
+                    <OperationStateBadge status={op.status} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </div>

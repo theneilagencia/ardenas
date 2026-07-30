@@ -128,10 +128,10 @@ A navegação reproduz os 23 módulos do protótipo corporativo, nos cinco grupo
 
 Declaradas, não escondidas. Trabalho restante da reconstrução:
 
-- Aprofundar interações secundárias do mockup em alguns módulos (comparar versões e
-  duplicar operação, delegar/solicitar ajuste em aprovações, tour guiado, command
-  palette, painéis de detalhe em drawer). A estrutura, os 23 módulos e os fluxos
-  assinatura já estão presentes.
+- Interações secundárias restantes: comparar versões lado a lado, transformar
+  Assessment em operação, e painéis de detalhe em *drawer* em módulos de listagem.
+  Já implementadas: command palette (⌘K), tour guiado (Modo demonstração), aprovações
+  em master-detail com delegar/solicitar ajuste, e duplicar operação com seção de versões.
 - Repositórios por domínio no modo `api` (o cliente HTTP, o mapa de erro e o container
   estão prontos; falta implementar cada endpoint do contrato).
 - Ampliar a cobertura E2E e de acessibilidade aos módulos administrativos e de avaliação.

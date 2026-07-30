@@ -250,6 +250,19 @@ export interface Approval {
   resolverId?: ID;
   approverIds: ID[];
   justification?: string;
+  // Detalhe apresentado no painel de decisão
+  title?: string;
+  operationLabel?: string;
+  category?: string;
+  criticality?: Criticality;
+  proposedAction?: string;
+  recipients?: string;
+  authorityLevel?: AuthorityLevel;
+  requestedBy?: string;
+  due?: string;
+  impact?: string;
+  content?: string;
+  evidenceLabels?: string[];
 }
 
 export type ExceptionState = 'open' | 'resolved' | 'reprocessing';

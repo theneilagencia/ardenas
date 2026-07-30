@@ -4,6 +4,8 @@ import { Eye } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { AssistantPanel } from './AssistantPanel';
+import { CommandPalette } from '@/components/CommandPalette';
+import { TourOverlay } from '@/components/TourOverlay';
 import { useSession } from '@/hooks/use-session';
 
 export function AppShell() {
@@ -27,6 +29,8 @@ export function AppShell() {
         </main>
       </div>
       <AssistantPanel />
+      <CommandPalette />
+      <TourOverlay />
     </div>
   );
 }

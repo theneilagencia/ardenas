@@ -172,6 +172,21 @@ describe('ações administrativas gravando na store', () => {
   });
 });
 
+describe('duplicar operação', () => {
+  it('cria um rascunho novo a partir dos dados, sem publicar, com auditoria', () => {
+    const store = () => useAppStore.getState();
+    const before = store().data.operations.length;
+    const copy = store().duplicateOperation('op_fechamento');
+    expect(copy).not.toBeNull();
+    expect(copy!.status).toBe('draft');
+    expect(copy!.version).toBe('0.1');
+    expect(copy!.publishedAt).toBeNull();
+    expect(copy!.id).not.toBe('op_fechamento');
+    expect(store().data.operations.length).toBe(before + 1);
+    expect(store().data.auditEvents.some((e) => e.action === 'operation.duplicate')).toBe(true);
+  });
+});
+
 describe('exclusão de arquivo exige dois aprovadores', () => {
   it('só exclui com dois aprovadores nomeados distintos', () => {
     const store = () => useAppStore.getState();

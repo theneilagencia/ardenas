@@ -78,6 +78,8 @@ export interface AppState {
   // UI
   drawerOpen: boolean;
   assistantOpen: boolean;
+  cmdOpen: boolean;
+  tourStep: number; // -1 = fechado
 
   // lifecycle
   bootstrap: () => Promise<void>;
@@ -90,6 +92,11 @@ export interface AppState {
   toggleTheme: () => void;
   setDrawerOpen: (open: boolean) => void;
   setAssistantOpen: (open: boolean) => void;
+  setCmdOpen: (open: boolean) => void;
+  startTour: () => void;
+  tourNext: () => void;
+  tourPrev: () => void;
+  endTour: () => void;
 
   // audit
   recordAudit: (input: RecordAuditInput) => AuditEvent;
@@ -97,6 +104,7 @@ export interface AppState {
   // operations
   saveDraft: (op: Operation) => void;
   publishOperation: (op: Operation) => Operation;
+  duplicateOperation: (id: string) => Operation | null;
   pauseOperation: (id: string) => void;
   resumeOperation: (id: string) => void;
   startExecution: (operationId: string, opts?: { test: boolean }) => Execution;
@@ -181,6 +189,8 @@ export const useAppStore = create<AppState>((set, get) => {
     theme: 'light',
     drawerOpen: false,
     assistantOpen: false,
+    cmdOpen: false,
+    tourStep: -1,
 
     bootstrap: async () => {
       const provider = getDataProvider();
@@ -242,6 +252,11 @@ export const useAppStore = create<AppState>((set, get) => {
 
     setDrawerOpen: (open) => set({ drawerOpen: open }),
     setAssistantOpen: (open) => set({ assistantOpen: open }),
+    setCmdOpen: (open) => set({ cmdOpen: open }),
+    startTour: () => set({ tourStep: 0 }),
+    tourNext: () => set((s) => ({ tourStep: s.tourStep + 1 })),
+    tourPrev: () => set((s) => ({ tourStep: Math.max(0, s.tourStep - 1) })),
+    endTour: () => set({ tourStep: -1 }),
 
     recordAudit: (input) => {
       const { session, organizationId } = get();
@@ -312,6 +327,33 @@ export const useAppStore = create<AppState>((set, get) => {
         relatedOperationId: published.id,
       });
       return published;
+    },
+
+    duplicateOperation: (id) => {
+      const source = get().data.operations.find((o) => o.id === id);
+      if (!source) return null;
+      // Cria um rascunho a partir dos dados — cópia explícita, não versão publicada.
+      const copy: Operation = {
+        ...structuredClone(source),
+        id: newId('op'),
+        name: `${source.name} (cópia)`,
+        version: '0.1',
+        status: 'draft',
+        environment: null,
+        publishedAt: null,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      set((s) => ({ data: { ...s.data, operations: [...s.data.operations, copy] } }));
+      get().recordAudit({
+        action: 'operation.duplicate',
+        objectType: 'Operation',
+        objectId: copy.id,
+        previousValue: { sourceId: source.id },
+        newValue: { status: 'draft', name: copy.name },
+        relatedOperationId: copy.id,
+      });
+      return copy;
     },
 
     pauseOperation: (id) => {
