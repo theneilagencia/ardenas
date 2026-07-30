@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Drawer, DrawerField } from '@/components/ui/Drawer';
 import { useScopedData, usePermission } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
+import type { ContextSource } from '@/domain/types';
 
 export function ContextPage() {
   const { t } = useTranslation();
@@ -14,6 +16,7 @@ export function ContextPage() {
 
   const [name, setName] = useState('');
   const [kind, setKind] = useState('database');
+  const [selected, setSelected] = useState<ContextSource | null>(null);
 
   return (
     <>
@@ -67,7 +70,22 @@ export function ContextPage() {
               {contextSources.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <strong>{c.name}</strong>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(c)}
+                      style={{
+                        border: 0,
+                        background: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'var(--tx)',
+                        font: 'inherit',
+                        fontWeight: 600,
+                        textAlign: 'left',
+                      }}
+                    >
+                      {c.name}
+                    </button>
                   </td>
                   <td>{c.kind}</td>
                   <td className="mono">v{c.version}</td>
@@ -88,6 +106,20 @@ export function ContextPage() {
           </table>
         </div>
       </div>
+
+      <Drawer
+        open={selected !== null}
+        onOpenChange={(o) => !o && setSelected(null)}
+        title={selected?.name ?? ''}
+      >
+        {selected && (
+          <>
+            <DrawerField label={t('context.kind')} value={selected.kind} />
+            <DrawerField label={t('context.versionLabel')} value={`v${selected.version}`} />
+            <DrawerField label="ID" value={<code className="mono">{selected.id}</code>} />
+          </>
+        )}
+      </Drawer>
     </>
   );
 }

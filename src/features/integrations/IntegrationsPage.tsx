@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Drawer, DrawerField } from '@/components/ui/Drawer';
 import { useScopedData, usePermission } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
 import { formatDate } from '@/lib/format';
 import type { Lang } from '@/i18n';
-import type { IntegrationStatus } from '@/domain/types';
+import type { Integration, IntegrationStatus } from '@/domain/types';
 
 const STATUS_KEY: Record<IntegrationStatus, string> = {
   connected: 'integrations.statusConnected',
@@ -29,6 +31,7 @@ export function IntegrationsPage() {
   const disconnect = useAppStore((s) => s.disconnectIntegration);
   const canManage = can('integration.manage');
   const lang = i18n.language as Lang;
+  const [selected, setSelected] = useState<Integration | null>(null);
 
   return (
     <>
@@ -48,7 +51,22 @@ export function IntegrationsPage() {
               {integrations.map((i) => (
                 <tr key={i.id}>
                   <td>
-                    <strong>{i.name}</strong>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(i)}
+                      style={{
+                        border: 0,
+                        background: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'var(--tx)',
+                        font: 'inherit',
+                        fontWeight: 600,
+                        textAlign: 'left',
+                      }}
+                    >
+                      {i.name}
+                    </button>
                     <div className="t-micro">{i.kind}</div>
                   </td>
                   <td>
@@ -102,6 +120,40 @@ export function IntegrationsPage() {
           </table>
         </div>
       </div>
+
+      <Drawer
+        open={selected !== null}
+        onOpenChange={(o) => !o && setSelected(null)}
+        title={selected?.name ?? ''}
+      >
+        {selected && (
+          <>
+            <DrawerField label={t('context.kind')} value={selected.kind} />
+            <DrawerField
+              label={t('integrations.status')}
+              value={
+                <span className="badge">
+                  <span
+                    className="state-dot"
+                    style={{ background: STATUS_COLOR[selected.status] }}
+                    aria-hidden
+                  />
+                  {t(STATUS_KEY[selected.status])}
+                </span>
+              }
+            />
+            <DrawerField
+              label={t('integrations.lastTested')}
+              value={
+                selected.lastTestedAt
+                  ? formatDate(selected.lastTestedAt, lang)
+                  : t('integrations.neverTested')
+              }
+            />
+            <DrawerField label="ID" value={<code className="mono">{selected.id}</code>} />
+          </>
+        )}
+      </Drawer>
     </>
   );
 }

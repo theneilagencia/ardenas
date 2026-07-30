@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Drawer, DrawerField } from '@/components/ui/Drawer';
 import { useScopedData, usePermission } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
-import type { PersonStatus, RoleKey } from '@/domain/types';
+import type { Person, PersonStatus, RoleKey } from '@/domain/types';
 
 const STATUS_KEY: Record<PersonStatus, string> = {
   active: 'people.statusActive',
@@ -38,6 +39,7 @@ export function PeoplePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<RoleKey>('analyst');
+  const [selected, setSelected] = useState<Person | null>(null);
 
   const onInvite = () => {
     if (!name.trim() || !email.trim()) return;
@@ -96,7 +98,22 @@ export function PeoplePage() {
               {people.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <strong>{p.name}</strong>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(p)}
+                      style={{
+                        border: 0,
+                        background: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'var(--tx)',
+                        font: 'inherit',
+                        fontWeight: 600,
+                        textAlign: 'left',
+                      }}
+                    >
+                      {p.name}
+                    </button>
                     <div style={{ color: 'var(--tx2)' }}>{p.email}</div>
                   </td>
                   <td>
@@ -150,6 +167,32 @@ export function PeoplePage() {
           </table>
         </div>
       </div>
+
+      <Drawer
+        open={selected !== null}
+        onOpenChange={(o) => !o && setSelected(null)}
+        title={selected?.name ?? ''}
+      >
+        {selected && (
+          <>
+            <DrawerField label={t('people.email')} value={selected.email} />
+            <DrawerField
+              label={t('people.roles')}
+              value={
+                <div className="row">
+                  {selected.roleKeys.map((r) => (
+                    <span key={r} className="chip">
+                      {t(`role.${r}`)}
+                    </span>
+                  ))}
+                </div>
+              }
+            />
+            <DrawerField label={t('common.status')} value={t(STATUS_KEY[selected.status])} />
+            <DrawerField label="ID" value={<code className="mono">{selected.id}</code>} />
+          </>
+        )}
+      </Drawer>
     </>
   );
 }
