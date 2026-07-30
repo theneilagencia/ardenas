@@ -134,9 +134,11 @@ Declaradas, não escondidas. Trabalho restante da reconstrução:
   painéis de detalhe em *drawer* (Riscos e Evidências).
 - Resta estender o padrão de *drawer* aos demais módulos de listagem e aprofundar
   telas específicas conforme necessidade.
-- Escrita no modo `api`: o carregamento (`ApiDataProvider.load`) monta o snapshot a
-  partir dos endpoints do contrato e está coberto por testes; as **mutações** em
-  produção vão por endpoint específico (POST/PATCH), ainda a implementar por domínio.
+- Escrita no modo `api`: `OperationsRepository` tem implementação HTTP
+  (`ApiOperationsRepository`) e ligada à store (`StoreOperationsRepository`), resolvidas
+  pelo container (`getOperationsRepository`); Aprovações e Arquivos têm repositório HTTP.
+  Falta estender o repositório HTTP aos demais domínios e ligar as telas ao container
+  no lugar da store direta.
 - Ampliar a cobertura E2E e de acessibilidade aos módulos administrativos e de avaliação.
 - Alerta Dependabot em `brace-expansion` (GHSA-mh99-v99m-4gvg): cadeia exclusivamente
   de ferramentas de desenvolvimento (ESLint e workbox-build), nunca no bundle entregue.

@@ -108,6 +108,7 @@ export interface AppState {
   createOperationFromAssessment: (assessmentId: string) => Operation | null;
   pauseOperation: (id: string) => void;
   resumeOperation: (id: string) => void;
+  archiveOperation: (id: string) => void;
   startExecution: (operationId: string, opts?: { test: boolean }) => Execution;
 
   // approvals
@@ -447,6 +448,24 @@ export const useAppStore = create<AppState>((set, get) => {
         objectType: 'Operation',
         objectId: id,
         newValue: { status: 'running' },
+        relatedOperationId: id,
+      });
+    },
+
+    archiveOperation: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          operations: s.data.operations.map((o) =>
+            o.id === id ? { ...o, status: 'archived', updatedAt: now() } : o,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'operation.archive',
+        objectType: 'Operation',
+        objectId: id,
+        newValue: { status: 'archived' },
         relatedOperationId: id,
       });
     },

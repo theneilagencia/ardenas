@@ -117,6 +117,22 @@ export type ApprovalDecision = Extract<
   'approved' | 'rejected' | 'changes_requested' | 'delegated'
 >;
 
+export interface ApprovalsRepository {
+  list(signal?: AbortSignal): Promise<Approval[]>;
+  approve(id: string, justification?: string): Promise<Approval>;
+  reject(id: string, justification?: string): Promise<Approval>;
+  requestChanges(id: string, justification?: string): Promise<Approval>;
+  delegate(id: string, toPersonId: string): Promise<Approval>;
+}
+
+export interface FilesRepository {
+  candidates(signal?: AbortSignal): Promise<ManagedFile[]>;
+  quarantine(id: string): Promise<ManagedFile>;
+  restore(id: string): Promise<ManagedFile>;
+  requestDeletion(id: string, approverId: string): Promise<ManagedFile>;
+  approveDeletion(id: string, approverId: string): Promise<ManagedFile>;
+}
+
 /**
  * Provider de dados intercambiável. A troca é por configuração
  * (VITE_DATA_PROVIDER) — nenhum componente sabe qual implementação está ativa.
