@@ -127,6 +127,11 @@ export const ptBR = {
       current: 'Atual',
       publishedAt: 'Publicada em',
       duplicated: 'Operação duplicada como rascunho.',
+      compareVersions: 'Comparar versões',
+      compareTitle: 'Comparação de versões',
+      environment: 'Ambiente',
+      note: 'Nota',
+      diffLegend: 'Campos com diferença aparecem destacados.',
     },
     wizard: {
       title: 'Nova operação',
@@ -540,6 +545,7 @@ export const ptBR = {
       stageAnalyzing: 'Em análise',
       stageAwaiting_info: 'Aguardando informação',
       stageCompleted: 'Concluído',
+      toOperation: 'Transformar em operação',
     },
     evaluator: {
       title: 'Avaliador de Operação Autônoma',

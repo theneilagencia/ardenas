@@ -105,6 +105,7 @@ export interface AppState {
   saveDraft: (op: Operation) => void;
   publishOperation: (op: Operation) => Operation;
   duplicateOperation: (id: string) => Operation | null;
+  createOperationFromAssessment: (assessmentId: string) => Operation | null;
   pauseOperation: (id: string) => void;
   resumeOperation: (id: string) => void;
   startExecution: (operationId: string, opts?: { test: boolean }) => Execution;
@@ -354,6 +355,64 @@ export const useAppStore = create<AppState>((set, get) => {
         relatedOperationId: copy.id,
       });
       return copy;
+    },
+
+    createOperationFromAssessment: (assessmentId) => {
+      const { data, organizationId, session } = get();
+      const asm = data.assessments.find((a) => a.id === assessmentId);
+      if (!asm) return null;
+      const opId = newId('op');
+      const draft: Operation = {
+        id: opId,
+        name: asm.operationName,
+        organizationId,
+        companyId: session?.person.companyId ?? '',
+        unitId: '',
+        areaId: '',
+        costCenterId: '',
+        criticality: asm.execScore >= 80 ? 'moderate' : 'elevated',
+        tags: [asm.discipline],
+        problem: '',
+        objective: '',
+        expectedResult: '',
+        recipients: [],
+        deliverables: [],
+        frequency: '',
+        sla: '',
+        indicators: [],
+        completionCriteria: [],
+        ownerId: asm.responsibleId,
+        approverIds: [],
+        substituteIds: [],
+        triggers: [],
+        contextSourceIds: [],
+        integrationIds: [],
+        steps: [],
+        actions: [],
+        approvalChain: [],
+        operationalLimits: [],
+        budget: 0,
+        workUnits: 0,
+        evidencePolicy: '',
+        retentionPolicy: '',
+        notificationRules: [],
+        environment: null,
+        version: '0.1',
+        status: 'draft',
+        publishedAt: null,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      set((s) => ({ data: { ...s.data, operations: [...s.data.operations, draft] } }));
+      get().recordAudit({
+        action: 'assessment.to_operation',
+        objectType: 'Operation',
+        objectId: opId,
+        previousValue: { assessmentId },
+        newValue: { status: 'draft', name: draft.name },
+        relatedOperationId: opId,
+      });
+      return draft;
     },
 
     pauseOperation: (id) => {

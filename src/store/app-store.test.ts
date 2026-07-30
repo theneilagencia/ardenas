@@ -187,6 +187,19 @@ describe('duplicar operação', () => {
   });
 });
 
+describe('transformar assessment em operação', () => {
+  it('cria um rascunho a partir do assessment, com auditoria', () => {
+    const store = () => useAppStore.getState();
+    const asm = store().data.assessments[0];
+    const op = store().createOperationFromAssessment(asm.id);
+    expect(op).not.toBeNull();
+    expect(op!.status).toBe('draft');
+    expect(op!.name).toBe(asm.operationName);
+    expect(op!.ownerId).toBe(asm.responsibleId);
+    expect(store().data.auditEvents.some((e) => e.action === 'assessment.to_operation')).toBe(true);
+  });
+});
+
 describe('exclusão de arquivo exige dois aprovadores', () => {
   it('só exclui com dois aprovadores nomeados distintos', () => {
     const store = () => useAppStore.getState();

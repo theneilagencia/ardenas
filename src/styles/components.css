@@ -246,3 +246,25 @@
   padding: var(--sp-6);
   z-index: 81;
 }
+
+.drawer-content {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(420px, 100vw);
+  overflow-y: auto;
+  background: var(--sf);
+  border-left: 1px solid var(--bd);
+  box-shadow: var(--shadow-overlay);
+  padding: var(--sp-6);
+  z-index: 81;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: var(--mut);
+}

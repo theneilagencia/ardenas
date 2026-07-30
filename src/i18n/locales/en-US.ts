@@ -124,6 +124,11 @@ export const enUS = {
       current: 'Current',
       publishedAt: 'Published at',
       duplicated: 'Operation duplicated as a draft.',
+      compareVersions: 'Compare versions',
+      compareTitle: 'Version comparison',
+      environment: 'Environment',
+      note: 'Note',
+      diffLegend: 'Fields that differ are highlighted.',
     },
     wizard: {
       title: 'New operation',
@@ -536,6 +541,7 @@ export const enUS = {
       stageAnalyzing: 'Analyzing',
       stageAwaiting_info: 'Awaiting information',
       stageCompleted: 'Completed',
+      toOperation: 'Turn into operation',
     },
     evaluator: {
       title: 'Autonomous Operation Evaluator',

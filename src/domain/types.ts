@@ -188,6 +188,7 @@ export interface Operation {
   publishedAt: ISODate | null;
   createdAt: ISODate;
   updatedAt: ISODate;
+  versions?: OperationVersionEntry[];
 }
 
 export interface Indicator {
@@ -196,6 +197,16 @@ export interface Indicator {
   target: number;
   current: number;
   unit: string;
+}
+
+export interface OperationVersionEntry {
+  version: string;
+  publishedAt: ISODate | null;
+  environment: Environment | null;
+  status: OperationStatus;
+  budget: number;
+  workUnits: number;
+  note: string;
 }
 
 // ── Execução ─────────────────────────────────────────────────────────────────

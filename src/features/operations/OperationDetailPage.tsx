@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { OperationStateBadge } from '@/components/ui/StateBadge';
 import { useScopedData, usePermission } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
+import { VersionCompareDialog } from './VersionCompareDialog';
 
 export function OperationDetailPage() {
   const { t } = useTranslation();
@@ -15,6 +17,7 @@ export function OperationDetailPage() {
   const pauseOperation = useAppStore((s) => s.pauseOperation);
   const resumeOperation = useAppStore((s) => s.resumeOperation);
   const duplicateOperation = useAppStore((s) => s.duplicateOperation);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const op = operations.find((o) => o.id === id);
   if (!op) {
@@ -165,9 +168,18 @@ export function OperationDetailPage() {
         </section>
 
         <section className="card">
-          <h2 className="t-section" style={{ marginBottom: 'var(--sp-3)' }}>
-            {t('operations.versions')}
-          </h2>
+          <div className="card-head">
+            <h2 className="t-section">{t('operations.versions')}</h2>
+            {op.versions && op.versions.length >= 2 && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setCompareOpen(true)}
+              >
+                {t('operations.compareVersions')}
+              </button>
+            )}
+          </div>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
@@ -178,23 +190,48 @@ export function OperationDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="mono">
-                    v{op.version}{' '}
-                    <span className="chip" style={{ marginLeft: 6 }}>
-                      {t('operations.current')}
-                    </span>
-                  </td>
-                  <td className="mono">{op.publishedAt ? op.publishedAt.slice(0, 10) : '—'}</td>
-                  <td>
-                    <OperationStateBadge status={op.status} />
-                  </td>
-                </tr>
+                {(op.versions ?? [
+                  {
+                    version: op.version,
+                    publishedAt: op.publishedAt,
+                    environment: op.environment,
+                    status: op.status,
+                    budget: op.budget,
+                    workUnits: op.workUnits,
+                    note: '',
+                  },
+                ])
+                  .slice()
+                  .reverse()
+                  .map((v) => (
+                    <tr key={v.version}>
+                      <td className="mono">
+                        v{v.version}
+                        {v.version === op.version && (
+                          <span className="chip" style={{ marginLeft: 6 }}>
+                            {t('operations.current')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="mono">{v.publishedAt ? v.publishedAt.slice(0, 10) : '—'}</td>
+                      <td>
+                        <OperationStateBadge status={v.status} />
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
         </section>
       </div>
+
+      {op.versions && op.versions.length >= 2 && (
+        <VersionCompareDialog
+          versions={op.versions}
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+        />
+      )}
     </>
   );
 }

@@ -150,6 +150,26 @@ const publishedOperation: Operation = {
   publishedAt: T1,
   createdAt: T0,
   updatedAt: T2,
+  versions: [
+    {
+      version: '0.9',
+      publishedAt: T0,
+      environment: 'sandbox',
+      status: 'draft',
+      budget: 3000,
+      workUnits: 18,
+      note: 'Rascunho validado em sandbox, sem entrega externa.',
+    },
+    {
+      version: '1.0',
+      publishedAt: T1,
+      environment: 'production',
+      status: 'running',
+      budget: 5000,
+      workUnits: 23,
+      note: 'Publicada em produção com aprovação na etapa de retenção.',
+    },
+  ],
 };
 
 const draftOperation: Operation = {
