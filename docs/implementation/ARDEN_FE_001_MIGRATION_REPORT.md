@@ -1,8 +1,44 @@
-# ARDEN-FE-001 — Relatório de Migração
+# ARDEN-FE-001 — Fundação da camada de dados e migração do agregado Operações
 
 Branch `claude/arden-fe-001-data-access` · base `c82ff23` · 2026-07-30.
-Objetivo: a UI deixa de acessar/persistir domínio direto na store e passa a usar
-contratos de repositório via camada de aplicação e hooks.
+Objetivo: estabelecer a **fronteira de acesso a dados** do frontend e provar seu uso
+no **agregado Operações** (mais Auditoria), preparando a futura conexão com uma API
+real. Esta entrega **não** migra todos os módulos do frontend — apenas Operações e
+Auditoria (ver §Entregue e §Pendentes).
+
+## Entregue (escopo efetivamente concluído)
+
+- Fundação da arquitetura de acesso a dados (gateway `SnapshotStore`).
+- Composição centralizada dos providers (`getServices()`, seleção em um só lugar).
+- Contratos específicos de repositório por agregado (`OperationsRepository`,
+  `AuditRepository`).
+- Camada de aplicação (casos de uso em `src/application/**`).
+- Hooks de integração (`use-operations`, `use-audit`, TanStack Query).
+- Migração **integral** do agregado **Operações**.
+- Migração da **Auditoria** (leitura por hook; escrita pela fronteira única `append`).
+- Fluxo de prova **criar → editar → versionar → publicar → recarregar** (persistente).
+- Validação dos providers **mock** e **IndexedDB**.
+- Preparação **estrutural** do provider **API** (sem API real).
+- Tratamento padronizado de erros (`ArdenRepositoryError`).
+- Testes arquiteturais, unitários, de caso de uso e E2E.
+
+## Pendentes (fora do escopo concluído nesta entrega)
+
+Os agregados abaixo **continuam usando a store como fonte da verdade** e serão
+migrados em issues seguintes (Fases 2–4), reusando esta mesma arquitetura:
+
+- Aprovações
+- Exceções
+- Arquivos
+- Work Units
+- Orçamento
+- Execuções
+- Implantação
+- Políticas
+- Riscos
+- Integrações
+- Pessoas
+- Contexto
 
 ## Arquitetura implementada
 

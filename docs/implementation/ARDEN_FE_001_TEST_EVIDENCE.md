@@ -1,5 +1,9 @@
 # ARDEN-FE-001 — Evidência de Testes
 
+> **Nome do resultado:** ARDEN-FE-001 — Fundação da camada de dados e migração do
+> agregado Operações. **Escopo coberto pelas evidências:** Operações + Auditoria (não
+> todos os módulos do frontend).
+
 Branch `claude/arden-fe-001-data-access` · 2026-07-30. Scripts reais de `package.json`.
 
 ## Comandos

@@ -1,9 +1,16 @@
 # ARDEN-FE-001 — Plano de Acesso a Dados
 
+> **Nome do resultado:** ARDEN-FE-001 — Fundação da camada de dados e migração do
+> agregado Operações. **Escopo desta entrega:** Operações + Auditoria. Esta entrega
+> **não** migra todos os módulos do frontend; os demais agregados continuam usando a
+> store como fonte da verdade (ver §3).
+
 Branch: `claude/arden-fe-001-data-access` · base `c82ff23` · 2026-07-30.
-Objetivo: a UI deixa de acessar/persistir entidades de domínio direto na store e
-passa a usar exclusivamente contratos de repositório via uma camada de aplicação e
-hooks. Sem backend, sem auth real, sem banco remoto, sem mudança visual.
+Objetivo: estabelecer a **fronteira única de acesso a dados** do frontend e provar seu
+uso no **agregado Operações** (mais Auditoria), de modo que essas telas deixem de
+acessar/persistir entidades de domínio direto na store e passem a usar exclusivamente
+contratos de repositório via uma camada de aplicação e hooks. Sem backend, sem auth
+real, sem banco remoto, sem mudança visual.
 
 ## 1. Problema (confirmado pela auditoria)
 
