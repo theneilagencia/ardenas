@@ -1,16 +1,22 @@
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { useScopedData, usePermission } from '@/hooks/use-session';
-import { useAppStore } from '@/store/app-store';
+import { usePermission } from '@/hooks/use-session';
+import {
+  useOperations,
+  usePromoteEnvironment,
+  useRollbackEnvironment,
+} from '@/hooks/use-operations';
 
 const ORDER = ['sandbox', 'staging', 'production'] as const;
 
 export function EnvironmentsPage() {
   const { t } = useTranslation();
-  const { operations } = useScopedData();
+  const { operations } = useOperations();
   const can = usePermission();
-  const promote = useAppStore((s) => s.promoteEnvironment);
-  const rollback = useAppStore((s) => s.rollbackEnvironment);
+  const promoteMut = usePromoteEnvironment();
+  const rollbackMut = useRollbackEnvironment();
+  const promote = (id: string) => promoteMut.mutate(id);
+  const rollback = (id: string) => rollbackMut.mutate(id);
   const canManage = can('operation.edit');
 
   const deployed = operations.filter((o) => o.status !== 'draft');

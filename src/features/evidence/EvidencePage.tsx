@@ -3,13 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Drawer, DrawerField } from '@/components/ui/Drawer';
 import { useScopedData } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
 import { formatDate } from '@/lib/format';
 import type { Lang } from '@/i18n';
 import type { Evidence } from '@/domain/types';
 
 export function EvidencePage() {
   const { t, i18n } = useTranslation();
-  const { evidence, operations, executions } = useScopedData();
+  const { evidence, executions } = useScopedData();
+  const { operations } = useOperations();
   const lang = i18n.language as Lang;
   const [selected, setSelected] = useState<Evidence | null>(null);
 

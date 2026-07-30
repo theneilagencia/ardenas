@@ -3,14 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { OperationStateBadge } from '@/components/ui/StateBadge';
-import { useScopedData, usePermission } from '@/hooks/use-session';
+import { usePermission } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
 import type { OperationStatus } from '@/domain/types';
 
 const FILTERS: Array<OperationStatus | 'all'> = ['all', 'running', 'draft', 'paused', 'archived'];
 
 export function OperationsPage() {
   const { t } = useTranslation();
-  const { operations } = useScopedData();
+  const { operations, isLoading, error, refetch } = useOperations();
   const can = usePermission();
   const [filter, setFilter] = useState<OperationStatus | 'all'>('all');
 
@@ -47,7 +48,18 @@ export function OperationsPage() {
       </div>
 
       <div className="card">
-        {filtered.length === 0 ? (
+        {error ? (
+          <div className="empty-state" role="alert">
+            {t('data.error')}
+            <div className="row" style={{ justifyContent: 'center', marginTop: 8 }}>
+              <button type="button" className="btn btn-sm btn-ghost" onClick={() => refetch()}>
+                {t('data.retry')}
+              </button>
+            </div>
+          </div>
+        ) : isLoading ? (
+          <div className="empty-state">{t('data.loading')}</div>
+        ) : filtered.length === 0 ? (
           <div className="empty-state">{t('common.empty')}</div>
         ) : (
           <div className="table-scroll">

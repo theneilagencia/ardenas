@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useScopedData, usePermission } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
+import { useCreateOperationFromAssessment } from '@/hooks/use-operations';
 import type { AssessmentStage } from '@/domain/types';
 
 const STAGE_KEY: Record<AssessmentStage, string> = {
@@ -22,7 +23,9 @@ export function AssessmentPage() {
   const navigate = useNavigate();
   const { assessments } = useScopedData();
   const can = usePermission();
-  const createFromAssessment = useAppStore((s) => s.createOperationFromAssessment);
+  const organizationId = useAppStore((s) => s.organizationId);
+  const companyId = useAppStore((s) => s.session?.person.companyId);
+  const createFromAssessment = useCreateOperationFromAssessment();
   const canCreate = can('operation.create');
 
   return (
@@ -80,9 +83,17 @@ export function AssessmentPage() {
                       <button
                         type="button"
                         className="btn btn-sm btn-ghost"
-                        onClick={() => {
-                          const op = createFromAssessment(a.id);
-                          if (op) navigate(`/operations/${op.id}`);
+                        onClick={async () => {
+                          const op = await createFromAssessment.mutateAsync({
+                            assessmentId: a.id,
+                            operationName: a.operationName,
+                            discipline: a.discipline,
+                            execScore: a.execScore,
+                            responsibleId: a.responsibleId,
+                            organizationId,
+                            companyId,
+                          });
+                          navigate(`/operations/${op.id}`);
                         }}
                       >
                         {t('assessment.toOperation')}

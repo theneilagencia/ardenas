@@ -42,6 +42,13 @@ export const enUS = {
       assessment: 'Assessment',
       company: 'Company',
     },
+    data: {
+      loading: 'Loading…',
+      error: 'Could not load data.',
+      retry: 'Try again',
+      conflict: 'Data changed. Reload and compare.',
+      unavailable: 'Service unavailable. Try again.',
+    },
     common: {
       open: 'Open',
       edit: 'Edit',

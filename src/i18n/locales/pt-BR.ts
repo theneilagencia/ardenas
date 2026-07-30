@@ -42,6 +42,13 @@ export const ptBR = {
       assessment: 'Avaliação',
       company: 'Empresa',
     },
+    data: {
+      loading: 'Carregando…',
+      error: 'Não foi possível carregar os dados.',
+      retry: 'Tentar novamente',
+      conflict: 'Os dados mudaram. Recarregue e compare.',
+      unavailable: 'Serviço indisponível. Tente novamente.',
+    },
     common: {
       open: 'Abrir',
       edit: 'Editar',

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useScopedData, usePermission } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
 import { useAppStore } from '@/store/app-store';
 import type { ExceptionState } from '@/domain/types';
 
@@ -12,7 +13,8 @@ const STATE_KEY: Record<ExceptionState, string> = {
 
 export function ExceptionsPage() {
   const { t } = useTranslation();
-  const { exceptions, operations } = useScopedData();
+  const { exceptions } = useScopedData();
+  const { operations } = useOperations();
   const can = usePermission();
   const resolve = useAppStore((s) => s.resolveException);
   const reprocess = useAppStore((s) => s.reprocessException);

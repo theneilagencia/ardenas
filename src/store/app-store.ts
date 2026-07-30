@@ -6,7 +6,11 @@
 
 import { create } from 'zustand';
 import type { DomainSnapshot } from '@/services/contracts';
-import { getDataProvider } from '@/services/service-container';
+import {
+  getServices,
+  getSnapshotStore,
+  resolveProviderKind,
+} from '@/services/service-container';
 import { permissionsFor, type Session } from '@/domain/permissions';
 import type {
   ApprovalState,
@@ -80,6 +84,8 @@ export interface AppState {
   assistantOpen: boolean;
   cmdOpen: boolean;
   tourStep: number; // -1 = fechado
+  /** Contador incremental: bump a cada evento de auditoria gravado, para revalidar leituras. */
+  auditVersion: number;
 
   // lifecycle
   bootstrap: () => Promise<void>;
@@ -101,15 +107,8 @@ export interface AppState {
   // audit
   recordAudit: (input: RecordAuditInput) => AuditEvent;
 
-  // operations
-  saveDraft: (op: Operation) => void;
-  publishOperation: (op: Operation) => Operation;
-  duplicateOperation: (id: string) => Operation | null;
-  createOperationFromAssessment: (assessmentId: string) => Operation | null;
-  pauseOperation: (id: string) => void;
-  resumeOperation: (id: string) => void;
-  archiveOperation: (id: string) => void;
-  startExecution: (operationId: string, opts?: { test: boolean }) => Execution;
+  // execuções (agregado ainda na store; recebe a Operação já carregada via repositório)
+  startExecution: (operation: Operation, opts?: { test: boolean }) => Execution;
 
   // approvals
   resolveApproval: (id: string, decision: ApprovalState, justification?: string) => void;
@@ -151,8 +150,6 @@ export interface AppState {
   setBudget: (id: string, total: number) => void;
 
   // environments
-  promoteEnvironment: (operationId: string) => void;
-  rollbackEnvironment: (operationId: string) => void;
 
   // exceptions
   resolveException: (id: string) => void;
@@ -171,10 +168,20 @@ function currentActor(session: Session | null): { id: string; role: RoleKey } {
 }
 
 export const useAppStore = create<AppState>((set, get) => {
-  const persist = () => {
-    const provider = getDataProvider();
-    if (provider.kind === 'api') return; // no modo api, mutações vão por endpoint
-    void provider.persist(structuredClone(get().data));
+  /**
+   * Persistência *slice-aware*: as fatias já migradas para repositórios
+   * (operations, auditEvents) são mantidas a partir do snapshot corrente e nunca
+   * sobrescritas pela store — evita dupla fonte de verdade. A store persiste
+   * apenas as fatias que ainda gerencia (fases 2–4).
+   */
+  const persist = async (): Promise<void> => {
+    if (resolveProviderKind() === 'api') return; // modo api: mutações vão por repositório
+    const data = get().data;
+    await getSnapshotStore().update((cur) => ({
+      ...data,
+      operations: cur.operations,
+      auditEvents: cur.auditEvents,
+    }));
   };
 
   const applyTheme = (theme: Theme) => {
@@ -193,10 +200,11 @@ export const useAppStore = create<AppState>((set, get) => {
     assistantOpen: false,
     cmdOpen: false,
     tourStep: -1,
+    auditVersion: 0,
 
     bootstrap: async () => {
-      const provider = getDataProvider();
-      const data = provider.kind === 'api' ? emptySnapshot : await provider.load();
+      const kind = resolveProviderKind();
+      const data = kind === 'api' ? emptySnapshot : await getSnapshotStore().read();
       const firstOrg = data.organizations[0]?.id ?? '';
       const admin = data.people.find((p) => p.roleKeys.includes('corporate_admin'));
       const session: Session | null = admin
@@ -211,8 +219,7 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     resetDemo: async () => {
-      const provider = getDataProvider();
-      await provider.clear();
+      if (resolveProviderKind() !== 'api') await getSnapshotStore().clear();
       set({ ready: false });
       await get().bootstrap();
     },
@@ -280,200 +287,20 @@ export const useAppStore = create<AppState>((set, get) => {
         evidenceId: input.evidenceId,
         result: input.result ?? 'success',
       };
-      set((s) => ({ data: { ...s.data, auditEvents: [event, ...s.data.auditEvents] } }));
-      persist();
+      // Fronteira única de auditoria: grava pelo repositório (fonte da verdade dos
+      // eventos) e só então persiste as fatias que a store ainda gerencia.
+      void getServices()
+        .audit.append(event)
+        .then(() => persist())
+        .then(() => set((s) => ({ auditVersion: s.auditVersion + 1 })))
+        .catch(() => {});
       return event;
     },
 
-    saveDraft: (op) => {
-      set((s) => {
-        const exists = s.data.operations.some((o) => o.id === op.id);
-        const operations = exists
-          ? s.data.operations.map((o) => (o.id === op.id ? { ...op, updatedAt: now() } : o))
-          : [...s.data.operations, { ...op, updatedAt: now() }];
-        return { data: { ...s.data, operations } };
-      });
-      get().recordAudit({
-        action: 'operation.draft_saved',
-        objectType: 'Operation',
-        objectId: op.id,
-        newValue: { status: 'draft' },
-        relatedOperationId: op.id,
-      });
-    },
-
-    publishOperation: (op) => {
-      // Constrói a operação exclusivamente a partir dos dados do formulário.
-      // Não clona operação existente. Gera identificador, versão 1.0.
-      const published: Operation = {
-        ...op,
-        id: op.id.startsWith('op_new') ? newId('op') : op.id,
-        version: '1.0',
-        status: 'scheduled',
-        publishedAt: now(),
-        updatedAt: now(),
-      };
-      set((s) => {
-        const exists = s.data.operations.some((o) => o.id === op.id);
-        const operations = exists
-          ? s.data.operations.map((o) => (o.id === op.id ? published : o))
-          : [...s.data.operations, published];
-        return { data: { ...s.data, operations } };
-      });
-      get().recordAudit({
-        action: 'operation.publish',
-        objectType: 'Operation',
-        objectId: published.id,
-        previousValue: { status: 'draft' },
-        newValue: { status: 'scheduled', version: '1.0' },
-        relatedOperationId: published.id,
-      });
-      return published;
-    },
-
-    duplicateOperation: (id) => {
-      const source = get().data.operations.find((o) => o.id === id);
-      if (!source) return null;
-      // Cria um rascunho a partir dos dados — cópia explícita, não versão publicada.
-      const copy: Operation = {
-        ...structuredClone(source),
-        id: newId('op'),
-        name: `${source.name} (cópia)`,
-        version: '0.1',
-        status: 'draft',
-        environment: null,
-        publishedAt: null,
-        createdAt: now(),
-        updatedAt: now(),
-      };
-      set((s) => ({ data: { ...s.data, operations: [...s.data.operations, copy] } }));
-      get().recordAudit({
-        action: 'operation.duplicate',
-        objectType: 'Operation',
-        objectId: copy.id,
-        previousValue: { sourceId: source.id },
-        newValue: { status: 'draft', name: copy.name },
-        relatedOperationId: copy.id,
-      });
-      return copy;
-    },
-
-    createOperationFromAssessment: (assessmentId) => {
-      const { data, organizationId, session } = get();
-      const asm = data.assessments.find((a) => a.id === assessmentId);
-      if (!asm) return null;
-      const opId = newId('op');
-      const draft: Operation = {
-        id: opId,
-        name: asm.operationName,
-        organizationId,
-        companyId: session?.person.companyId ?? '',
-        unitId: '',
-        areaId: '',
-        costCenterId: '',
-        criticality: asm.execScore >= 80 ? 'moderate' : 'elevated',
-        tags: [asm.discipline],
-        problem: '',
-        objective: '',
-        expectedResult: '',
-        recipients: [],
-        deliverables: [],
-        frequency: '',
-        sla: '',
-        indicators: [],
-        completionCriteria: [],
-        ownerId: asm.responsibleId,
-        approverIds: [],
-        substituteIds: [],
-        triggers: [],
-        contextSourceIds: [],
-        integrationIds: [],
-        steps: [],
-        actions: [],
-        approvalChain: [],
-        operationalLimits: [],
-        budget: 0,
-        workUnits: 0,
-        evidencePolicy: '',
-        retentionPolicy: '',
-        notificationRules: [],
-        environment: null,
-        version: '0.1',
-        status: 'draft',
-        publishedAt: null,
-        createdAt: now(),
-        updatedAt: now(),
-      };
-      set((s) => ({ data: { ...s.data, operations: [...s.data.operations, draft] } }));
-      get().recordAudit({
-        action: 'assessment.to_operation',
-        objectType: 'Operation',
-        objectId: opId,
-        previousValue: { assessmentId },
-        newValue: { status: 'draft', name: draft.name },
-        relatedOperationId: opId,
-      });
-      return draft;
-    },
-
-    pauseOperation: (id) => {
-      set((s) => ({
-        data: {
-          ...s.data,
-          operations: s.data.operations.map((o) =>
-            o.id === id ? { ...o, status: 'paused', updatedAt: now() } : o,
-          ),
-        },
-      }));
-      get().recordAudit({
-        action: 'operation.pause',
-        objectType: 'Operation',
-        objectId: id,
-        newValue: { status: 'paused' },
-        relatedOperationId: id,
-      });
-    },
-
-    resumeOperation: (id) => {
-      set((s) => ({
-        data: {
-          ...s.data,
-          operations: s.data.operations.map((o) =>
-            o.id === id ? { ...o, status: 'running', updatedAt: now() } : o,
-          ),
-        },
-      }));
-      get().recordAudit({
-        action: 'operation.resume',
-        objectType: 'Operation',
-        objectId: id,
-        newValue: { status: 'running' },
-        relatedOperationId: id,
-      });
-    },
-
-    archiveOperation: (id) => {
-      set((s) => ({
-        data: {
-          ...s.data,
-          operations: s.data.operations.map((o) =>
-            o.id === id ? { ...o, status: 'archived', updatedAt: now() } : o,
-          ),
-        },
-      }));
-      get().recordAudit({
-        action: 'operation.archive',
-        objectType: 'Operation',
-        objectId: id,
-        newValue: { status: 'archived' },
-        relatedOperationId: id,
-      });
-    },
-
-    startExecution: (operationId, opts) => {
-      const { data } = get();
-      const op = data.operations.find((o) => o.id === operationId);
-      if (!op) throw new Error(`Operação ${operationId} não encontrada`);
+    startExecution: (operation, opts) => {
+      // A Operação chega já carregada via repositório (a store não é mais fonte
+      // da verdade de operations). Executions permanece na store (Fase futura).
+      const op = operation;
       const test = opts?.test ?? false;
 
       // 1-2. Cria objeto em executions, vincula à operação e à versão publicada.
@@ -993,61 +820,6 @@ export const useAppStore = create<AppState>((set, get) => {
         objectId: id,
         previousValue: { total: prev?.total },
         newValue: { total },
-      });
-    },
-
-    // ── Ambientes ────────────────────────────────────────────────────────
-    promoteEnvironment: (operationId) => {
-      const order: Array<'sandbox' | 'staging' | 'production'> = [
-        'sandbox',
-        'staging',
-        'production',
-      ];
-      const op = get().data.operations.find((o) => o.id === operationId);
-      const idx = op?.environment ? order.indexOf(op.environment) : -1;
-      const nextEnv = order[Math.min(order.length - 1, idx + 1)] ?? 'sandbox';
-      set((s) => ({
-        data: {
-          ...s.data,
-          operations: s.data.operations.map((o) =>
-            o.id === operationId ? { ...o, environment: nextEnv, updatedAt: now() } : o,
-          ),
-        },
-      }));
-      get().recordAudit({
-        action: 'environment.promote',
-        objectType: 'Operation',
-        objectId: operationId,
-        previousValue: { environment: op?.environment },
-        newValue: { environment: nextEnv },
-        relatedOperationId: operationId,
-      });
-    },
-
-    rollbackEnvironment: (operationId) => {
-      const order: Array<'sandbox' | 'staging' | 'production'> = [
-        'sandbox',
-        'staging',
-        'production',
-      ];
-      const op = get().data.operations.find((o) => o.id === operationId);
-      const idx = op?.environment ? order.indexOf(op.environment) : 0;
-      const prevEnv = order[Math.max(0, idx - 1)] ?? 'sandbox';
-      set((s) => ({
-        data: {
-          ...s.data,
-          operations: s.data.operations.map((o) =>
-            o.id === operationId ? { ...o, environment: prevEnv, updatedAt: now() } : o,
-          ),
-        },
-      }));
-      get().recordAudit({
-        action: 'environment.rollback',
-        objectType: 'Operation',
-        objectId: operationId,
-        previousValue: { environment: op?.environment },
-        newValue: { environment: prevEnv },
-        relatedOperationId: operationId,
       });
     },
 

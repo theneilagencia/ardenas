@@ -4,13 +4,14 @@ import { MemoryRouter } from 'react-router-dom';
 import axe from 'axe-core';
 import { AccessDenied } from '@/components/AccessDenied';
 import { useAppStore } from '@/store/app-store';
-import { setDataProvider } from '@/services/service-container';
-import { MockDataProvider } from '@/services/providers';
+import { setServices, setSnapshotStore } from '@/services/service-container';
+import { MemorySnapshotStore } from '@/services/data/snapshot-store';
 import { buildSeed } from '@/domain/seed';
 import '@/i18n';
 
 beforeEach(async () => {
-  setDataProvider(new MockDataProvider(buildSeed()));
+  setSnapshotStore(new MemorySnapshotStore(buildSeed()));
+  setServices(null);
   await useAppStore.getState().bootstrap();
 });
 

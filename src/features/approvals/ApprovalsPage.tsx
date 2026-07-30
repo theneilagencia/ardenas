@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useScopedData, usePermission } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
 import { useAppStore } from '@/store/app-store';
 import type { ApprovalState, Criticality } from '@/domain/types';
 
@@ -28,7 +29,8 @@ const RESOLVED_KEY: Partial<Record<ApprovalState, string>> = {
 
 export function ApprovalsPage() {
   const { t } = useTranslation();
-  const { approvals, operations, people } = useScopedData();
+  const { approvals, people } = useScopedData();
+  const { operations } = useOperations();
   const can = usePermission();
   const resolve = useAppStore((s) => s.resolveApproval);
   const canResolve = can('approval.resolve');

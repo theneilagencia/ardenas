@@ -11,7 +11,8 @@ export function useScopedData() {
   const data = useAppStore((s) => s.data);
   const orgId = useAppStore((s) => s.organizationId);
   return {
-    operations: data.operations.filter((o) => o.organizationId === orgId),
+    // operations e auditEvents foram migrados para repositórios (use-operations /
+    // use-audit); não são mais expostos pela store.
     executions: data.executions.filter((e) => e.organizationId === orgId),
     approvals: data.approvals.filter((a) => a.organizationId === orgId),
     exceptions: data.exceptions.filter((e) => e.organizationId === orgId),
@@ -23,7 +24,6 @@ export function useScopedData() {
     files: data.files.filter((f) => f.organizationId === orgId),
     workUnits: data.workUnits.filter((w) => w.organizationId === orgId),
     budgets: data.budgets.filter((b) => b.organizationId === orgId),
-    auditEvents: data.auditEvents.filter((a) => a.organizationId === orgId),
     deployments: data.deployments.filter((d) => d.organizationId === orgId),
     notifications: data.notifications.filter((n) => n.organizationId === orgId),
     people: data.people.filter((p) => p.organizationId === orgId),
