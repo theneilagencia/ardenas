@@ -19,9 +19,10 @@ import {
 import { getActiveOrganizationId } from './session/active-context';
 import { getAccessToken } from './session/access-token';
 import { SnapshotOperationsRepository } from './repositories/operations-snapshot';
-import { ApiOperationsRepository } from './repositories/operations-api';
 import { SnapshotAuditRepository } from './repositories/audit-snapshot';
-import { ApiAuditRepository } from './repositories/audit-api';
+import { ApiV1HttpClient } from './api/v1-http-client';
+import { createApiV1OperationsRepository } from './api/v1-operations-repository';
+import { createApiV1AuditRepository } from './api/generated/repository-compat';
 import { SnapshotApprovalsRepository } from './repositories/approvals-snapshot';
 import { ApiApprovalsRepository } from './repositories/approvals-api';
 import { SnapshotFilesRepository } from './repositories/files-snapshot';
@@ -80,9 +81,12 @@ export function getServices(): ArdenServices {
   const kind = resolveProviderKind();
   if (kind === 'api') {
     const client = apiClient();
+    // Operações e auditoria usam o backend REAL v1 (ARDEN-BE-003), sem fallback.
+    const v1 = new ApiV1HttpClient(client);
     services = {
-      operations: new ApiOperationsRepository(client),
-      audit: new ApiAuditRepository(client),
+      operations: createApiV1OperationsRepository(v1),
+      audit: createApiV1AuditRepository(v1),
+      // Aprovações e arquivos permanecem fora do escopo do v1 nesta issue.
       approvals: new ApiApprovalsRepository(client),
       files: new ApiFilesRepository(client),
     };
