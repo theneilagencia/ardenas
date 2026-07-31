@@ -13,3 +13,5 @@ process.env.APP_VERSION ??= '0.1.0-test';
 process.env.CORS_ORIGINS ??= 'http://allowed.test';
 process.env.API_PREFIX ??= '/api/v1';
 process.env.ENABLE_SWAGGER ??= 'true';
+// Testes usam o provider de identidade FAKE (injetável), nunca Supabase real.
+process.env.AUTH_PROVIDER ??= 'fake';

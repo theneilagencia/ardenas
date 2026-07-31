@@ -10,6 +10,14 @@ const base = {
   CORS_ORIGINS: 'http://a.test,http://b.test',
   API_PREFIX: '/api/v1',
   ENABLE_SWAGGER: 'true',
+  AUTH_PROVIDER: 'fake',
+};
+
+const supabaseBase = {
+  ...base,
+  AUTH_PROVIDER: 'supabase',
+  SUPABASE_JWKS_URL: 'https://project.supabase.co/auth/v1/.well-known/jwks.json',
+  SUPABASE_JWT_ISSUER: 'https://project.supabase.co/auth/v1',
 };
 
 describe('loadConfig', () => {
@@ -40,5 +48,24 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', CORS_ORIGINS: '' })).toThrow(
       /allowlist/,
     );
+  });
+
+  it('proíbe AUTH_PROVIDER=fake em production', () => {
+    expect(() =>
+      loadConfig({ ...base, NODE_ENV: 'production', AUTH_PROVIDER: 'fake' }),
+    ).toThrow(/fake.*production/);
+  });
+
+  it('exige SUPABASE_JWKS_URL e issuer quando AUTH_PROVIDER=supabase', () => {
+    const { SUPABASE_JWKS_URL: _j, SUPABASE_JWT_ISSUER: _i, ...withoutJwks } = supabaseBase;
+    void _j;
+    void _i;
+    expect(() => loadConfig(withoutJwks)).toThrow(/SUPABASE_JWKS_URL/);
+  });
+
+  it('aceita configuração supabase completa', () => {
+    const cfg = loadConfig(supabaseBase);
+    expect(cfg.AUTH_PROVIDER).toBe('supabase');
+    expect(cfg.SUPABASE_JWKS_URL).toContain('jwks.json');
   });
 });
