@@ -26,9 +26,16 @@ export type Permission =
   | 'execution.resume'
   | 'approval.view'
   | 'approval.resolve'
+  | 'approval.request'
+  | 'approval.cancel'
+  | 'approval.delegate'
   | 'policy.view'
   | 'policy.manage'
+  | 'policy.create'
+  | 'policy.edit'
   | 'policy.publish'
+  | 'policy.suspend'
+  | 'authority.evaluate'
   | 'risk.view'
   | 'risk.manage'
   | 'integration.view'
@@ -69,9 +76,16 @@ export const ALL_PERMISSIONS: Permission[] = [
   'execution.resume',
   'approval.view',
   'approval.resolve',
+  'approval.request',
+  'approval.cancel',
+  'approval.delegate',
   'policy.view',
   'policy.manage',
+  'policy.create',
+  'policy.edit',
   'policy.publish',
+  'policy.suspend',
+  'authority.evaluate',
   'risk.view',
   'risk.manage',
   'integration.view',
@@ -118,6 +132,8 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.pause',
     'execution.resume',
     'approval.view',
+    'approval.request',
+    'authority.evaluate',
     'risk.view',
     'context.view',
     'integration.view',
@@ -133,6 +149,7 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.pause',
     'execution.resume',
     'approval.view',
+    'authority.evaluate',
     'risk.view',
     'audit.view',
     'file.view',
@@ -143,6 +160,10 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.view',
     'approval.view',
     'approval.resolve',
+    'approval.request',
+    'approval.cancel',
+    'approval.delegate',
+    'authority.evaluate',
     'audit.view',
     'risk.view',
   ],
@@ -152,7 +173,11 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'security.manage',
     'policy.view',
     'policy.manage',
+    'policy.create',
+    'policy.edit',
     'policy.publish',
+    'policy.suspend',
+    'authority.evaluate',
     'role.view',
     'role.manage',
     'integration.view',
