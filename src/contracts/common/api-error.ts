@@ -1,0 +1,82 @@
+/**
+ * Arden.AS — API v1 · erros (ARDEN-FE-003).
+ *
+ * Resposta de erro ÚNICA e tipada. Nunca expõe stack trace nem detalhes internos
+ * de banco. `correlationId` está sempre presente. Os códigos são estáveis e
+ * mapeiam para status HTTP documentados (ver API_V1_ERROR_CATALOG.md).
+ */
+
+import { z } from 'zod';
+import { correlationId } from './identifiers';
+
+export const apiErrorCode = z.enum([
+  'VALIDATION_ERROR',
+  'UNAUTHENTICATED',
+  'SESSION_EXPIRED',
+  'FORBIDDEN',
+  'ORGANIZATION_REQUIRED',
+  'ORGANIZATION_SUSPENDED',
+  'MEMBERSHIP_REQUIRED',
+  'MEMBERSHIP_SUSPENDED',
+  'RESOURCE_NOT_FOUND',
+  'VERSION_CONFLICT',
+  'RESOURCE_CONFLICT',
+  'ALREADY_PUBLISHED',
+  'INVALID_STATE_TRANSITION',
+  'IDEMPOTENCY_CONFLICT',
+  'RATE_LIMITED',
+  'DEPENDENCY_UNAVAILABLE',
+  'INTERNAL_ERROR',
+]);
+export type ApiErrorCode = z.infer<typeof apiErrorCode>;
+
+export const fieldError = z.object({
+  field: z.string(),
+  code: z.string(),
+  message: z.string(),
+});
+export type FieldError = z.infer<typeof fieldError>;
+
+export const apiErrorBody = z.object({
+  code: apiErrorCode,
+  message: z.string(),
+  correlationId,
+  /** Detalhes seguros (ex.: revisão esperada/atual em conflito). Nunca dados internos. */
+  details: z.record(z.unknown()).optional(),
+  fieldErrors: z.array(fieldError).optional(),
+});
+export type ApiErrorBody = z.infer<typeof apiErrorBody>;
+
+/** Envelope de erro. */
+export const apiErrorResponse = z.object({ error: apiErrorBody });
+export type ApiErrorResponse = z.infer<typeof apiErrorResponse>;
+
+/** Detalhe padronizado de conflito de concorrência (VERSION_CONFLICT). */
+export const versionConflictDetails = z.object({
+  resourceType: z.string(),
+  resourceId: z.string(),
+  expectedRevision: z.number().int(),
+  currentRevision: z.number().int(),
+});
+export type VersionConflictDetails = z.infer<typeof versionConflictDetails>;
+
+/** Mapa canônico código → status HTTP (documentado em API_V1_ERROR_CATALOG.md). */
+export const ERROR_HTTP_STATUS: Record<ApiErrorCode, number> = {
+  VALIDATION_ERROR: 422,
+  UNAUTHENTICATED: 401,
+  SESSION_EXPIRED: 401,
+  FORBIDDEN: 403,
+  ORGANIZATION_REQUIRED: 403,
+  ORGANIZATION_SUSPENDED: 403,
+  MEMBERSHIP_REQUIRED: 403,
+  MEMBERSHIP_SUSPENDED: 403,
+  RESOURCE_NOT_FOUND: 404,
+  VERSION_CONFLICT: 409,
+  RESOURCE_CONFLICT: 409,
+  ALREADY_PUBLISHED: 409,
+  INVALID_STATE_TRANSITION: 409,
+  IDEMPOTENCY_CONFLICT: 409,
+  RATE_LIMITED: 429,
+  DEPENDENCY_UNAVAILABLE: 503,
+  INTERNAL_ERROR: 500,
+};
