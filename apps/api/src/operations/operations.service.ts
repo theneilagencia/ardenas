@@ -104,7 +104,6 @@ export class OperationsService {
     body: CreateOperationRequest,
     idempotencyKey: string,
   ): Promise<{ statusCode: number; body: OperationEnvelope }> {
-    await this.assertOwnerInTenant(ctx, body.ownerId ?? null);
     const orgId = this.orgId(ctx);
 
     const result = await runIdempotentCommand<OperationEnvelope>(
@@ -147,6 +146,9 @@ export class OperationsService {
         await this.recordVersion(tx, ctx, 'operation_version.created', version.id, null, version);
 
         return { data: toOperationContract(withPointer) };
+      },
+      async () => {
+        await this.assertOwnerInTenant(ctx, body.ownerId ?? null);
       },
     );
     return { statusCode: result.statusCode, body: result.response };
@@ -231,15 +233,14 @@ export class OperationsService {
     body: ArchiveOperationRequest,
     idempotencyKey: string,
   ): Promise<{ statusCode: number; body: OperationEnvelope }> {
-    const op = await this.loadOrThrow(ctx, operationId);
-    const orgId = op.organizationId;
+    const orgId = this.orgId(ctx);
 
-    const result = await runIdempotentCommand<OperationEnvelope>(
+    const result = await runIdempotentCommand<OperationEnvelope, DbOperation>(
       { idem: this.idem, prisma: this.prisma },
-      { method: 'POST', path: `/organizations/${orgId}/operations/${op.id}/archive`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
+      { method: 'POST', path: `/organizations/${orgId}/operations/${operationId}/archive`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
       body,
       200,
-      async (tx) => {
+      async (tx, op) => {
         if (op.status === 'archived') return { data: toOperationContract(op) };
         assertRevision({ resourceType: 'operation', resourceId: op.id, expectedRevision: body.expectedRevision, currentRevision: op.revision });
         const res = await tx.operation.updateMany({
@@ -253,6 +254,7 @@ export class OperationsService {
         await this.recordOp(tx, ctx, 'operation.archived', op.id, op, fresh, { reason: body.reason ?? null });
         return { data: toOperationContract(fresh) };
       },
+      () => this.loadOrThrow(ctx, operationId),
     );
     return { statusCode: result.statusCode, body: result.response };
   }
@@ -264,19 +266,14 @@ export class OperationsService {
     body: DuplicateOperationRequest,
     idempotencyKey: string,
   ): Promise<{ statusCode: number; body: OperationEnvelope }> {
-    const source = await this.loadOrThrow(ctx, operationId);
-    const orgId = source.organizationId;
-    // Copia a definição da versão publicada, ou da versão em rascunho atual.
-    const sourceVersion =
-      (await this.versions.findPublished(orgId, source.id)) ??
-      (await this.versions.findCurrentDraft(orgId, source.id));
+    const orgId = this.orgId(ctx);
 
-    const result = await runIdempotentCommand<OperationEnvelope>(
+    const result = await runIdempotentCommand<OperationEnvelope, { source: DbOperation; sourceVersion: DbVersion | null }>(
       { idem: this.idem, prisma: this.prisma },
-      { method: 'POST', path: `/organizations/${orgId}/operations/${source.id}/duplicate`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
+      { method: 'POST', path: `/organizations/${orgId}/operations/${operationId}/duplicate`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
       body,
       201,
-      async (tx) => {
+      async (tx, { source, sourceVersion }) => {
         const op = await this.operations.create(
           {
             organizationId: orgId,
@@ -308,6 +305,13 @@ export class OperationsService {
         await this.recordOp(tx, ctx, 'operation.duplicated', op.id, null, withPointer, { sourceOperationId: source.id });
         await this.recordVersion(tx, ctx, 'operation_version.created', version.id, null, version);
         return { data: toOperationContract(withPointer) };
+      },
+      async () => {
+        const source = await this.loadOrThrow(ctx, operationId);
+        const sourceVersion =
+          (await this.versions.findPublished(orgId, source.id)) ??
+          (await this.versions.findCurrentDraft(orgId, source.id));
+        return { source, sourceVersion };
       },
     );
     return { statusCode: result.statusCode, body: result.response };

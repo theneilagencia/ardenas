@@ -29,6 +29,12 @@ export function bearer(subject: string, opts: { email?: string; ttlSeconds?: num
 export async function resetIdentity(): Promise<void> {
   await prisma.$transaction([
     prisma.identityAuditEvent.deleteMany(),
+    // Operações/versões/auditoria de operações e idempotência (ARDEN-BE-003):
+    // limpar ANTES das organizações (FK operations.organization_id).
+    prisma.auditEvent.deleteMany(),
+    prisma.operationVersion.deleteMany(),
+    prisma.operation.deleteMany(),
+    prisma.idempotencyRecord.deleteMany(),
     prisma.userSessionPreference.deleteMany(),
     prisma.membershipRole.deleteMany(),
     prisma.membership.deleteMany(),

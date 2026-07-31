@@ -36,16 +36,22 @@ export interface IdempotentCommandResult<T> {
 }
 
 /**
- * Roda `command` de forma idempotente e transacional. `command` recebe o cliente
- * de transação e DEVE registrar a auditoria pelo mesmo `tx`. A resposta retornada
- * é armazenada integralmente para replays.
+ * Roda `command` de forma idempotente e transacional.
+ *
+ * Ordem: (1) verifica a idempotência — replay curto-circuita ANTES de qualquer
+ * pré-checagem de estado (para que um retry legítimo não colida com o efeito do
+ * primeiro); (2) `prepare` (opcional) roda apenas em requisições novas, FORA da
+ * transação — é onde ficam pré-checagens/validações que podem rejeitar o comando;
+ * (3) `command` roda na transação e DEVE gravar a auditoria pelo mesmo `tx`. A
+ * resposta é armazenada integralmente para replays.
  */
-export async function runIdempotentCommand<T>(
+export async function runIdempotentCommand<T, P = void>(
   deps: { idem: IdempotencyService; prisma: PrismaService },
   parts: IdempotentCommandParts,
   requestBody: unknown,
   statusCode: number,
-  command: (tx: Prisma.TransactionClient) => Promise<T>,
+  command: (tx: Prisma.TransactionClient, prepared: P) => Promise<T>,
+  prepare?: () => Promise<P>,
 ): Promise<IdempotentCommandResult<T>> {
   const requestHash = hashRequestBody(requestBody);
   const scope = {
@@ -60,8 +66,10 @@ export async function runIdempotentCommand<T>(
   }
   if (found.outcome === 'conflict') throw idempotencyConflict();
 
+  const prepared = (prepare ? await prepare() : undefined) as P;
+
   const response = await deps.prisma.$transaction(async (tx) => {
-    const result = await command(tx);
+    const result = await command(tx, prepared);
     await deps.idem.remember(
       {
         ...scope,

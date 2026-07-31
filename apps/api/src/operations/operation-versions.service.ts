@@ -102,31 +102,17 @@ export class OperationVersionsService {
     body: CreateOperationVersionRequest,
     idempotencyKey: string,
   ): Promise<{ statusCode: number; body: VersionEnvelope }> {
-    const op = await this.loadOperationOrThrow(ctx, operationId);
-    const orgId = op.organizationId;
-    if (op.status === 'archived') throw invalidStateTransition('Operação arquivada não aceita novas versões.');
+    const orgId = this.orgId(ctx);
 
-    const existingDraft = await this.versions.findCurrentDraft(orgId, op.id);
-    if (existingDraft) {
-      throw resourceConflict('Já existe um rascunho ativo para esta operação.');
-    }
-
-    // Base: versão indicada, senão a publicada.
-    let base: DbVersion | null = null;
-    if (body.basedOnVersionId) {
-      base = await this.versions.findById(orgId, op.id, body.basedOnVersionId);
-      if (!base) throw notFound('Versão de base não encontrada.');
-    } else {
-      base = await this.versions.findPublished(orgId, op.id);
-    }
-    const nextNumber = (await this.versions.maxVersionNumber(orgId, op.id)) + 1;
-
-    const result = await runIdempotentCommand<VersionEnvelope>(
+    const result = await runIdempotentCommand<
+      VersionEnvelope,
+      { op: DbOperation; base: DbVersion | null; nextNumber: number }
+    >(
       { idem: this.idem, prisma: this.prisma },
-      { method: 'POST', path: `/organizations/${orgId}/operations/${op.id}/versions`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
+      { method: 'POST', path: `/organizations/${orgId}/operations/${operationId}/versions`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
       body,
       201,
-      async (tx) => {
+      async (tx, { op, base, nextNumber }) => {
         const version = await this.versions.create(
           {
             organizationId: orgId,
@@ -145,6 +131,22 @@ export class OperationVersionsService {
           basedOnVersionId: base?.id ?? null,
         });
         return { data: toOperationVersionContract(version) };
+      },
+      async () => {
+        const op = await this.loadOperationOrThrow(ctx, operationId);
+        if (op.status === 'archived') throw invalidStateTransition('Operação arquivada não aceita novas versões.');
+        if (await this.versions.findCurrentDraft(orgId, op.id)) {
+          throw resourceConflict('Já existe um rascunho ativo para esta operação.');
+        }
+        let base: DbVersion | null = null;
+        if (body.basedOnVersionId) {
+          base = await this.versions.findById(orgId, op.id, body.basedOnVersionId);
+          if (!base) throw notFound('Versão de base não encontrada.');
+        } else {
+          base = await this.versions.findPublished(orgId, op.id);
+        }
+        const nextNumber = (await this.versions.maxVersionNumber(orgId, op.id)) + 1;
+        return { op, base, nextNumber };
       },
     );
     return { statusCode: result.statusCode, body: result.response };
@@ -247,46 +249,21 @@ export class OperationVersionsService {
     body: PublishOperationVersionRequest,
     idempotencyKey: string,
   ): Promise<{ statusCode: number; body: { data: PublishOperationVersionResult } }> {
-    const op = await this.loadOperationOrThrow(ctx, operationId);
-    const version = await this.loadVersionOrThrow(ctx, operationId, versionId);
-    const orgId = op.organizationId;
+    const orgId = this.orgId(ctx);
 
-    // Já publicada: imutável (o replay idempotente é tratado adiante pela key).
-    if (version.status !== 'draft') throw alreadyPublished('Versão já publicada é imutável.');
-    if (op.status === 'archived') throw invalidStateTransition('Operação arquivada não pode publicar.');
-
-    // Validação de publicação ANTES da transação. Inválido → auditoria de falha
-    // (best-effort, fora da transação) + 422; a transação nem inicia.
-    const validation = this.validator.validate(op, version, ctx);
-    if (!validation.valid) {
-      await this.audit
-        .record(this.prisma as unknown as Prisma.TransactionClient, {
-          organizationId: orgId,
-          actorUserId: ctx.userId,
-          action: 'operation_version.publication_failed',
-          resourceType: 'operation_version',
-          resourceId: version.id,
-          outcome: 'FAILURE',
-          correlationId: ctx.correlationId,
-          metadata: { errors: validation.errors },
-        })
-        .catch(() => undefined);
-      throw validationError(
-        validation.errors.map((e) => ({ field: e.field ?? 'version', code: e.code, message: e.message })),
-        'Publicação inválida.',
-      );
-    }
-
-    const result = await runIdempotentCommand<{ data: PublishOperationVersionResult }>(
+    const result = await runIdempotentCommand<
+      { data: PublishOperationVersionResult },
+      { op: DbOperation; version: DbVersion; warnings: unknown[] }
+    >(
       { idem: this.idem, prisma: this.prisma },
-      { method: 'POST', path: `/organizations/${orgId}/operations/${op.id}/versions/${version.id}/publish`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
+      { method: 'POST', path: `/organizations/${orgId}/operations/${operationId}/versions/${versionId}/publish`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
       body,
       200,
-      async (tx) => {
+      async (tx, { op, version, warnings }) => {
         const audits: DbAuditEvent[] = [];
         audits.push(
           await this.recordVersion(tx, ctx, 'operation_version.publication_validated', version.id, version, version, {
-            warnings: validation.warnings,
+            warnings,
           }),
         );
 
@@ -333,6 +310,35 @@ export class OperationVersionsService {
             auditEvents: audits.map(toAuditEventContract),
           },
         };
+      },
+      async () => {
+        const op = await this.loadOperationOrThrow(ctx, operationId);
+        const version = await this.loadVersionOrThrow(ctx, operationId, versionId);
+        if (version.status !== 'draft') throw alreadyPublished('Versão já publicada é imutável.');
+        if (op.status === 'archived') throw invalidStateTransition('Operação arquivada não pode publicar.');
+
+        // Validação ANTES da transação: inválido → auditoria de falha (best-effort,
+        // fora da transação) + 422; a transação nem inicia.
+        const validation = this.validator.validate(op, version, ctx);
+        if (!validation.valid) {
+          await this.audit
+            .record(this.prisma as unknown as Prisma.TransactionClient, {
+              organizationId: orgId,
+              actorUserId: ctx.userId,
+              action: 'operation_version.publication_failed',
+              resourceType: 'operation_version',
+              resourceId: version.id,
+              outcome: 'FAILURE',
+              correlationId: ctx.correlationId,
+              metadata: { errors: validation.errors },
+            })
+            .catch(() => undefined);
+          throw validationError(
+            validation.errors.map((e) => ({ field: e.field ?? 'version', code: e.code, message: e.message })),
+            'Publicação inválida.',
+          );
+        }
+        return { op, version, warnings: validation.warnings };
       },
     );
     return { statusCode: result.statusCode, body: result.response };
