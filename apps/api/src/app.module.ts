@@ -20,6 +20,8 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { OperationsModule } from './operations/operations.module';
 import { AuditModule } from './audit/audit.module';
 import { PoliciesModule } from './policies/policies.module';
+import { EnforcementModule } from './enforcement/enforcement.module';
+import { ApprovalsModule } from './approvals/approvals.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -43,6 +45,8 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     AuditModule,
     // Governança e aprovações (ARDEN-BE-004).
     PoliciesModule,
+    EnforcementModule,
+    ApprovalsModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })

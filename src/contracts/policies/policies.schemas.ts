@@ -27,6 +27,8 @@ export const policyConditionOperator = z.enum([
   'EQUALS', 'NOT_EQUALS', 'IN', 'NOT_IN',
   'GREATER_THAN', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN', 'LESS_THAN_OR_EQUAL', 'EXISTS',
 ]);
+export type PolicyEffect = z.infer<typeof policyEffect>;
+export type PolicyConditionOperator = z.infer<typeof policyConditionOperator>;
 
 /** Condição declarativa (sem expressões arbitrárias). */
 export const policyCondition = z.object({
