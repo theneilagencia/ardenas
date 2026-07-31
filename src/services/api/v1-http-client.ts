@@ -29,8 +29,36 @@ import type {
   AuthorityProfile,
   UpdateAuthorityProfileRequest,
   PaginationMeta,
+  Policy,
+  PolicyVersion,
+  OperationPolicyBinding,
+  CreatePolicyRequest,
+  UpdatePolicyRequest,
+  CreatePolicyVersionRequest,
+  UpdatePolicyVersionRequest,
+  PublishPolicyVersionRequest,
+  PolicyTransitionRequest,
+  CreatePolicyBindingRequest,
+  UpdatePolicyBindingRequest,
+  ApprovalFlow,
+  ApprovalRequest,
+  ApprovalDelegation,
+  CreateApprovalFlowRequest,
+  UpdateApprovalFlowRequest,
+  ApprovalFlowTransitionRequest,
+  CreateApprovalRequestRequest,
+  DecideApprovalRequest,
+  CancelApprovalRequest,
+  ListApprovalRequestsQuery,
+  CreateApprovalDelegationRequest,
+  RevokeApprovalDelegationRequest,
+  ActionEvaluationResult,
+  ActionValidationResult,
+  ApprovalDecisionResult,
+  EvaluateActionRequest,
+  ValidateAuthorizationRequest,
 } from '@/contracts';
-import type { ArdenApiV1Client, ClientPage, CallOptions } from './generated/api-v1-client';
+import type { ArdenApiV1Client, ClientPage, CallOptions, CursorPageQuery } from './generated/api-v1-client';
 
 interface ListEnvelope<T> {
   data: T[];
@@ -159,5 +187,101 @@ export class ApiV1HttpClient implements ArdenApiV1Client {
   }
   getAuditEvent(organizationId: string, eventId: string, opts?: CallOptions) {
     return this.get<AuditEvent>(`${this.base(organizationId)}/audit-events/${eventId}`, opts);
+  }
+
+  // ── Governança: políticas (ARDEN-BE-004) ────────────────────────────────────
+  listPolicies(organizationId: string, q: CursorPageQuery, opts?: CallOptions) {
+    return this.list<Policy>(`${this.base(organizationId)}/policies${query(q as Record<string, unknown>)}`, opts);
+  }
+  getPolicy(organizationId: string, policyId: string, opts?: CallOptions) {
+    return this.get<Policy>(`${this.base(organizationId)}/policies/${policyId}`, opts);
+  }
+  createPolicy(organizationId: string, body: CreatePolicyRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Policy>('POST', `${this.base(organizationId)}/policies`, body, opts);
+  }
+  updatePolicy(organizationId: string, policyId: string, body: UpdatePolicyRequest, opts?: CallOptions) {
+    return this.send<Policy>('PATCH', `${this.base(organizationId)}/policies/${policyId}`, body, opts);
+  }
+  createPolicyVersion(organizationId: string, policyId: string, body: CreatePolicyVersionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<PolicyVersion>('POST', `${this.base(organizationId)}/policies/${policyId}/versions`, body, opts);
+  }
+  updatePolicyVersion(organizationId: string, policyId: string, versionId: string, body: UpdatePolicyVersionRequest, opts?: CallOptions) {
+    return this.send<PolicyVersion>('PATCH', `${this.base(organizationId)}/policies/${policyId}/versions/${versionId}`, body, opts);
+  }
+  publishPolicyVersion(organizationId: string, policyId: string, versionId: string, body: PublishPolicyVersionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<PolicyVersion>('POST', `${this.base(organizationId)}/policies/${policyId}/versions/${versionId}/publish`, body, opts);
+  }
+  suspendPolicy(organizationId: string, policyId: string, body: PolicyTransitionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Policy>('POST', `${this.base(organizationId)}/policies/${policyId}/suspend`, body, opts);
+  }
+  archivePolicy(organizationId: string, policyId: string, body: PolicyTransitionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Policy>('POST', `${this.base(organizationId)}/policies/${policyId}/archive`, body, opts);
+  }
+  listPolicyBindings(organizationId: string, operationId: string, opts?: CallOptions) {
+    return this.get<OperationPolicyBinding[]>(`${this.base(organizationId)}/operations/${operationId}/policy-bindings`, opts);
+  }
+  createPolicyBinding(organizationId: string, operationId: string, body: CreatePolicyBindingRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<OperationPolicyBinding>('POST', `${this.base(organizationId)}/operations/${operationId}/policy-bindings`, body, opts);
+  }
+  updatePolicyBinding(organizationId: string, operationId: string, bindingId: string, body: UpdatePolicyBindingRequest, opts?: CallOptions) {
+    return this.send<OperationPolicyBinding>('PATCH', `${this.base(organizationId)}/operations/${operationId}/policy-bindings/${bindingId}`, body, opts);
+  }
+  deletePolicyBinding(organizationId: string, operationId: string, bindingId: string, opts?: CallOptions) {
+    return this.send<OperationPolicyBinding>('DELETE', `${this.base(organizationId)}/operations/${operationId}/policy-bindings/${bindingId}`, undefined, opts);
+  }
+
+  // ── Aprovações (ARDEN-BE-004) ────────────────────────────────────────────────
+  listApprovalFlows(organizationId: string, q: CursorPageQuery, opts?: CallOptions) {
+    return this.list<ApprovalFlow>(`${this.base(organizationId)}/approval-flows${query(q as Record<string, unknown>)}`, opts);
+  }
+  getApprovalFlow(organizationId: string, flowId: string, opts?: CallOptions) {
+    return this.get<ApprovalFlow>(`${this.base(organizationId)}/approval-flows/${flowId}`, opts);
+  }
+  createApprovalFlow(organizationId: string, body: CreateApprovalFlowRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ApprovalFlow>('POST', `${this.base(organizationId)}/approval-flows`, body, opts);
+  }
+  updateApprovalFlow(organizationId: string, flowId: string, body: UpdateApprovalFlowRequest, opts?: CallOptions) {
+    return this.send<ApprovalFlow>('PATCH', `${this.base(organizationId)}/approval-flows/${flowId}`, body, opts);
+  }
+  activateApprovalFlow(organizationId: string, flowId: string, body: ApprovalFlowTransitionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ApprovalFlow>('POST', `${this.base(organizationId)}/approval-flows/${flowId}/activate`, body, opts);
+  }
+  suspendApprovalFlow(organizationId: string, flowId: string, body: ApprovalFlowTransitionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ApprovalFlow>('POST', `${this.base(organizationId)}/approval-flows/${flowId}/suspend`, body, opts);
+  }
+  listApprovalRequests(organizationId: string, q: ListApprovalRequestsQuery, opts?: CallOptions) {
+    return this.list<ApprovalRequest>(`${this.base(organizationId)}/approval-requests${query(q)}`, opts);
+  }
+  getApprovalRequest(organizationId: string, requestId: string, opts?: CallOptions) {
+    return this.get<ApprovalRequest>(`${this.base(organizationId)}/approval-requests/${requestId}`, opts);
+  }
+  createApprovalRequest(organizationId: string, operationId: string, body: CreateApprovalRequestRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ApprovalRequest>('POST', `${this.base(organizationId)}/operations/${operationId}/approval-requests`, body, opts);
+  }
+  approveApprovalRequest(organizationId: string, requestId: string, body: DecideApprovalRequest, opts?: CallOptions) {
+    return this.send<ApprovalDecisionResult>('POST', `${this.base(organizationId)}/approval-requests/${requestId}/approve`, body, opts);
+  }
+  rejectApprovalRequest(organizationId: string, requestId: string, body: DecideApprovalRequest, opts?: CallOptions) {
+    return this.send<ApprovalRequest>('POST', `${this.base(organizationId)}/approval-requests/${requestId}/reject`, body, opts);
+  }
+  cancelApprovalRequest(organizationId: string, requestId: string, body: CancelApprovalRequest, opts?: CallOptions) {
+    return this.send<ApprovalRequest>('POST', `${this.base(organizationId)}/approval-requests/${requestId}/cancel`, body, opts);
+  }
+  listApprovalDelegations(organizationId: string, opts?: CallOptions) {
+    return this.get<ApprovalDelegation[]>(`${this.base(organizationId)}/approval-delegations`, opts);
+  }
+  createApprovalDelegation(organizationId: string, body: CreateApprovalDelegationRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ApprovalDelegation>('POST', `${this.base(organizationId)}/approval-delegations`, body, opts);
+  }
+  revokeApprovalDelegation(organizationId: string, delegationId: string, body: RevokeApprovalDelegationRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ApprovalDelegation>('POST', `${this.base(organizationId)}/approval-delegations/${delegationId}/revoke`, body, opts);
+  }
+
+  // ── Enforcement de autoridade (ARDEN-BE-004) ─────────────────────────────────
+  evaluateAction(organizationId: string, operationId: string, body: EvaluateActionRequest, opts?: CallOptions) {
+    return this.send<ActionEvaluationResult>('POST', `${this.base(organizationId)}/operations/${operationId}/actions/evaluate`, body, opts);
+  }
+  validateAuthorization(organizationId: string, body: ValidateAuthorizationRequest, opts?: CallOptions) {
+    return this.send<ActionValidationResult>('POST', `${this.base(organizationId)}/action-authorizations/validate`, body, opts);
   }
 }
