@@ -1,0 +1,5296 @@
+# Arden.AS — OpenAPI v1 (ARDEN-FE-003)
+# GERADO a partir de src/contracts (fonte única). Não editar à mão.
+# Regenerar: npm run contracts:openapi
+openapi: 3.0.3
+info:
+  title: Arden.AS API
+  version: 1.0.0
+  description: >-
+    Contratos definitivos da API v1 do Arden.AS (ARDEN-FE-003). Sem backend nesta issue — apenas o contrato
+    compartilhado por frontend e futuro backend. O backend é a fonte de verdade: deriva usuário, organização e
+    permissões da sessão; o cliente não envia permissões nem escolhe o tenant arbitrariamente.
+servers:
+  - url: /api/v1
+    description: API v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Session
+    description: Identidade e sessão. O servidor deriva usuário/org/permissões.
+  - name: Operations
+    description: Operações (org-scoped).
+  - name: OperationVersions
+    description: Versões de operação; publicada é imutável.
+  - name: Authority
+    description: Gradiente de Autoridade da versão.
+  - name: Audit
+    description: Trilha de auditoria (somente leitura).
+paths:
+  /session:
+    get:
+      operationId: session.get
+      summary: Sessão atual (usuário, organizações, memberships, org ativa, permissões, expiração, status).
+      tags:
+        - Session
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: null
+      x-idempotent: false
+      x-optimistic-concurrency: false
+      description: O servidor deriva usuário, organização ativa e permissões da sessão autenticada. O cliente não envia permissões.
+  /session/refresh:
+    post:
+      operationId: session.refresh
+      summary: Renova a sessão (nova expiração).
+      tags:
+        - Session
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: null
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /session/switch-organization:
+    post:
+      operationId: session.switchOrganization
+      summary: Troca a organização ativa. Rejeita sem membership ativa.
+      tags:
+        - Session
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: null
+      x-idempotent: false
+      x-optimistic-concurrency: false
+      description: MEMBERSHIP_REQUIRED/MEMBERSHIP_SUSPENDED quando o usuário não possui membership ativa na organização de destino.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwitchOrganizationRequest'
+  /session/logout:
+    post:
+      operationId: session.logout
+      summary: Encerra a sessão.
+      tags:
+        - Session
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Sem conteúdo.
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: null
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/operations:
+    get:
+      operationId: operations.list
+      summary: Lista operações da organização (filtros + cursor).
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - draft
+                  - active
+                  - paused
+                  - archived
+        - name: search
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                maxLength: 200
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: authorityLevel
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: integer
+                minimum: 1
+                maximum: 5
+        - name: createdAfter
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            description: ISO 8601 date-time in UTC (Z suffix)
+        - name: createdBefore
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            description: ISO 8601 date-time in UTC (Z suffix)
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - updatedAt
+              - name
+            default: createdAt
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: operations.create
+      summary: Cria operação + primeira versão em rascunho + auditoria (transacional).
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.create
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      description: Idempotency-Key obrigatório. Cria de forma transacional operação, versão inicial e evento.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOperationRequest'
+  /organizations/{organizationId}/operations/{operationId}:
+    get:
+      operationId: operations.get
+      summary: Busca uma operação.
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: operations.update
+      summary: Edita metadados da operação (concorrência otimista).
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.edit
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: Requer If-Match/expectedRevision. Conflito → VERSION_CONFLICT (409).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOperationRequest'
+  /organizations/{organizationId}/operations/{operationId}/archive:
+    post:
+      operationId: operations.archive
+      summary: Arquiva a operação.
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.edit
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      description: Idempotente. §21 usa "operation.archive"; o catálogo estável (FE-002) usa operation.edit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArchiveOperationRequest'
+  /organizations/{organizationId}/operations/{operationId}/duplicate:
+    post:
+      operationId: operations.duplicate
+      summary: Duplica a operação (nova operação em rascunho).
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.create
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateOperationRequest'
+  /organizations/{organizationId}/operations/{operationId}/pause:
+    post:
+      operationId: operations.pause
+      summary: Pausa a operação.
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.pause
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: Transição inválida → INVALID_STATE_TRANSITION (409).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationTransitionRequest'
+  /organizations/{organizationId}/operations/{operationId}/resume:
+    post:
+      operationId: operations.resume
+      summary: Retoma a operação.
+      tags:
+        - Operations
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.pause
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationTransitionRequest'
+  /organizations/{organizationId}/operations/{operationId}/versions:
+    get:
+      operationId: operationVersions.list
+      summary: Lista versões da operação.
+      tags:
+        - OperationVersions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationVersionListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: operationVersions.create
+      summary: Cria nova versão em rascunho (copia outra quando basedOnVersionId).
+      tags:
+        - OperationVersions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.edit
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOperationVersionRequest'
+  /organizations/{organizationId}/operations/{operationId}/versions/{versionId}:
+    get:
+      operationId: operationVersions.get
+      summary: Busca uma versão (rascunho ou publicada).
+      tags:
+        - OperationVersions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: operationVersions.update
+      summary: Edita a definição do rascunho (concorrência otimista).
+      tags:
+        - OperationVersions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.edit
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: Somente rascunho. Versão publicada → ALREADY_PUBLISHED (409). Conflito → VERSION_CONFLICT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOperationVersionRequest'
+  /organizations/{organizationId}/operations/{operationId}/versions/{versionId}/publish:
+    post:
+      operationId: operationVersions.publish
+      summary: Publica a versão (comando explícito e idempotente).
+      tags:
+        - OperationVersions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishOperationVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.publish
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      description: >-
+        Valida: versão pertence à operação/organização; está em rascunho; permissão; gradiente válido; campos
+        obrigatórios; revisão atual; idempotência; publicação anterior. Republicar → ALREADY_PUBLISHED.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishOperationVersionRequest'
+  /organizations/{organizationId}/operations/{operationId}/versions/{versionId}/compare/{otherVersionId}:
+    get:
+      operationId: operationVersions.compare
+      summary: Compara duas versões da mesma operação.
+      tags:
+        - OperationVersions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: otherVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionComparisonResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/operations/{operationId}/versions/{versionId}/authority:
+    get:
+      operationId: authority.get
+      summary: Consulta o Gradiente de Autoridade da versão.
+      tags:
+        - Authority
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorityProfileResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: authority.update
+      summary: Atualiza o Gradiente de Autoridade em rascunho (concorrência otimista).
+      tags:
+        - Authority
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: operation.edit
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: Somente rascunho (publicada → ALREADY_PUBLISHED). Regras mínimas validadas na publicação.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAuthorityProfileRequest'
+  /organizations/{organizationId}/audit-events:
+    get:
+      operationId: audit.list
+      summary: Lista eventos de auditoria (filtros + cursor).
+      tags:
+        - Audit
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: actorId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: action
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: resourceType
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: resourceId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            description: ISO 8601 date-time in UTC (Z suffix)
+        - name: to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            description: ISO 8601 date-time in UTC (Z suffix)
+        - name: correlationId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: audit.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/audit-events/{eventId}:
+    get:
+      operationId: audit.get
+      summary: Detalhe de um evento de auditoria.
+      tags:
+        - Audit
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: audit.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token OU sessão equivalente. Não amarrado a fornecedor; implementado no backend.
+  schemas:
+    ApiErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - UNAUTHENTICATED
+                - SESSION_EXPIRED
+                - FORBIDDEN
+                - ORGANIZATION_REQUIRED
+                - ORGANIZATION_SUSPENDED
+                - MEMBERSHIP_REQUIRED
+                - MEMBERSHIP_SUSPENDED
+                - RESOURCE_NOT_FOUND
+                - VERSION_CONFLICT
+                - RESOURCE_CONFLICT
+                - ALREADY_PUBLISHED
+                - INVALID_STATE_TRANSITION
+                - IDEMPOTENCY_CONFLICT
+                - RATE_LIMITED
+                - DEPENDENCY_UNAVAILABLE
+                - INTERNAL_ERROR
+            message:
+              type: string
+            correlationId:
+              type: string
+              minLength: 1
+              maxLength: 200
+            details:
+              type: object
+              additionalProperties: {}
+            fieldErrors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  code:
+                    type: string
+                  message:
+                    type: string
+                required:
+                  - field
+                  - code
+                  - message
+                additionalProperties: false
+          required:
+            - code
+            - message
+            - correlationId
+          additionalProperties: false
+      required:
+        - error
+      additionalProperties: false
+    AuthenticatedUser:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+          minLength: 1
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+      required:
+        - id
+        - email
+        - displayName
+        - status
+      additionalProperties: false
+    OrganizationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+      required:
+        - id
+        - name
+        - slug
+        - status
+      additionalProperties: false
+    Membership:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        userId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        roleIds:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        status:
+          type: string
+          enum:
+            - active
+            - invited
+            - suspended
+      required:
+        - id
+        - userId
+        - organizationId
+        - roleIds
+        - status
+      additionalProperties: false
+    SessionContext:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            email:
+              type: string
+              format: email
+            displayName:
+              type: string
+              minLength: 1
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+            status:
+              type: string
+              enum:
+                - active
+                - suspended
+          required:
+            - id
+            - email
+            - displayName
+            - status
+          additionalProperties: false
+        organizations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              name:
+                type: string
+                minLength: 1
+              slug:
+                type: string
+                minLength: 1
+              status:
+                type: string
+                enum:
+                  - active
+                  - suspended
+            required:
+              - id
+              - name
+              - slug
+              - status
+            additionalProperties: false
+        memberships:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              userId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              roleIds:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+              status:
+                type: string
+                enum:
+                  - active
+                  - invited
+                  - suspended
+            required:
+              - id
+              - userId
+              - organizationId
+              - roleIds
+              - status
+            additionalProperties: false
+        activeOrganizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        permissions:
+          type: array
+          items:
+            type: string
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        status:
+          type: string
+          enum:
+            - authenticated
+            - expired
+            - suspended
+            - no_organization
+      required:
+        - user
+        - organizations
+        - memberships
+        - activeOrganizationId
+        - permissions
+        - expiresAt
+        - status
+      additionalProperties: false
+    SwitchOrganizationRequest:
+      type: object
+      properties:
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+      required:
+        - organizationId
+      additionalProperties: false
+    SessionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                email:
+                  type: string
+                  format: email
+                displayName:
+                  type: string
+                  minLength: 1
+                avatarUrl:
+                  type: string
+                  format: uri
+                  nullable: true
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - suspended
+              required:
+                - id
+                - email
+                - displayName
+                - status
+              additionalProperties: false
+            organizations:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                  name:
+                    type: string
+                    minLength: 1
+                  slug:
+                    type: string
+                    minLength: 1
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - suspended
+                required:
+                  - id
+                  - name
+                  - slug
+                  - status
+                additionalProperties: false
+            memberships:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                  userId:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                  organizationId:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                  roleIds:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - invited
+                      - suspended
+                required:
+                  - id
+                  - userId
+                  - organizationId
+                  - roleIds
+                  - status
+                additionalProperties: false
+            activeOrganizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            permissions:
+              type: array
+              items:
+                type: string
+            expiresAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            status:
+              type: string
+              enum:
+                - authenticated
+                - expired
+                - suspended
+                - no_organization
+          required:
+            - user
+            - organizations
+            - memberships
+            - activeOrganizationId
+            - permissions
+            - expiresAt
+            - status
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    NoContent:
+      type: object
+      properties: {}
+      additionalProperties: false
+    Operation:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - paused
+            - archived
+        currentDraftVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        publishedVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        ownerId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        createdBy:
+          type: string
+          minLength: 1
+          maxLength: 128
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        revision:
+          type: integer
+          minimum: 0
+      required:
+        - id
+        - organizationId
+        - name
+        - description
+        - status
+        - currentDraftVersionId
+        - publishedVersionId
+        - ownerId
+        - createdBy
+        - createdAt
+        - updatedAt
+        - revision
+      additionalProperties: false
+    ListOperationsQuery:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - paused
+            - archived
+        search:
+          type: string
+          maxLength: 200
+        ownerId:
+          type: string
+        authorityLevel:
+          type: integer
+          minimum: 1
+          maximum: 5
+        createdAfter:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        createdBefore:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+        sort:
+          type: string
+          enum:
+            - createdAt
+            - updatedAt
+            - name
+          default: createdAt
+        order:
+          type: string
+          enum:
+            - asc
+            - desc
+          default: desc
+      additionalProperties: false
+    CreateOperationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        ownerId:
+          type: string
+        sourceAssessmentId:
+          type: string
+        clientReference:
+          type: string
+          maxLength: 200
+      required:
+        - name
+      additionalProperties: false
+    UpdateOperationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        description:
+          type: string
+          maxLength: 4000
+          nullable: true
+        ownerId:
+          type: string
+          nullable: true
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    DuplicateOperationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+      additionalProperties: false
+    ArchiveOperationRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    OperationTransitionRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    OperationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            name:
+              type: string
+              minLength: 1
+              maxLength: 160
+            description:
+              type: string
+              maxLength: 4000
+              nullable: true
+            status:
+              type: string
+              enum:
+                - draft
+                - active
+                - paused
+                - archived
+            currentDraftVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            publishedVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            ownerId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            createdBy:
+              type: string
+              minLength: 1
+              maxLength: 128
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            revision:
+              type: integer
+              minimum: 0
+          required:
+            - id
+            - organizationId
+            - name
+            - description
+            - status
+            - currentDraftVersionId
+            - publishedVersionId
+            - ownerId
+            - createdBy
+            - createdAt
+            - updatedAt
+            - revision
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    OperationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              name:
+                type: string
+                minLength: 1
+                maxLength: 160
+              description:
+                type: string
+                maxLength: 4000
+                nullable: true
+              status:
+                type: string
+                enum:
+                  - draft
+                  - active
+                  - paused
+                  - archived
+              currentDraftVersionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              publishedVersionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              ownerId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              createdBy:
+                type: string
+                minLength: 1
+                maxLength: 128
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              revision:
+                type: integer
+                minimum: 0
+            required:
+              - id
+              - organizationId
+              - name
+              - description
+              - status
+              - currentDraftVersionId
+              - publishedVersionId
+              - ownerId
+              - createdBy
+              - createdAt
+              - updatedAt
+              - revision
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    OperationVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        versionNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+            - superseded
+        definition:
+          type: object
+          properties:
+            objective:
+              type: string
+            expectedResult:
+              type: string
+            triggers:
+              type: array
+              items:
+                type: string
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  order:
+                    type: integer
+                    minimum: 0
+                  name:
+                    type: string
+                    minLength: 1
+                  description:
+                    type: string
+                  authorityLevel:
+                    type: string
+                    enum:
+                      - observe
+                      - prepare
+                      - execute_under_rule
+                      - execute_with_approval
+                      - blocked
+                  requiresApproval:
+                    type: boolean
+                  workUnitCost:
+                    type: integer
+                    minimum: 0
+                  producesEvidence:
+                    type: boolean
+                required:
+                  - id
+                  - order
+                  - name
+                  - description
+                  - authorityLevel
+                  - requiresApproval
+                  - workUnitCost
+                  - producesEvidence
+                additionalProperties: false
+            actions:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  name:
+                    type: string
+                    minLength: 1
+                  authorityLevel:
+                    type: string
+                    enum:
+                      - observe
+                      - prepare
+                      - execute_under_rule
+                      - execute_with_approval
+                      - blocked
+                  destructive:
+                    type: boolean
+                required:
+                  - id
+                  - name
+                  - authorityLevel
+                  - destructive
+                additionalProperties: false
+            approverIds:
+              type: array
+              items:
+                type: string
+            contextSourceIds:
+              type: array
+              items:
+                type: string
+            integrationIds:
+              type: array
+              items:
+                type: string
+            completionCriteria:
+              type: array
+              items:
+                type: string
+            environment:
+              type: string
+              enum:
+                - sandbox
+                - staging
+                - production
+              nullable: true
+            evidencePolicy:
+              type: string
+              nullable: true
+          required:
+            - objective
+            - expectedResult
+            - triggers
+            - steps
+            - actions
+            - approverIds
+            - contextSourceIds
+            - integrationIds
+            - completionCriteria
+            - environment
+            - evidencePolicy
+          additionalProperties: false
+        authorityProfile:
+          type: object
+          properties:
+            level:
+              anyOf:
+                - type: number
+                  enum:
+                    - 1
+                - type: number
+                  enum:
+                    - 2
+                - type: number
+                  enum:
+                    - 3
+                - type: number
+                  enum:
+                    - 4
+                - type: number
+                  enum:
+                    - 5
+            allowedActions:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    minLength: 1
+                  semanticLevel:
+                    type: string
+                    enum:
+                      - observe
+                      - prepare
+                      - execute_under_rule
+                      - execute_with_approval
+                      - blocked
+                  destructive:
+                    type: boolean
+                required:
+                  - key
+                  - semanticLevel
+                  - destructive
+                additionalProperties: false
+            approvalRequired:
+              type: boolean
+            approvalPolicyId:
+              type: string
+              nullable: true
+            financialLimit:
+              type: object
+              properties:
+                amountMinor:
+                  type: integer
+                currency:
+                  type: string
+                  minLength: 3
+                  maxLength: 3
+                  description: ISO 4217 currency code
+              required:
+                - amountMinor
+                - currency
+              additionalProperties: false
+              description: Monetary value with explicit currency (ISO 4217)
+              nullable: true
+            destructiveActionsAllowed:
+              type: boolean
+            justificationRequired:
+              type: boolean
+          required:
+            - level
+            - allowedActions
+            - approvalRequired
+            - approvalPolicyId
+            - financialLimit
+            - destructiveActionsAllowed
+            - justificationRequired
+          additionalProperties: false
+        changeSummary:
+          type: string
+          maxLength: 1000
+          nullable: true
+        createdBy:
+          type: string
+          minLength: 1
+          maxLength: 128
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        publishedBy:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        publishedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        revision:
+          type: integer
+          minimum: 0
+      required:
+        - id
+        - operationId
+        - organizationId
+        - versionNumber
+        - status
+        - definition
+        - authorityProfile
+        - changeSummary
+        - createdBy
+        - createdAt
+        - updatedAt
+        - publishedBy
+        - publishedAt
+        - revision
+      additionalProperties: false
+    CreateOperationVersionRequest:
+      type: object
+      properties:
+        basedOnVersionId:
+          type: string
+        changeSummary:
+          type: string
+          maxLength: 1000
+      additionalProperties: false
+    UpdateOperationVersionRequest:
+      type: object
+      properties:
+        definition:
+          type: object
+          properties:
+            objective:
+              type: string
+            expectedResult:
+              type: string
+            triggers:
+              type: array
+              items:
+                type: string
+            steps:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  order:
+                    type: integer
+                    minimum: 0
+                  name:
+                    type: string
+                    minLength: 1
+                  description:
+                    type: string
+                  authorityLevel:
+                    type: string
+                    enum:
+                      - observe
+                      - prepare
+                      - execute_under_rule
+                      - execute_with_approval
+                      - blocked
+                  requiresApproval:
+                    type: boolean
+                  workUnitCost:
+                    type: integer
+                    minimum: 0
+                  producesEvidence:
+                    type: boolean
+                required:
+                  - id
+                  - order
+                  - name
+                  - description
+                  - authorityLevel
+                  - requiresApproval
+                  - workUnitCost
+                  - producesEvidence
+                additionalProperties: false
+            actions:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  name:
+                    type: string
+                    minLength: 1
+                  authorityLevel:
+                    type: string
+                    enum:
+                      - observe
+                      - prepare
+                      - execute_under_rule
+                      - execute_with_approval
+                      - blocked
+                  destructive:
+                    type: boolean
+                required:
+                  - id
+                  - name
+                  - authorityLevel
+                  - destructive
+                additionalProperties: false
+            approverIds:
+              type: array
+              items:
+                type: string
+            contextSourceIds:
+              type: array
+              items:
+                type: string
+            integrationIds:
+              type: array
+              items:
+                type: string
+            completionCriteria:
+              type: array
+              items:
+                type: string
+            environment:
+              type: string
+              enum:
+                - sandbox
+                - staging
+                - production
+              nullable: true
+            evidencePolicy:
+              type: string
+              nullable: true
+          required:
+            - objective
+            - expectedResult
+            - triggers
+            - steps
+            - actions
+            - approverIds
+            - contextSourceIds
+            - integrationIds
+            - completionCriteria
+            - environment
+            - evidencePolicy
+          additionalProperties: false
+        changeSummary:
+          type: string
+          maxLength: 1000
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    PublishOperationVersionRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        changeSummary:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      required:
+        - expectedRevision
+        - changeSummary
+      additionalProperties: false
+    PublishOperationVersionResult:
+      type: object
+      properties:
+        version:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            operationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            versionNumber:
+              type: integer
+              minimum: 1
+            status:
+              type: string
+              enum:
+                - draft
+                - published
+                - superseded
+            definition:
+              type: object
+              properties:
+                objective:
+                  type: string
+                expectedResult:
+                  type: string
+                triggers:
+                  type: array
+                  items:
+                    type: string
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        minLength: 1
+                      order:
+                        type: integer
+                        minimum: 0
+                      name:
+                        type: string
+                        minLength: 1
+                      description:
+                        type: string
+                      authorityLevel:
+                        type: string
+                        enum:
+                          - observe
+                          - prepare
+                          - execute_under_rule
+                          - execute_with_approval
+                          - blocked
+                      requiresApproval:
+                        type: boolean
+                      workUnitCost:
+                        type: integer
+                        minimum: 0
+                      producesEvidence:
+                        type: boolean
+                    required:
+                      - id
+                      - order
+                      - name
+                      - description
+                      - authorityLevel
+                      - requiresApproval
+                      - workUnitCost
+                      - producesEvidence
+                    additionalProperties: false
+                actions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        minLength: 1
+                      name:
+                        type: string
+                        minLength: 1
+                      authorityLevel:
+                        type: string
+                        enum:
+                          - observe
+                          - prepare
+                          - execute_under_rule
+                          - execute_with_approval
+                          - blocked
+                      destructive:
+                        type: boolean
+                    required:
+                      - id
+                      - name
+                      - authorityLevel
+                      - destructive
+                    additionalProperties: false
+                approverIds:
+                  type: array
+                  items:
+                    type: string
+                contextSourceIds:
+                  type: array
+                  items:
+                    type: string
+                integrationIds:
+                  type: array
+                  items:
+                    type: string
+                completionCriteria:
+                  type: array
+                  items:
+                    type: string
+                environment:
+                  type: string
+                  enum:
+                    - sandbox
+                    - staging
+                    - production
+                  nullable: true
+                evidencePolicy:
+                  type: string
+                  nullable: true
+              required:
+                - objective
+                - expectedResult
+                - triggers
+                - steps
+                - actions
+                - approverIds
+                - contextSourceIds
+                - integrationIds
+                - completionCriteria
+                - environment
+                - evidencePolicy
+              additionalProperties: false
+            authorityProfile:
+              type: object
+              properties:
+                level:
+                  anyOf:
+                    - type: number
+                      enum:
+                        - 1
+                    - type: number
+                      enum:
+                        - 2
+                    - type: number
+                      enum:
+                        - 3
+                    - type: number
+                      enum:
+                        - 4
+                    - type: number
+                      enum:
+                        - 5
+                allowedActions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        minLength: 1
+                      semanticLevel:
+                        type: string
+                        enum:
+                          - observe
+                          - prepare
+                          - execute_under_rule
+                          - execute_with_approval
+                          - blocked
+                      destructive:
+                        type: boolean
+                    required:
+                      - key
+                      - semanticLevel
+                      - destructive
+                    additionalProperties: false
+                approvalRequired:
+                  type: boolean
+                approvalPolicyId:
+                  type: string
+                  nullable: true
+                financialLimit:
+                  type: object
+                  properties:
+                    amountMinor:
+                      type: integer
+                    currency:
+                      type: string
+                      minLength: 3
+                      maxLength: 3
+                      description: ISO 4217 currency code
+                  required:
+                    - amountMinor
+                    - currency
+                  additionalProperties: false
+                  description: Monetary value with explicit currency (ISO 4217)
+                  nullable: true
+                destructiveActionsAllowed:
+                  type: boolean
+                justificationRequired:
+                  type: boolean
+              required:
+                - level
+                - allowedActions
+                - approvalRequired
+                - approvalPolicyId
+                - financialLimit
+                - destructiveActionsAllowed
+                - justificationRequired
+              additionalProperties: false
+            changeSummary:
+              type: string
+              maxLength: 1000
+              nullable: true
+            createdBy:
+              type: string
+              minLength: 1
+              maxLength: 128
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            publishedBy:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            publishedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            revision:
+              type: integer
+              minimum: 0
+          required:
+            - id
+            - operationId
+            - organizationId
+            - versionNumber
+            - status
+            - definition
+            - authorityProfile
+            - changeSummary
+            - createdBy
+            - createdAt
+            - updatedAt
+            - publishedBy
+            - publishedAt
+            - revision
+          additionalProperties: false
+        operation:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            name:
+              type: string
+              minLength: 1
+              maxLength: 160
+            description:
+              type: string
+              maxLength: 4000
+              nullable: true
+            status:
+              type: string
+              enum:
+                - draft
+                - active
+                - paused
+                - archived
+            currentDraftVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            publishedVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            ownerId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            createdBy:
+              type: string
+              minLength: 1
+              maxLength: 128
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            revision:
+              type: integer
+              minimum: 0
+          required:
+            - id
+            - organizationId
+            - name
+            - description
+            - status
+            - currentDraftVersionId
+            - publishedVersionId
+            - ownerId
+            - createdBy
+            - createdAt
+            - updatedAt
+            - revision
+          additionalProperties: false
+        auditEvents:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              actor:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  type:
+                    type: string
+                    enum:
+                      - user
+                      - system
+                      - integration
+                  role:
+                    type: string
+                    nullable: true
+                  displayName:
+                    type: string
+                    nullable: true
+                required:
+                  - id
+                  - type
+                  - role
+                  - displayName
+                additionalProperties: false
+              action:
+                type: string
+                minLength: 1
+              resourceType:
+                type: string
+                minLength: 1
+              resourceId:
+                type: string
+                minLength: 1
+              occurredAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              correlationId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              source:
+                type: string
+                enum:
+                  - user
+                  - system
+                  - integration
+              before:
+                nullable: true
+              after:
+                nullable: true
+              metadata:
+                type: object
+                additionalProperties: {}
+            required:
+              - id
+              - organizationId
+              - actor
+              - action
+              - resourceType
+              - resourceId
+              - occurredAt
+              - correlationId
+              - source
+              - metadata
+            additionalProperties: false
+      required:
+        - version
+        - operation
+        - auditEvents
+      additionalProperties: false
+    VersionComparison:
+      type: object
+      properties:
+        base:
+          type: object
+          properties:
+            versionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            versionNumber:
+              type: integer
+          required:
+            - versionId
+            - versionNumber
+          additionalProperties: false
+        other:
+          type: object
+          properties:
+            versionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            versionNumber:
+              type: integer
+          required:
+            - versionId
+            - versionNumber
+          additionalProperties: false
+        differences:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              before:
+                nullable: true
+              after:
+                nullable: true
+            required:
+              - path
+            additionalProperties: false
+      required:
+        - base
+        - other
+        - differences
+      additionalProperties: false
+    OperationVersionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            operationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            versionNumber:
+              type: integer
+              minimum: 1
+            status:
+              type: string
+              enum:
+                - draft
+                - published
+                - superseded
+            definition:
+              type: object
+              properties:
+                objective:
+                  type: string
+                expectedResult:
+                  type: string
+                triggers:
+                  type: array
+                  items:
+                    type: string
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        minLength: 1
+                      order:
+                        type: integer
+                        minimum: 0
+                      name:
+                        type: string
+                        minLength: 1
+                      description:
+                        type: string
+                      authorityLevel:
+                        type: string
+                        enum:
+                          - observe
+                          - prepare
+                          - execute_under_rule
+                          - execute_with_approval
+                          - blocked
+                      requiresApproval:
+                        type: boolean
+                      workUnitCost:
+                        type: integer
+                        minimum: 0
+                      producesEvidence:
+                        type: boolean
+                    required:
+                      - id
+                      - order
+                      - name
+                      - description
+                      - authorityLevel
+                      - requiresApproval
+                      - workUnitCost
+                      - producesEvidence
+                    additionalProperties: false
+                actions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        minLength: 1
+                      name:
+                        type: string
+                        minLength: 1
+                      authorityLevel:
+                        type: string
+                        enum:
+                          - observe
+                          - prepare
+                          - execute_under_rule
+                          - execute_with_approval
+                          - blocked
+                      destructive:
+                        type: boolean
+                    required:
+                      - id
+                      - name
+                      - authorityLevel
+                      - destructive
+                    additionalProperties: false
+                approverIds:
+                  type: array
+                  items:
+                    type: string
+                contextSourceIds:
+                  type: array
+                  items:
+                    type: string
+                integrationIds:
+                  type: array
+                  items:
+                    type: string
+                completionCriteria:
+                  type: array
+                  items:
+                    type: string
+                environment:
+                  type: string
+                  enum:
+                    - sandbox
+                    - staging
+                    - production
+                  nullable: true
+                evidencePolicy:
+                  type: string
+                  nullable: true
+              required:
+                - objective
+                - expectedResult
+                - triggers
+                - steps
+                - actions
+                - approverIds
+                - contextSourceIds
+                - integrationIds
+                - completionCriteria
+                - environment
+                - evidencePolicy
+              additionalProperties: false
+            authorityProfile:
+              type: object
+              properties:
+                level:
+                  anyOf:
+                    - type: number
+                      enum:
+                        - 1
+                    - type: number
+                      enum:
+                        - 2
+                    - type: number
+                      enum:
+                        - 3
+                    - type: number
+                      enum:
+                        - 4
+                    - type: number
+                      enum:
+                        - 5
+                allowedActions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        minLength: 1
+                      semanticLevel:
+                        type: string
+                        enum:
+                          - observe
+                          - prepare
+                          - execute_under_rule
+                          - execute_with_approval
+                          - blocked
+                      destructive:
+                        type: boolean
+                    required:
+                      - key
+                      - semanticLevel
+                      - destructive
+                    additionalProperties: false
+                approvalRequired:
+                  type: boolean
+                approvalPolicyId:
+                  type: string
+                  nullable: true
+                financialLimit:
+                  type: object
+                  properties:
+                    amountMinor:
+                      type: integer
+                    currency:
+                      type: string
+                      minLength: 3
+                      maxLength: 3
+                      description: ISO 4217 currency code
+                  required:
+                    - amountMinor
+                    - currency
+                  additionalProperties: false
+                  description: Monetary value with explicit currency (ISO 4217)
+                  nullable: true
+                destructiveActionsAllowed:
+                  type: boolean
+                justificationRequired:
+                  type: boolean
+              required:
+                - level
+                - allowedActions
+                - approvalRequired
+                - approvalPolicyId
+                - financialLimit
+                - destructiveActionsAllowed
+                - justificationRequired
+              additionalProperties: false
+            changeSummary:
+              type: string
+              maxLength: 1000
+              nullable: true
+            createdBy:
+              type: string
+              minLength: 1
+              maxLength: 128
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            publishedBy:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            publishedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            revision:
+              type: integer
+              minimum: 0
+          required:
+            - id
+            - operationId
+            - organizationId
+            - versionNumber
+            - status
+            - definition
+            - authorityProfile
+            - changeSummary
+            - createdBy
+            - createdAt
+            - updatedAt
+            - publishedBy
+            - publishedAt
+            - revision
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    OperationVersionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              operationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              versionNumber:
+                type: integer
+                minimum: 1
+              status:
+                type: string
+                enum:
+                  - draft
+                  - published
+                  - superseded
+              definition:
+                type: object
+                properties:
+                  objective:
+                    type: string
+                  expectedResult:
+                    type: string
+                  triggers:
+                    type: array
+                    items:
+                      type: string
+                  steps:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          minLength: 1
+                        order:
+                          type: integer
+                          minimum: 0
+                        name:
+                          type: string
+                          minLength: 1
+                        description:
+                          type: string
+                        authorityLevel:
+                          type: string
+                          enum:
+                            - observe
+                            - prepare
+                            - execute_under_rule
+                            - execute_with_approval
+                            - blocked
+                        requiresApproval:
+                          type: boolean
+                        workUnitCost:
+                          type: integer
+                          minimum: 0
+                        producesEvidence:
+                          type: boolean
+                      required:
+                        - id
+                        - order
+                        - name
+                        - description
+                        - authorityLevel
+                        - requiresApproval
+                        - workUnitCost
+                        - producesEvidence
+                      additionalProperties: false
+                  actions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          minLength: 1
+                        name:
+                          type: string
+                          minLength: 1
+                        authorityLevel:
+                          type: string
+                          enum:
+                            - observe
+                            - prepare
+                            - execute_under_rule
+                            - execute_with_approval
+                            - blocked
+                        destructive:
+                          type: boolean
+                      required:
+                        - id
+                        - name
+                        - authorityLevel
+                        - destructive
+                      additionalProperties: false
+                  approverIds:
+                    type: array
+                    items:
+                      type: string
+                  contextSourceIds:
+                    type: array
+                    items:
+                      type: string
+                  integrationIds:
+                    type: array
+                    items:
+                      type: string
+                  completionCriteria:
+                    type: array
+                    items:
+                      type: string
+                  environment:
+                    type: string
+                    enum:
+                      - sandbox
+                      - staging
+                      - production
+                    nullable: true
+                  evidencePolicy:
+                    type: string
+                    nullable: true
+                required:
+                  - objective
+                  - expectedResult
+                  - triggers
+                  - steps
+                  - actions
+                  - approverIds
+                  - contextSourceIds
+                  - integrationIds
+                  - completionCriteria
+                  - environment
+                  - evidencePolicy
+                additionalProperties: false
+              authorityProfile:
+                type: object
+                properties:
+                  level:
+                    anyOf:
+                      - type: number
+                        enum:
+                          - 1
+                      - type: number
+                        enum:
+                          - 2
+                      - type: number
+                        enum:
+                          - 3
+                      - type: number
+                        enum:
+                          - 4
+                      - type: number
+                        enum:
+                          - 5
+                  allowedActions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          minLength: 1
+                        semanticLevel:
+                          type: string
+                          enum:
+                            - observe
+                            - prepare
+                            - execute_under_rule
+                            - execute_with_approval
+                            - blocked
+                        destructive:
+                          type: boolean
+                      required:
+                        - key
+                        - semanticLevel
+                        - destructive
+                      additionalProperties: false
+                  approvalRequired:
+                    type: boolean
+                  approvalPolicyId:
+                    type: string
+                    nullable: true
+                  financialLimit:
+                    type: object
+                    properties:
+                      amountMinor:
+                        type: integer
+                      currency:
+                        type: string
+                        minLength: 3
+                        maxLength: 3
+                        description: ISO 4217 currency code
+                    required:
+                      - amountMinor
+                      - currency
+                    additionalProperties: false
+                    description: Monetary value with explicit currency (ISO 4217)
+                    nullable: true
+                  destructiveActionsAllowed:
+                    type: boolean
+                  justificationRequired:
+                    type: boolean
+                required:
+                  - level
+                  - allowedActions
+                  - approvalRequired
+                  - approvalPolicyId
+                  - financialLimit
+                  - destructiveActionsAllowed
+                  - justificationRequired
+                additionalProperties: false
+              changeSummary:
+                type: string
+                maxLength: 1000
+                nullable: true
+              createdBy:
+                type: string
+                minLength: 1
+                maxLength: 128
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              publishedBy:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              publishedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              revision:
+                type: integer
+                minimum: 0
+            required:
+              - id
+              - operationId
+              - organizationId
+              - versionNumber
+              - status
+              - definition
+              - authorityProfile
+              - changeSummary
+              - createdBy
+              - createdAt
+              - updatedAt
+              - publishedBy
+              - publishedAt
+              - revision
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    PublishOperationVersionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            version:
+              type: object
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                operationId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                organizationId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                versionNumber:
+                  type: integer
+                  minimum: 1
+                status:
+                  type: string
+                  enum:
+                    - draft
+                    - published
+                    - superseded
+                definition:
+                  type: object
+                  properties:
+                    objective:
+                      type: string
+                    expectedResult:
+                      type: string
+                    triggers:
+                      type: array
+                      items:
+                        type: string
+                    steps:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            minLength: 1
+                          order:
+                            type: integer
+                            minimum: 0
+                          name:
+                            type: string
+                            minLength: 1
+                          description:
+                            type: string
+                          authorityLevel:
+                            type: string
+                            enum:
+                              - observe
+                              - prepare
+                              - execute_under_rule
+                              - execute_with_approval
+                              - blocked
+                          requiresApproval:
+                            type: boolean
+                          workUnitCost:
+                            type: integer
+                            minimum: 0
+                          producesEvidence:
+                            type: boolean
+                        required:
+                          - id
+                          - order
+                          - name
+                          - description
+                          - authorityLevel
+                          - requiresApproval
+                          - workUnitCost
+                          - producesEvidence
+                        additionalProperties: false
+                    actions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            minLength: 1
+                          name:
+                            type: string
+                            minLength: 1
+                          authorityLevel:
+                            type: string
+                            enum:
+                              - observe
+                              - prepare
+                              - execute_under_rule
+                              - execute_with_approval
+                              - blocked
+                          destructive:
+                            type: boolean
+                        required:
+                          - id
+                          - name
+                          - authorityLevel
+                          - destructive
+                        additionalProperties: false
+                    approverIds:
+                      type: array
+                      items:
+                        type: string
+                    contextSourceIds:
+                      type: array
+                      items:
+                        type: string
+                    integrationIds:
+                      type: array
+                      items:
+                        type: string
+                    completionCriteria:
+                      type: array
+                      items:
+                        type: string
+                    environment:
+                      type: string
+                      enum:
+                        - sandbox
+                        - staging
+                        - production
+                      nullable: true
+                    evidencePolicy:
+                      type: string
+                      nullable: true
+                  required:
+                    - objective
+                    - expectedResult
+                    - triggers
+                    - steps
+                    - actions
+                    - approverIds
+                    - contextSourceIds
+                    - integrationIds
+                    - completionCriteria
+                    - environment
+                    - evidencePolicy
+                  additionalProperties: false
+                authorityProfile:
+                  type: object
+                  properties:
+                    level:
+                      anyOf:
+                        - type: number
+                          enum:
+                            - 1
+                        - type: number
+                          enum:
+                            - 2
+                        - type: number
+                          enum:
+                            - 3
+                        - type: number
+                          enum:
+                            - 4
+                        - type: number
+                          enum:
+                            - 5
+                    allowedActions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          key:
+                            type: string
+                            minLength: 1
+                          semanticLevel:
+                            type: string
+                            enum:
+                              - observe
+                              - prepare
+                              - execute_under_rule
+                              - execute_with_approval
+                              - blocked
+                          destructive:
+                            type: boolean
+                        required:
+                          - key
+                          - semanticLevel
+                          - destructive
+                        additionalProperties: false
+                    approvalRequired:
+                      type: boolean
+                    approvalPolicyId:
+                      type: string
+                      nullable: true
+                    financialLimit:
+                      type: object
+                      properties:
+                        amountMinor:
+                          type: integer
+                        currency:
+                          type: string
+                          minLength: 3
+                          maxLength: 3
+                          description: ISO 4217 currency code
+                      required:
+                        - amountMinor
+                        - currency
+                      additionalProperties: false
+                      description: Monetary value with explicit currency (ISO 4217)
+                      nullable: true
+                    destructiveActionsAllowed:
+                      type: boolean
+                    justificationRequired:
+                      type: boolean
+                  required:
+                    - level
+                    - allowedActions
+                    - approvalRequired
+                    - approvalPolicyId
+                    - financialLimit
+                    - destructiveActionsAllowed
+                    - justificationRequired
+                  additionalProperties: false
+                changeSummary:
+                  type: string
+                  maxLength: 1000
+                  nullable: true
+                createdBy:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                createdAt:
+                  type: string
+                  format: date-time
+                  description: ISO 8601 date-time in UTC (Z suffix)
+                updatedAt:
+                  type: string
+                  format: date-time
+                  description: ISO 8601 date-time in UTC (Z suffix)
+                publishedBy:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  nullable: true
+                publishedAt:
+                  type: string
+                  format: date-time
+                  description: ISO 8601 date-time in UTC (Z suffix)
+                  nullable: true
+                revision:
+                  type: integer
+                  minimum: 0
+              required:
+                - id
+                - operationId
+                - organizationId
+                - versionNumber
+                - status
+                - definition
+                - authorityProfile
+                - changeSummary
+                - createdBy
+                - createdAt
+                - updatedAt
+                - publishedBy
+                - publishedAt
+                - revision
+              additionalProperties: false
+            operation:
+              type: object
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                organizationId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 160
+                description:
+                  type: string
+                  maxLength: 4000
+                  nullable: true
+                status:
+                  type: string
+                  enum:
+                    - draft
+                    - active
+                    - paused
+                    - archived
+                currentDraftVersionId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  nullable: true
+                publishedVersionId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  nullable: true
+                ownerId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  nullable: true
+                createdBy:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                createdAt:
+                  type: string
+                  format: date-time
+                  description: ISO 8601 date-time in UTC (Z suffix)
+                updatedAt:
+                  type: string
+                  format: date-time
+                  description: ISO 8601 date-time in UTC (Z suffix)
+                revision:
+                  type: integer
+                  minimum: 0
+              required:
+                - id
+                - organizationId
+                - name
+                - description
+                - status
+                - currentDraftVersionId
+                - publishedVersionId
+                - ownerId
+                - createdBy
+                - createdAt
+                - updatedAt
+                - revision
+              additionalProperties: false
+            auditEvents:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                  organizationId:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                  actor:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        minLength: 1
+                      type:
+                        type: string
+                        enum:
+                          - user
+                          - system
+                          - integration
+                      role:
+                        type: string
+                        nullable: true
+                      displayName:
+                        type: string
+                        nullable: true
+                    required:
+                      - id
+                      - type
+                      - role
+                      - displayName
+                    additionalProperties: false
+                  action:
+                    type: string
+                    minLength: 1
+                  resourceType:
+                    type: string
+                    minLength: 1
+                  resourceId:
+                    type: string
+                    minLength: 1
+                  occurredAt:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 date-time in UTC (Z suffix)
+                  correlationId:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  source:
+                    type: string
+                    enum:
+                      - user
+                      - system
+                      - integration
+                  before:
+                    nullable: true
+                  after:
+                    nullable: true
+                  metadata:
+                    type: object
+                    additionalProperties: {}
+                required:
+                  - id
+                  - organizationId
+                  - actor
+                  - action
+                  - resourceType
+                  - resourceId
+                  - occurredAt
+                  - correlationId
+                  - source
+                  - metadata
+                additionalProperties: false
+          required:
+            - version
+            - operation
+            - auditEvents
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    VersionComparisonResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            base:
+              type: object
+              properties:
+                versionId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                versionNumber:
+                  type: integer
+              required:
+                - versionId
+                - versionNumber
+              additionalProperties: false
+            other:
+              type: object
+              properties:
+                versionId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                versionNumber:
+                  type: integer
+              required:
+                - versionId
+                - versionNumber
+              additionalProperties: false
+            differences:
+              type: array
+              items:
+                type: object
+                properties:
+                  path:
+                    type: string
+                  before:
+                    nullable: true
+                  after:
+                    nullable: true
+                required:
+                  - path
+                additionalProperties: false
+          required:
+            - base
+            - other
+            - differences
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    AuthorityProfile:
+      type: object
+      properties:
+        level:
+          anyOf:
+            - type: number
+              enum:
+                - 1
+            - type: number
+              enum:
+                - 2
+            - type: number
+              enum:
+                - 3
+            - type: number
+              enum:
+                - 4
+            - type: number
+              enum:
+                - 5
+        allowedActions:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                minLength: 1
+              semanticLevel:
+                type: string
+                enum:
+                  - observe
+                  - prepare
+                  - execute_under_rule
+                  - execute_with_approval
+                  - blocked
+              destructive:
+                type: boolean
+            required:
+              - key
+              - semanticLevel
+              - destructive
+            additionalProperties: false
+        approvalRequired:
+          type: boolean
+        approvalPolicyId:
+          type: string
+          nullable: true
+        financialLimit:
+          type: object
+          properties:
+            amountMinor:
+              type: integer
+            currency:
+              type: string
+              minLength: 3
+              maxLength: 3
+              description: ISO 4217 currency code
+          required:
+            - amountMinor
+            - currency
+          additionalProperties: false
+          description: Monetary value with explicit currency (ISO 4217)
+          nullable: true
+        destructiveActionsAllowed:
+          type: boolean
+        justificationRequired:
+          type: boolean
+      required:
+        - level
+        - allowedActions
+        - approvalRequired
+        - approvalPolicyId
+        - financialLimit
+        - destructiveActionsAllowed
+        - justificationRequired
+      additionalProperties: false
+    UpdateAuthorityProfileRequest:
+      type: object
+      properties:
+        authorityProfile:
+          type: object
+          properties:
+            level:
+              anyOf:
+                - type: number
+                  enum:
+                    - 1
+                - type: number
+                  enum:
+                    - 2
+                - type: number
+                  enum:
+                    - 3
+                - type: number
+                  enum:
+                    - 4
+                - type: number
+                  enum:
+                    - 5
+            allowedActions:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    minLength: 1
+                  semanticLevel:
+                    type: string
+                    enum:
+                      - observe
+                      - prepare
+                      - execute_under_rule
+                      - execute_with_approval
+                      - blocked
+                  destructive:
+                    type: boolean
+                required:
+                  - key
+                  - semanticLevel
+                  - destructive
+                additionalProperties: false
+            approvalRequired:
+              type: boolean
+            approvalPolicyId:
+              type: string
+              nullable: true
+            financialLimit:
+              type: object
+              properties:
+                amountMinor:
+                  type: integer
+                currency:
+                  type: string
+                  minLength: 3
+                  maxLength: 3
+                  description: ISO 4217 currency code
+              required:
+                - amountMinor
+                - currency
+              additionalProperties: false
+              description: Monetary value with explicit currency (ISO 4217)
+              nullable: true
+            destructiveActionsAllowed:
+              type: boolean
+            justificationRequired:
+              type: boolean
+          required:
+            - level
+            - allowedActions
+            - approvalRequired
+            - approvalPolicyId
+            - financialLimit
+            - destructiveActionsAllowed
+            - justificationRequired
+          additionalProperties: false
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - authorityProfile
+        - expectedRevision
+      additionalProperties: false
+    AuthorityProfileResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            level:
+              anyOf:
+                - type: number
+                  enum:
+                    - 1
+                - type: number
+                  enum:
+                    - 2
+                - type: number
+                  enum:
+                    - 3
+                - type: number
+                  enum:
+                    - 4
+                - type: number
+                  enum:
+                    - 5
+            allowedActions:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    minLength: 1
+                  semanticLevel:
+                    type: string
+                    enum:
+                      - observe
+                      - prepare
+                      - execute_under_rule
+                      - execute_with_approval
+                      - blocked
+                  destructive:
+                    type: boolean
+                required:
+                  - key
+                  - semanticLevel
+                  - destructive
+                additionalProperties: false
+            approvalRequired:
+              type: boolean
+            approvalPolicyId:
+              type: string
+              nullable: true
+            financialLimit:
+              type: object
+              properties:
+                amountMinor:
+                  type: integer
+                currency:
+                  type: string
+                  minLength: 3
+                  maxLength: 3
+                  description: ISO 4217 currency code
+              required:
+                - amountMinor
+                - currency
+              additionalProperties: false
+              description: Monetary value with explicit currency (ISO 4217)
+              nullable: true
+            destructiveActionsAllowed:
+              type: boolean
+            justificationRequired:
+              type: boolean
+          required:
+            - level
+            - allowedActions
+            - approvalRequired
+            - approvalPolicyId
+            - financialLimit
+            - destructiveActionsAllowed
+            - justificationRequired
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        actor:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+            type:
+              type: string
+              enum:
+                - user
+                - system
+                - integration
+            role:
+              type: string
+              nullable: true
+            displayName:
+              type: string
+              nullable: true
+          required:
+            - id
+            - type
+            - role
+            - displayName
+          additionalProperties: false
+        action:
+          type: string
+          minLength: 1
+        resourceType:
+          type: string
+          minLength: 1
+        resourceId:
+          type: string
+          minLength: 1
+        occurredAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        source:
+          type: string
+          enum:
+            - user
+            - system
+            - integration
+        before:
+          nullable: true
+        after:
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - id
+        - organizationId
+        - actor
+        - action
+        - resourceType
+        - resourceId
+        - occurredAt
+        - correlationId
+        - source
+        - metadata
+      additionalProperties: false
+    ListAuditEventsQuery:
+      type: object
+      properties:
+        actorId:
+          type: string
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+        from:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        to:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        correlationId:
+          type: string
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      additionalProperties: false
+    AuditEventResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            actor:
+              type: object
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                type:
+                  type: string
+                  enum:
+                    - user
+                    - system
+                    - integration
+                role:
+                  type: string
+                  nullable: true
+                displayName:
+                  type: string
+                  nullable: true
+              required:
+                - id
+                - type
+                - role
+                - displayName
+              additionalProperties: false
+            action:
+              type: string
+              minLength: 1
+            resourceType:
+              type: string
+              minLength: 1
+            resourceId:
+              type: string
+              minLength: 1
+            occurredAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            correlationId:
+              type: string
+              minLength: 1
+              maxLength: 200
+            source:
+              type: string
+              enum:
+                - user
+                - system
+                - integration
+            before:
+              nullable: true
+            after:
+              nullable: true
+            metadata:
+              type: object
+              additionalProperties: {}
+          required:
+            - id
+            - organizationId
+            - actor
+            - action
+            - resourceType
+            - resourceId
+            - occurredAt
+            - correlationId
+            - source
+            - metadata
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    AuditEventListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              actor:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  type:
+                    type: string
+                    enum:
+                      - user
+                      - system
+                      - integration
+                  role:
+                    type: string
+                    nullable: true
+                  displayName:
+                    type: string
+                    nullable: true
+                required:
+                  - id
+                  - type
+                  - role
+                  - displayName
+                additionalProperties: false
+              action:
+                type: string
+                minLength: 1
+              resourceType:
+                type: string
+                minLength: 1
+              resourceId:
+                type: string
+                minLength: 1
+              occurredAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              correlationId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              source:
+                type: string
+                enum:
+                  - user
+                  - system
+                  - integration
+              before:
+                nullable: true
+              after:
+                nullable: true
+              metadata:
+                type: object
+                additionalProperties: {}
+            required:
+              - id
+              - organizationId
+              - actor
+              - action
+              - resourceType
+              - resourceId
+              - occurredAt
+              - correlationId
+              - source
+              - metadata
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
