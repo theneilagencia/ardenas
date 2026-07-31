@@ -9,7 +9,15 @@
 
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+
+/**
+ * Cliente Prisma mínimo aceito por check/remember: o serviço base OU um cliente
+ * de transação (`$transaction(async (tx) => ...)`). Permite que o registro de
+ * idempotência participe da MESMA transação do comando (crítico para o rollback).
+ */
+type IdempotencyDb = Pick<Prisma.TransactionClient, 'idempotencyRecord'>;
 
 export interface IdempotencyKeyParts {
   method: string;
@@ -43,8 +51,12 @@ export class IdempotencyService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Verifica o estado de uma chave para o par (método, rota) + hash do body. */
-  async check(parts: IdempotencyKeyParts, requestHash: string): Promise<IdempotencyCheck> {
-    const existing = await this.prisma.idempotencyRecord.findUnique({
+  async check(
+    parts: IdempotencyKeyParts,
+    requestHash: string,
+    db: IdempotencyDb = this.prisma,
+  ): Promise<IdempotencyCheck> {
+    const existing = await db.idempotencyRecord.findUnique({
       where: {
         uniq_idempotency_scope: {
           method: parts.method,
@@ -59,9 +71,9 @@ export class IdempotencyService {
   }
 
   /** Persiste a resposta produzida para uma chave (após executar o comando). */
-  async remember(input: RecordInput): Promise<void> {
+  async remember(input: RecordInput, db: IdempotencyDb = this.prisma): Promise<void> {
     const expiresAt = new Date(Date.now() + (input.ttlMs ?? DEFAULT_TTL_MS));
-    await this.prisma.idempotencyRecord.create({
+    await db.idempotencyRecord.create({
       data: {
         organizationId: input.organizationId ?? null,
         userId: input.userId ?? null,

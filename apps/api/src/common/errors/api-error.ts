@@ -54,3 +54,15 @@ export const versionConflict = (
   details: { resourceType: string; resourceId: string; expectedRevision: number; currentRevision: number },
   message = 'Revisão desatualizada.',
 ) => new ApiException('VERSION_CONFLICT', { message, details });
+
+/** Tentativa de alterar/publicar uma versão já publicada (imutável). */
+export const alreadyPublished = (message = 'Versão já publicada é imutável.') =>
+  new ApiException('ALREADY_PUBLISHED', { message });
+
+/** Transição de estado inválida (ex.: retomar operação arquivada). */
+export const invalidStateTransition = (message = 'Transição de estado inválida.') =>
+  new ApiException('INVALID_STATE_TRANSITION', { message });
+
+/** Conflito de estado do recurso (ex.: já existe um rascunho ativo). */
+export const resourceConflict = (message = 'Conflito de estado do recurso.') =>
+  new ApiException('RESOURCE_CONFLICT', { message });
