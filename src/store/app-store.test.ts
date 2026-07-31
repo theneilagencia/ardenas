@@ -2,18 +2,36 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useAppStore } from './app-store';
 import { setServices, setSnapshotStore } from '@/services/service-container';
 import { MemorySnapshotStore } from '@/services/data/snapshot-store';
-import { listAuditEvents } from '@/application';
+import { listAuditEvents, type RequestContext } from '@/application';
+import { ALL_PERMISSIONS } from '@/domain/permissions';
+import { buildSessionContext } from '@/services/session/session-derivation';
 import { buildSeed } from '@/domain/seed';
 import type { Operation } from '@/domain/types';
 
 const ORG = 'org_arden';
 const flush = () => new Promise((r) => setTimeout(r, 0));
-const auditActions = async () => (await listAuditEvents({ organizationId: ORG })).map((e) => e.action);
+const ctx: RequestContext = {
+  userId: 'user_helena',
+  organizationId: ORG,
+  correlationId: 'req_test',
+  actorRole: 'corporate_admin',
+  permissions: [...ALL_PERMISSIONS],
+};
+const auditActions = async () => (await listAuditEvents(ctx)).map((e) => e.action);
 
 beforeEach(async () => {
   setSnapshotStore(new MemorySnapshotStore(buildSeed()));
   setServices(null);
   await useAppStore.getState().bootstrap();
+  // O TenantContext é a autoridade da sessão; nos testes de store espelhamos
+  // uma sessão ativa (org_arden) diretamente.
+  const session = buildSessionContext({
+    snapshot: buildSeed(),
+    currentUserId: null,
+    activeOrganizationId: ORG,
+    expiresAt: null,
+  });
+  useAppStore.getState().applySession(session);
 });
 
 describe('execução percorre as steps[] (agregado ainda na store)', () => {
