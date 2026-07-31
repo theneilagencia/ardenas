@@ -1,0 +1,65 @@
+# Arden.AS — orquestração local (ARDEN-BE-001).
+# Serviços mínimos: postgres + api. pgAdmin fica em um profile opcional.
+# Senhas locais vêm de valores de exemplo — NÃO usar em produção.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-arden_dev}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - arden_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-arden_dev}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [arden]
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-arden_dev}?schema=public
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:4173}
+      API_PREFIX: /api/v1
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-true}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    networks: [arden]
+    stop_grace_period: 15s
+    # Aplica migrações (deploy, não destrutivo) e sobe a API.
+    command: sh -c "npm -w @arden/api run db:migrate:deploy && node apps/api/dist/main.js"
+
+  # pgAdmin opcional: `docker compose --profile tools up`.
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    profiles: [tools]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@arden.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - '${PGADMIN_PORT:-5050}:80'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [arden]
+
+volumes:
+  arden_pgdata:
+
+networks:
+  arden:
+    driver: bridge
