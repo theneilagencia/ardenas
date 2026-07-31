@@ -8,7 +8,7 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import type { Membership as DbMembership, Organization as DbOrg, User as DbUser } from '@prisma/client';
+import type { Membership as DbMembership, Organization as DbOrg } from '@prisma/client';
 import {
   sessionContext as sessionContractSchema,
   type SessionContext,
