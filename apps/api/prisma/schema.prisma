@@ -149,6 +149,10 @@ model Role {
   permissions     RolePermission[]
   membershipRoles MembershipRole[]
 
+  // Unicidade por organização. Papéis de SISTEMA (organizationId = null) têm um
+  // índice único PARCIAL adicional (`uniq_system_role_key`, migração
+  // 20260731142624) porque NULL é distinto de NULL em índices compostos SQL —
+  // sem ele, papéis de sistema duplicados seriam possíveis.
   @@unique([organizationId, key], name: "uniq_role_key_per_org")
   @@map("roles")
 }
