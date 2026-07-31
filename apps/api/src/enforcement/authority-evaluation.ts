@@ -174,8 +174,6 @@ function limitExceeded(def: PolicyDefinition, context: Record<string, unknown>):
   return false;
 }
 
-const RANK: Record<PolicyEffect, number> = { ALLOW: 0, REQUIRE_APPROVAL: 1, DENY: 2 };
-
 /** Combina duas decisões pela precedência mais restritiva. */
 function combine(a: ActionDecision, b: ActionDecision): ActionDecision {
   const rank: Record<ActionDecision, number> = { ALLOWED: 0, APPROVAL_REQUIRED: 1, DENIED: 2 };
