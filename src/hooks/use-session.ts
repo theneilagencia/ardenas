@@ -1,15 +1,35 @@
-import { useAppStore } from '@/store/app-store';
-import { can, type CanArgs, type Permission } from '@/domain/permissions';
-import type { Operation } from '@/domain/types';
+/**
+ * Arden.AS — hooks de sessão (ARDEN-FE-002).
+ *
+ * NÃO são mais uma fonte de verdade autônoma. A identidade, o tenant e as
+ * permissões vêm do `TenantContext` (resolvido pelo `SessionRepository` e pelo
+ * `PermissionResolver`). A store guarda apenas um espelho, escrito exclusivamente
+ * pelo TenantContext. Esconder um botão não protege uma ação — o backend revalida.
+ */
 
+import { useMemo } from 'react';
+import { useAppStore } from '@/store/app-store';
+import { can as domainCan, type CanArgs, type Permission } from '@/domain/permissions';
+import type { Operation } from '@/domain/types';
+import { useTenant } from '@/app/tenant-context';
+import { toRequestContext, type RequestContext } from '@/application';
+
+/** Sessão espelhada (compatibilidade). A autoridade é o TenantContext. */
 export function useSession() {
   return useAppStore((s) => s.session);
 }
 
-/** Registros da organização ativa apenas. Dados não cruzam entre organizações. */
+/** Contexto de requisição derivado da sessão ativa (tenant vem da sessão). */
+export function useRequestContext(): RequestContext | null {
+  const { session } = useTenant();
+  return useMemo(() => toRequestContext(session), [session]);
+}
+
+/** Registros da organização ATIVA apenas. Dados não cruzam entre organizações. */
 export function useScopedData() {
   const data = useAppStore((s) => s.data);
-  const orgId = useAppStore((s) => s.organizationId);
+  const { activeOrganization } = useTenant();
+  const orgId = activeOrganization?.id ?? '';
   return {
     // operations e auditEvents foram migrados para repositórios (use-operations /
     // use-audit); não são mais expostos pela store.
@@ -35,15 +55,20 @@ export function useScopedData() {
   };
 }
 
-/** Avalia can() com a sessão atual injetada. */
+/**
+ * Avalia permissão com base no TenantContext (PermissionResolver) e mantém as
+ * checagens de sujeito (cross-organization/cross-company/suspenso) do domínio.
+ */
 export function usePermission(): (
   action: Permission,
   subject?: CanArgs['subject'],
 ) => boolean {
+  const { can } = useTenant();
   const session = useAppStore((s) => s.session);
   return (action, subject) => {
+    if (!can(action)) return false;
     if (!session) return false;
-    return can({ action, session, subject }).allowed;
+    return domainCan({ action, session, subject }).allowed;
   };
 }
 

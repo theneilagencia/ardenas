@@ -11,7 +11,8 @@ import {
   getSnapshotStore,
   resolveProviderKind,
 } from '@/services/service-container';
-import { permissionsFor, type Session } from '@/domain/permissions';
+import type { Session } from '@/domain/permissions';
+import { activeMembership, type SessionContext } from '@/domain/identity';
 import type {
   ApprovalState,
   AuditEvent,
@@ -92,8 +93,16 @@ export interface AppState {
   resetDemo: () => Promise<void>;
 
   // session / theme / org
-  switchProfile: (role: RoleKey) => void;
-  switchOrganization: (organizationId: string) => void;
+  /**
+   * Espelha a sessão resolvida pelo TenantContext (única autoridade). A store não
+   * decide identidade nem tenant — apenas mantém um espelho para as fatias ainda
+   * não migradas (auditoria, aprovações, execuções, etc.).
+   */
+  applySession: (session: SessionContext | null) => void;
+  /** Limpa seleção/estado transitório ao trocar de organização ou sair. */
+  resetTenantScope: () => void;
+  /** Incrementa o contador de auditoria (revalida leituras dependentes). */
+  bumpAuditVersion: () => void;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   setDrawerOpen: (open: boolean) => void;
@@ -203,19 +212,13 @@ export const useAppStore = create<AppState>((set, get) => {
     auditVersion: 0,
 
     bootstrap: async () => {
+      // A store NÃO cria mais a sessão de forma autônoma: identidade e tenant
+      // vêm do TenantContext (SessionRepository). Aqui só carregamos os dados de
+      // domínio das fatias ainda geridas pela store. O TenantContext chama
+      // applySession() para espelhar sessão/organização ativa.
       const kind = resolveProviderKind();
       const data = kind === 'api' ? emptySnapshot : await getSnapshotStore().read();
-      const firstOrg = data.organizations[0]?.id ?? '';
-      const admin = data.people.find((p) => p.roleKeys.includes('corporate_admin'));
-      const session: Session | null = admin
-        ? {
-            person: admin,
-            organizationId: firstOrg,
-            roleKeys: admin.roleKeys,
-            permissions: permissionsFor(admin.roleKeys),
-          }
-        : null;
-      set({ ready: true, data, organizationId: firstOrg, session });
+      set({ ready: true, data });
     },
 
     resetDemo: async () => {
@@ -224,29 +227,39 @@ export const useAppStore = create<AppState>((set, get) => {
       await get().bootstrap();
     },
 
-    switchProfile: (role) => {
-      const { data, organizationId } = get();
-      const person = data.people.find(
-        (p) => p.roleKeys.includes(role) && p.organizationId === organizationId,
-      );
-      if (!person) return;
-      set({
-        session: {
-          person,
-          organizationId,
-          roleKeys: person.roleKeys,
-          permissions: permissionsFor(person.roleKeys),
-        },
-      });
+    applySession: (sctx) => {
+      if (!sctx || !sctx.activeOrganizationId) {
+        set({ session: null, organizationId: '' });
+        return;
+      }
+      const organizationId = sctx.activeOrganizationId;
+      const membership = activeMembership(sctx);
+      // Resolve a pessoa real (para companyId etc.) quando disponível no snapshot;
+      // caso contrário, sintetiza a partir do usuário autenticado.
+      const real = membership ? get().data.people.find((p) => p.id === membership.id) : undefined;
+      const person: Person = real ?? {
+        id: membership?.id ?? sctx.user.id,
+        organizationId,
+        name: sctx.user.displayName,
+        email: sctx.user.email,
+        roleKeys: membership?.roleIds ?? [],
+        status: sctx.user.status === 'suspended' ? 'suspended' : 'active',
+      };
+      const session: Session = {
+        person,
+        organizationId,
+        roleKeys: membership?.roleIds ?? person.roleKeys,
+        permissions: sctx.permissions,
+      };
+      set({ session, organizationId });
     },
 
-    switchOrganization: (organizationId) => {
-      const { session } = get();
-      set({
-        organizationId,
-        session: session ? { ...session, organizationId } : session,
-      });
+    resetTenantScope: () => {
+      // Fecha estado transitório que poderia exibir dados do tenant anterior.
+      set({ drawerOpen: false, assistantOpen: false, cmdOpen: false, tourStep: -1 });
     },
+
+    bumpAuditVersion: () => set((s) => ({ auditVersion: s.auditVersion + 1 })),
 
     setTheme: (theme) => {
       applyTheme(theme);

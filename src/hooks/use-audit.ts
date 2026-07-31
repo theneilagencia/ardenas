@@ -1,7 +1,8 @@
 /**
- * Arden.AS — hook de leitura de auditoria.
- * A UI de auditoria/segurança lê pelos contratos; a escrita passa pela fronteira
- * única `AuditRepository.append` (via store.recordAudit e casos de uso).
+ * Arden.AS — hook de leitura de auditoria (ARDEN-FE-002).
+ * A UI de auditoria/segurança lê pelos contratos, com o tenant derivado da
+ * sessão ativa (RequestContext). A escrita passa pela fronteira única
+ * `AuditRepository.append` (via casos de uso e store.recordAudit).
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -9,16 +10,20 @@ import { useAppStore } from '@/store/app-store';
 import type { AuditEvent } from '@/domain/types';
 import type { ArdenRepositoryError } from '@/services/errors';
 import { listAuditEvents } from '@/application';
+import { useTenant } from '@/app/tenant-context';
+import { useRequestContext } from './use-session';
 
 export function useAuditEvents(filter: { result?: AuditEvent['result'] } = {}) {
-  const organizationId = useAppStore((s) => s.organizationId);
+  const { activeOrganization } = useTenant();
+  const ctx = useRequestContext();
+  const organizationId = activeOrganization?.id ?? '';
   // A store notifica mudanças de auditoria por um contador incremental, para
-  // revalidar a leitura após escritas (recordAudit).
+  // revalidar a leitura após escritas (recordAudit / eventos de sessão).
   const version = useAppStore((s) => s.auditVersion);
   const query = useQuery({
     queryKey: ['audit-events', organizationId, filter, version],
-    queryFn: () => listAuditEvents({ organizationId, ...filter }),
-    enabled: !!organizationId,
+    queryFn: () => listAuditEvents(ctx!, filter),
+    enabled: !!organizationId && !!ctx,
   });
   return {
     events: query.data ?? [],
