@@ -17,6 +17,8 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
 import { AuthzModule } from './authz/authz.module';
 import { SessionModule } from './session/session.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { OperationsModule } from './operations/operations.module';
+import { AuditModule } from './audit/audit.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -35,6 +37,9 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     AuthzModule,
     SessionModule,
     OrganizationsModule,
+    // Operações, versões, Gradiente de Autoridade e auditoria (ARDEN-BE-003).
+    OperationsModule,
+    AuditModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
