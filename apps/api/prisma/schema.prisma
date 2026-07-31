@@ -110,6 +110,12 @@ model Organization {
   memberships Membership[]
   roles       Role[]
   operations  Operation[]
+  policies             Policy[]
+  approvalFlows        ApprovalFlow[]
+  approvalRequests     ApprovalRequest[]
+  approvalDelegations  ApprovalDelegation[]
+  actionAuthorizations ActionAuthorization[]
+  policyBindings       OperationPolicyBinding[]
 
   @@map("organizations")
 }
@@ -274,6 +280,9 @@ model Operation {
 
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   versions     OperationVersion[]
+  policyBindings       OperationPolicyBinding[]
+  approvalRequests     ApprovalRequest[]
+  actionAuthorizations ActionAuthorization[]
 
   @@index([organizationId, status])
   @@index([organizationId, updatedAt])
@@ -330,4 +339,302 @@ model AuditEvent {
   @@index([organizationId, resourceType, resourceId])
   @@index([correlationId])
   @@map("audit_events")
+}
+
+// ── Políticas, aprovações e autorizações de ação (ARDEN-BE-004) ────────────────
+// Enums em MAIÚSCULAS (casam com os contratos HTTP autorados nesta issue).
+
+enum PolicyCategory {
+  AUTHORITY
+  APPROVAL
+  FINANCIAL
+  SECURITY
+  OPERATIONAL
+}
+
+enum PolicyStatus {
+  DRAFT
+  PUBLISHED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum PolicyVersionStatus {
+  DRAFT
+  PUBLISHED
+  SUPERSEDED
+}
+
+enum PolicyBindingScope {
+  OPERATION
+  VERSION
+}
+
+enum ApprovalFlowStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum ApprovalDecisionMode {
+  ANY_ONE
+  ALL
+  QUORUM
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  INVALIDATED
+}
+
+enum ApprovalDecisionType {
+  APPROVE
+  REJECT
+}
+
+enum ApprovalDelegationStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum ActionAuthorizationStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+  INVALIDATED
+}
+
+/// Política de governança (versionada). O conteúdo executável vive nas versões.
+model Policy {
+  id                    String         @id @default(uuid()) @db.Uuid
+  organizationId        String         @map("organization_id") @db.Uuid
+  key                   String
+  name                  String
+  description           String?
+  category              PolicyCategory
+  status                PolicyStatus   @default(DRAFT)
+  currentDraftVersionId String?        @map("current_draft_version_id") @db.Uuid
+  publishedVersionId    String?        @map("published_version_id") @db.Uuid
+  createdBy             String         @map("created_by") @db.Uuid
+  revision              Int            @default(1)
+  createdAt             DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versions     PolicyVersion[]
+  bindings     OperationPolicyBinding[]
+
+  @@unique([organizationId, key], name: "uniq_policy_key_per_org")
+  @@index([organizationId, status])
+  @@map("policies")
+}
+
+/// Versão de política. DRAFT editável; PUBLISHED imutável (mesmo após SUPERSEDED).
+model PolicyVersion {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  policyId       String              @map("policy_id") @db.Uuid
+  versionNumber  Int                 @map("version_number")
+  status         PolicyVersionStatus @default(DRAFT)
+  definition     Json                @default("{}")
+  changeSummary  String?             @map("change_summary")
+  createdBy      String              @map("created_by") @db.Uuid
+  publishedBy    String?             @map("published_by") @db.Uuid
+  publishedAt    DateTime?           @map("published_at") @db.Timestamptz(6)
+  revision       Int                 @default(1)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  policy   Policy                   @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  bindings OperationPolicyBinding[]
+
+  @@unique([policyId, versionNumber], name: "uniq_policy_version_number")
+  @@index([organizationId, status])
+  @@map("policy_versions")
+}
+
+/// Vínculo de uma política (versão) a uma operação (ou versão de operação).
+model OperationPolicyBinding {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @map("organization_id") @db.Uuid
+  operationId        String             @map("operation_id") @db.Uuid
+  operationVersionId String?            @map("operation_version_id") @db.Uuid
+  policyId           String             @map("policy_id") @db.Uuid
+  policyVersionId    String             @map("policy_version_id") @db.Uuid
+  scope              PolicyBindingScope @default(OPERATION)
+  priority           Int                @default(100)
+  enabled            Boolean            @default(true)
+  createdBy          String             @map("created_by") @db.Uuid
+  revision           Int                @default(1)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation     Operation     @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  policy        Policy        @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  policyVersion PolicyVersion @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+
+  @@index([operationId, enabled])
+  @@index([organizationId])
+  @@map("operation_policy_bindings")
+}
+
+/// Definição de fluxo de aprovação (cabeçalho). As etapas vivem em steps.
+model ApprovalFlow {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  key            String
+  name           String
+  description    String?
+  status         ApprovalFlowStatus @default(DRAFT)
+  createdBy      String             @map("created_by") @db.Uuid
+  revision       Int                @default(1)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  steps        ApprovalFlowStep[]
+  requests     ApprovalRequest[]
+
+  @@unique([organizationId, key], name: "uniq_approval_flow_key_per_org")
+  @@index([organizationId, status])
+  @@map("approval_flows")
+}
+
+/// Etapa de um fluxo de aprovação. Elegibilidade + modo de decisão + prazos.
+model ApprovalFlowStep {
+  id                     String               @id @default(uuid()) @db.Uuid
+  organizationId         String               @map("organization_id") @db.Uuid
+  approvalFlowId         String               @map("approval_flow_id") @db.Uuid
+  sequence               Int
+  name                   String
+  decisionMode           ApprovalDecisionMode @default(ANY_ONE) @map("decision_mode")
+  quorum                 Int?
+  requiredPermission     String?              @map("required_permission")
+  eligibleRoleKey        String?              @map("eligible_role_key")
+  specificApproverUserId String?              @map("specific_approver_user_id") @db.Uuid
+  requesterCannotApprove Boolean              @default(true) @map("requester_cannot_approve")
+  justificationRequired  Boolean              @default(false) @map("justification_required")
+  expiresAfterMinutes    Int?                 @map("expires_after_minutes")
+  escalationAfterMinutes Int?                 @map("escalation_after_minutes")
+  createdAt              DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  approvalFlow ApprovalFlow       @relation(fields: [approvalFlowId], references: [id], onDelete: Cascade)
+  decisions    ApprovalDecision[]
+
+  @@unique([approvalFlowId, sequence], name: "uniq_flow_step_sequence")
+  @@index([organizationId])
+  @@map("approval_flow_steps")
+}
+
+/// Solicitação de aprovação de uma ação sobre uma operação/versão publicada.
+model ApprovalRequest {
+  id                 String                @id @default(uuid()) @db.Uuid
+  organizationId     String                @map("organization_id") @db.Uuid
+  operationId        String                @map("operation_id") @db.Uuid
+  operationVersionId String                @map("operation_version_id") @db.Uuid
+  actionKey          String                @map("action_key")
+  actionPayloadHash  String                @map("action_payload_hash")
+  actionContext      Json                  @default("{}") @map("action_context")
+  requestedBy        String                @map("requested_by") @db.Uuid
+  requestedAt        DateTime              @default(now()) @map("requested_at") @db.Timestamptz(6)
+  approvalFlowId     String                @map("approval_flow_id") @db.Uuid
+  currentStepSequence Int                  @default(1) @map("current_step_sequence")
+  status             ApprovalRequestStatus @default(PENDING)
+  expiresAt          DateTime?             @map("expires_at") @db.Timestamptz(6)
+  decidedAt          DateTime?             @map("decided_at") @db.Timestamptz(6)
+  policySnapshot     Json                  @default("{}") @map("policy_snapshot")
+  authoritySnapshot  Json                  @default("{}") @map("authority_snapshot")
+  correlationId      String                @map("correlation_id")
+  revision           Int                   @default(1)
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation      Operation             @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  approvalFlow   ApprovalFlow          @relation(fields: [approvalFlowId], references: [id], onDelete: Restrict)
+  decisions      ApprovalDecision[]
+  authorizations ActionAuthorization[]
+
+  @@index([organizationId, status, requestedAt])
+  @@index([operationId, status])
+  @@map("approval_requests")
+}
+
+/// Decisão registrada por um aprovador em uma etapa. IMUTÁVEL.
+model ApprovalDecision {
+  id                String               @id @default(uuid()) @db.Uuid
+  organizationId    String               @map("organization_id") @db.Uuid
+  approvalRequestId String               @map("approval_request_id") @db.Uuid
+  approvalFlowStepId String              @map("approval_flow_step_id") @db.Uuid
+  decidedBy         String               @map("decided_by") @db.Uuid
+  decision          ApprovalDecisionType
+  justification     String?
+  decidedAt         DateTime             @default(now()) @map("decided_at") @db.Timestamptz(6)
+  correlationId     String               @map("correlation_id")
+
+  request ApprovalRequest  @relation(fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  step    ApprovalFlowStep @relation(fields: [approvalFlowStepId], references: [id], onDelete: Restrict)
+
+  @@unique([approvalRequestId, approvalFlowStepId, decidedBy], name: "uniq_decision_per_approver_step")
+  @@index([approvalRequestId, decidedAt])
+  @@map("approval_decisions")
+}
+
+/// Delegação controlada de autoridade de decisão entre usuários do mesmo tenant.
+model ApprovalDelegation {
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String                   @map("organization_id") @db.Uuid
+  delegatorUserId String                  @map("delegator_user_id") @db.Uuid
+  delegateUserId String                   @map("delegate_user_id") @db.Uuid
+  validFrom      DateTime                 @map("valid_from") @db.Timestamptz(6)
+  validUntil     DateTime                 @map("valid_until") @db.Timestamptz(6)
+  scope          Json                     @default("{}")
+  status         ApprovalDelegationStatus @default(ACTIVE)
+  createdBy      String                   @map("created_by") @db.Uuid
+  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt      DateTime?                @map("revoked_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, delegateUserId, status])
+  @@map("approval_delegations")
+}
+
+/// Autorização de ação emitida após aprovação (ou permissão direta). Validável.
+model ActionAuthorization {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  organizationId     String                    @map("organization_id") @db.Uuid
+  approvalRequestId  String?                   @map("approval_request_id") @db.Uuid
+  operationId        String                    @map("operation_id") @db.Uuid
+  operationVersionId String                    @map("operation_version_id") @db.Uuid
+  actionKey          String                    @map("action_key")
+  actionPayloadHash  String                    @map("action_payload_hash")
+  grantedToUserId    String?                   @map("granted_to_user_id") @db.Uuid
+  status             ActionAuthorizationStatus @default(ACTIVE)
+  validFrom          DateTime                  @default(now()) @map("valid_from") @db.Timestamptz(6)
+  validUntil         DateTime?                 @map("valid_until") @db.Timestamptz(6)
+  grantedAt          DateTime                  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  usedAt             DateTime?                 @map("used_at") @db.Timestamptz(6)
+  authoritySnapshot  Json                      @default("{}") @map("authority_snapshot")
+  policySnapshot     Json                      @default("{}") @map("policy_snapshot")
+  correlationId      String                    @map("correlation_id")
+  revision           Int                       @default(1)
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation    Operation        @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  request      ApprovalRequest? @relation(fields: [approvalRequestId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, operationId, actionKey, status])
+  @@map("action_authorizations")
 }
