@@ -6,10 +6,12 @@
  * production (ENABLE_SWAGGER=false) — o registro do módulo respeita a flag.
  */
 
+import { Public } from '../authz/decorators';
 import { Controller, Get, Header } from '@nestjs/common';
 import { loadOpenApiDocument } from './openapi-loader';
 
 @Controller('api/docs')
+@Public()
 export class DocsController {
   @Get('openapi.json')
   spec(): Record<string, unknown> {
