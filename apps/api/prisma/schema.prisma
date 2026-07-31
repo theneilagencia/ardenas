@@ -109,6 +109,7 @@ model Organization {
 
   memberships Membership[]
   roles       Role[]
+  operations  Operation[]
 
   @@map("organizations")
 }
@@ -225,4 +226,108 @@ model IdentityAuditEvent {
   @@index([actorUserId, occurredAt])
   @@index([correlationId])
   @@map("identity_audit_events")
+}
+
+// ── Operações, versões e auditoria de operações (ARDEN-BE-003) ─────────────────
+// Valores dos enums em minúsculas para casar EXATAMENTE com o contrato HTTP v1
+// (src/contracts), evitando mapeamento de caixa na serialização.
+
+enum OperationStatus {
+  draft
+  active
+  paused
+  archived
+}
+
+enum OperationVersionStatus {
+  draft
+  published
+  superseded
+}
+
+/// Origem do ator de um evento de auditoria (contrato: auditEvent.source).
+enum AuditSource {
+  user
+  system
+  integration
+}
+
+/// Operação: agregado de negócio pertencente a UMA organização. O conteúdo
+/// substantivo vive nas versões; a operação guarda metadados e os ponteiros para
+/// a versão em rascunho e a versão publicada. Nunca é apagada por endpoint público.
+model Operation {
+  id                    String          @id @default(uuid()) @db.Uuid
+  organizationId        String          @map("organization_id") @db.Uuid
+  name                  String
+  description           String?
+  status                OperationStatus @default(draft)
+  ownerId               String?         @map("owner_id") @db.Uuid
+  // Ponteiros lógicos para operation_versions (mesma tabela). Sem FK Prisma para
+  // evitar ciclo; integridade garantida transacionalmente e pela regra de não
+  // apagar versões.
+  currentDraftVersionId String?         @map("current_draft_version_id") @db.Uuid
+  publishedVersionId    String?         @map("published_version_id") @db.Uuid
+  createdBy             String          @map("created_by") @db.Uuid
+  revision              Int             @default(1)
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versions     OperationVersion[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, updatedAt])
+  @@map("operations")
+}
+
+/// Versão de uma operação. DRAFT é editável; PUBLISHED é IMUTÁVEL (mesmo após
+/// SUPERSEDED). Pertence ao mesmo tenant da operação.
+model OperationVersion {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @map("organization_id") @db.Uuid
+  operationId     String                 @map("operation_id") @db.Uuid
+  versionNumber   Int                    @map("version_number")
+  status          OperationVersionStatus @default(draft)
+  definition      Json                   @default("{}")
+  authorityProfile Json                  @default("{}") @map("authority_profile")
+  changeSummary   String?                @map("change_summary")
+  createdBy       String                 @map("created_by") @db.Uuid
+  publishedBy     String?                @map("published_by") @db.Uuid
+  publishedAt     DateTime?              @map("published_at") @db.Timestamptz(6)
+  revision        Int                    @default(1)
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@unique([operationId, versionNumber], name: "uniq_version_number_per_operation")
+  @@index([organizationId, status])
+  @@map("operation_versions")
+}
+
+/// Trilha de auditoria de operações — append-only. SOMENTE LEITURA pela API
+/// pública (sem update/delete/POST público). Suporta before/after e ator rico
+/// para o contrato HTTP (auditEvent). `outcome` é interno (não exposto no
+/// contrato) para registrar negações.
+model AuditEvent {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @map("organization_id") @db.Uuid
+  actorUserId      String?      @map("actor_user_id") @db.Uuid
+  actorType        AuditSource  @default(user) @map("actor_type")
+  actorRole        String?      @map("actor_role")
+  actorDisplayName String?      @map("actor_display_name")
+  action           String
+  resourceType     String       @map("resource_type")
+  resourceId       String       @map("resource_id")
+  outcome          AuditOutcome @default(SUCCESS)
+  correlationId    String       @map("correlation_id")
+  before           Json?
+  after            Json?
+  metadata         Json         @default("{}")
+  occurredAt       DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([organizationId, occurredAt])
+  @@index([organizationId, resourceType, resourceId])
+  @@index([correlationId])
+  @@map("audit_events")
 }
