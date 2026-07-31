@@ -1,14 +1,14 @@
 /**
- * Arden.AS — hooks do agregado Operação.
+ * Arden.AS — hooks do agregado Operação (ARDEN-FE-002).
  * Única porta da UI para operações: consomem a camada de aplicação (que usa os
- * repositórios). Não acessam Zustand para domínio nem IndexedDB.
+ * repositórios) passando o `RequestContext` derivado da SESSÃO ATIVA. O tenant
+ * nunca é digitado num formulário — vem sempre da sessão.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '@/store/app-store';
 import type { Operation } from '@/domain/types';
 import type { ArdenRepositoryError } from '@/services/errors';
-import type { AuditContext } from '@/application';
+import { ArdenRepositoryError as RepoError } from '@/services/errors';
 import {
   archiveOperation,
   createOperation,
@@ -24,20 +24,23 @@ import {
   rollbackOperationEnvironment,
   saveOperationDraft,
   updateOperationDraft,
+  type RequestContext,
 } from '@/application';
 import type { CreateFromAssessmentInput } from '@/services/contracts';
+import { useTenant } from '@/app/tenant-context';
+import { useRequestContext } from './use-session';
 
 const OPERATIONS_KEY = 'operations';
 const OPERATION_KEY = 'operation';
 
-export function useAuditContext(): AuditContext {
-  const session = useAppStore((s) => s.session);
-  const organizationId = useAppStore((s) => s.organizationId);
-  return {
-    actorId: session?.person.id ?? 'system',
-    actorRole: session?.roleKeys[0] ?? 'analyst',
-    organizationId,
-  };
+/** Erro tipado para quando não há tenant ativo (a UI trata como estado vazio). */
+function noTenant(): RepoError {
+  return new RepoError('UNAVAILABLE', 'Nenhuma organização ativa na sessão.');
+}
+
+function requireCtx(ctx: RequestContext | null): RequestContext {
+  if (!ctx) throw noTenant();
+  return ctx;
 }
 
 interface OperationFilters {
@@ -46,11 +49,13 @@ interface OperationFilters {
 }
 
 export function useOperations(filters: OperationFilters = {}) {
-  const organizationId = useAppStore((s) => s.organizationId);
+  const { activeOrganization } = useTenant();
+  const ctx = useRequestContext();
+  const organizationId = activeOrganization?.id ?? '';
   const query = useQuery({
     queryKey: [OPERATIONS_KEY, organizationId, filters],
-    queryFn: () => listOperations({ organizationId, ...filters }),
-    enabled: !!organizationId,
+    queryFn: () => listOperations(requireCtx(ctx), filters),
+    enabled: !!organizationId && !!ctx,
   });
   return {
     operations: query.data?.items ?? [],
@@ -62,10 +67,13 @@ export function useOperations(filters: OperationFilters = {}) {
 }
 
 export function useOperation(id?: string) {
+  const { activeOrganization } = useTenant();
+  const ctx = useRequestContext();
+  const organizationId = activeOrganization?.id ?? '';
   const query = useQuery({
-    queryKey: [OPERATION_KEY, id],
-    queryFn: () => getOperation(id as string),
-    enabled: !!id,
+    queryKey: [OPERATION_KEY, organizationId, id],
+    queryFn: () => getOperation(requireCtx(ctx), id as string),
+    enabled: !!id && !!ctx,
   });
   return {
     operation: query.data,
@@ -80,115 +88,116 @@ function useOperationsInvalidator() {
   return (id?: string) => {
     void qc.invalidateQueries({ queryKey: [OPERATIONS_KEY] });
     void qc.invalidateQueries({ queryKey: ['audit-events'] });
-    if (id) void qc.invalidateQueries({ queryKey: [OPERATION_KEY, id] });
+    if (id) void qc.invalidateQueries({ queryKey: [OPERATION_KEY] });
   };
 }
 
 export function useCreateOperation() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (op: Operation) => createOperation(op, ctx),
+    mutationFn: (op: Operation) => createOperation(requireCtx(ctx), op),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useSaveOperationDraft() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (op: Operation) => saveOperationDraft(op, ctx),
+    mutationFn: (op: Operation) => saveOperationDraft(requireCtx(ctx), op),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useUpdateOperationDraft() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: Partial<Operation> }) =>
-      updateOperationDraft(id, input, ctx),
+      updateOperationDraft(requireCtx(ctx), id, input),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useCreateOperationVersion() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => createOperationVersion(id, ctx),
+    mutationFn: (id: string) => createOperationVersion(requireCtx(ctx), id),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function usePublishOperationVersion() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => publishOperationVersion(id, ctx),
+    mutationFn: (id: string) => publishOperationVersion(requireCtx(ctx), id),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useArchiveOperation() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => archiveOperation(id, ctx),
+    mutationFn: (id: string) => archiveOperation(requireCtx(ctx), id),
     onSuccess: (_r, id) => invalidate(id),
   });
 }
 
 export function usePauseOperation() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => pauseOperation(id, ctx),
+    mutationFn: (id: string) => pauseOperation(requireCtx(ctx), id),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useResumeOperation() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => resumeOperation(id, ctx),
+    mutationFn: (id: string) => resumeOperation(requireCtx(ctx), id),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useDuplicateOperation() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => duplicateOperation(id, ctx),
+    mutationFn: (id: string) => duplicateOperation(requireCtx(ctx), id),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useCreateOperationFromAssessment() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (input: CreateFromAssessmentInput) => createOperationFromAssessment(input, ctx),
+    mutationFn: (input: CreateFromAssessmentInput) =>
+      createOperationFromAssessment(requireCtx(ctx), input),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function usePromoteEnvironment() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => promoteOperationEnvironment(id, ctx),
+    mutationFn: (id: string) => promoteOperationEnvironment(requireCtx(ctx), id),
     onSuccess: (op) => invalidate(op.id),
   });
 }
 
 export function useRollbackEnvironment() {
-  const ctx = useAuditContext();
+  const ctx = useRequestContext();
   const invalidate = useOperationsInvalidator();
   return useMutation({
-    mutationFn: (id: string) => rollbackOperationEnvironment(id, ctx),
+    mutationFn: (id: string) => rollbackOperationEnvironment(requireCtx(ctx), id),
     onSuccess: (op) => invalidate(op.id),
   });
 }

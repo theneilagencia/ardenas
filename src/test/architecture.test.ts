@@ -9,13 +9,16 @@ import { join } from 'node:path';
 
 const ROOTS = ['src/features', 'src/components'];
 
-// Imports proibidos na UI: implementações concretas de dados/persistência.
+// Imports proibidos na UI: implementações concretas de dados/persistência e de
+// sessão. A UI só toca sessão/tenant pelo TenantContext e pelos hooks.
 const FORBIDDEN = [
   /@\/services\/repositories\//,
   /@\/services\/providers/,
   /@\/services\/data\//,
   /@\/services\/db/,
   /@\/services\/service-container/,
+  // Sessão: nenhuma implementação concreta de SessionRepository na UI.
+  /@\/services\/session\/(?!active-context)/,
 ];
 
 function walk(dir: string): string[] {
@@ -37,6 +40,18 @@ describe('regra arquitetural de acesso a dados', () => {
         for (const pattern of FORBIDDEN) {
           if (pattern.test(src)) offenders.push(`${file} :: ${pattern}`);
         }
+      }
+    }
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('features/components não fixam organização/tenant em código (hardcoded)', () => {
+    // A organização ativa vem da sessão (TenantContext) — nunca de um literal.
+    const hardcodedOrg = /['"`]org_(arden|horizon)['"`]/;
+    const offenders: string[] = [];
+    for (const root of ROOTS) {
+      for (const file of walk(root)) {
+        if (hardcodedOrg.test(readFileSync(file, 'utf8'))) offenders.push(file);
       }
     }
     expect(offenders, offenders.join('\n')).toEqual([]);

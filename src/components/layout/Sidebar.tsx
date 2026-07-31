@@ -1,19 +1,17 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronsUpDown, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { MODULES, MODULE_GROUPS, GROUP_LABEL_KEY } from '@/app/modules';
-import { usePermission, useScopedData } from '@/hooks/use-session';
+import { usePermission } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
+import { OrganizationSwitcher } from '@/components/session/OrganizationSwitcher';
 
 export function Sidebar() {
   const { t } = useTranslation();
   const permission = usePermission();
-  const { organizations } = useScopedData();
-  const orgId = useAppStore((s) => s.organizationId);
   const drawerOpen = useAppStore((s) => s.drawerOpen);
   const setDrawerOpen = useAppStore((s) => s.setDrawerOpen);
 
-  const activeOrg = organizations.find((o) => o.id === orgId);
   const visible = MODULES.filter((m) => permission(m.permission));
 
   return (
@@ -27,21 +25,7 @@ export function Sidebar() {
         <span className="brand-mark">Arden.AS</span>
       </div>
 
-      <button
-        type="button"
-        className="org-switch"
-        onClick={() => {
-          const next = organizations.find((o) => o.id !== orgId);
-          if (next) useAppStore.getState().switchOrganization(next.id);
-        }}
-        title={t('org.switch')}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="t-micro">{t('org.active')}</div>
-          <div style={{ fontWeight: 500, fontSize: '0.8125rem' }}>{activeOrg?.name ?? '—'}</div>
-        </div>
-        <ChevronsUpDown size={15} aria-hidden />
-      </button>
+      <OrganizationSwitcher />
 
       {permission('operation.create') && (
         <NavLink

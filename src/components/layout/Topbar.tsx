@@ -3,6 +3,7 @@ import { Bell, HelpCircle, Menu, Moon, Sun } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useAppStore } from '@/store/app-store';
 import { useScopedData, useSession } from '@/hooks/use-session';
+import { useTenant } from '@/app/tenant-context';
 import { setLang, type Lang } from '@/i18n';
 import type { RoleKey } from '@/domain/types';
 
@@ -25,7 +26,7 @@ export function Topbar() {
   const setAssistantOpen = useAppStore((s) => s.setAssistantOpen);
   const setCmdOpen = useAppStore((s) => s.setCmdOpen);
   const startTour = useAppStore((s) => s.startTour);
-  const switchProfile = useAppStore((s) => s.switchProfile);
+  const { switchProfile, signOut } = useTenant();
   const markRead = useAppStore((s) => s.markNotificationsRead);
   const session = useSession();
   const { notifications } = useScopedData();
@@ -134,6 +135,14 @@ export function Topbar() {
                   {t(`role.${role}`)}
                 </DropdownMenu.Item>
               ))}
+              <DropdownMenu.Separator className="menu-sep" />
+              <DropdownMenu.Item
+                className="menu-item"
+                data-testid="sign-out"
+                onSelect={() => void signOut()}
+              >
+                {t('session.signOut')}
+              </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>

@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { router } from '@/app/routes';
 import { queryClient } from '@/lib/query-client';
+import { TenantProvider } from '@/app/tenant-provider';
 import { useAppStore } from '@/store/app-store';
 
 export function App() {
@@ -28,7 +29,9 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <TenantProvider>
+        <RouterProvider router={router} />
+      </TenantProvider>
     </QueryClientProvider>
   );
 }

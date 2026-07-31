@@ -1,8 +1,11 @@
 /**
  * Arden.AS — camada de aplicação (casos de uso).
  * Fronteira entre a UI (hooks) e os repositórios. Sem React, Zustand ou IndexedDB.
+ * Todo caso de uso dependente de organização recebe um `RequestContext` derivado
+ * da sessão ativa (ver `request-context`).
  */
 
+export * from './request-context';
 export * from './operations/list-operations';
 export * from './operations/get-operation';
 export * from './operations/create-operation';

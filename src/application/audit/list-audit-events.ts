@@ -1,11 +1,25 @@
 import type { AuditEvent } from '@/domain/types';
 import { getServices } from '@/services/service-container';
-import { toRepositoryError } from '@/services/errors';
-import type { AuditQuery } from '@/services/contracts';
+import { toRepositoryError, assertValid } from '@/services/errors';
+import { assertPermission, type RequestContext } from '../request-context';
 
-export async function listAuditEvents(input: AuditQuery): Promise<AuditEvent[]> {
+export interface AuditEventsQuery {
+  result?: AuditEvent['result'];
+  signal?: AbortSignal;
+}
+
+export async function listAuditEvents(
+  ctx: RequestContext,
+  query: AuditEventsQuery = {},
+): Promise<AuditEvent[]> {
+  assertValid(ctx.organizationId, 'Organização é obrigatória', 'organizationId');
+  assertPermission(ctx, 'audit.view');
   try {
-    return await getServices().audit.list(input);
+    return await getServices().audit.list({
+      organizationId: ctx.organizationId,
+      result: query.result,
+      signal: query.signal,
+    });
   } catch (err) {
     throw toRepositoryError(err);
   }
