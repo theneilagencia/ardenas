@@ -58,3 +58,12 @@ adaptadores que implementam `SessionRepository`, `AuditRepository` (leitura) e
 `OperationsRepository` (listagem) — verificados por `client-compat.test.ts`. As
 mutações ricas de operação usam o fluxo versão-cêntrico e serão conectadas em marco
 posterior (sinalizadas como indisponíveis no v1, sem quebrar tipos).
+
+## Governança e aprovações (ARDEN-BE-004)
+
+- **Políticas** → `docs/api/POLICY_MODEL_ADAPTER_MAP.md`.
+- **Aprovações/delegações/enforcement** → `docs/api/APPROVAL_MODEL_ADAPTER_MAP.md`.
+
+Em modo `api` os módulos de Governança e Aprovações consomem os recursos v1 sem fallback
+para mock/IndexedDB. A UI usa `POST …/actions/evaluate` apenas como ergonomia; a decisão
+final é do servidor.

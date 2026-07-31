@@ -59,3 +59,23 @@ Pausar/retomar usam `operation.pause`. Duplicar usa `operation.create`.
 
 O teste `src/contracts/contracts.test.ts` garante que **toda** permissão de endpoint
 pertence a `ALL_PERMISSIONS` e que endpoints de sessão têm permissão nula.
+
+## Governança, aprovações e enforcement (ARDEN-BE-004)
+
+| Ação | Método | Permissão |
+|---|---|---|
+| listar/consultar políticas | GET | `policy.view` |
+| criar política | POST | `policy.create` |
+| editar política / versão / vínculo | PATCH/POST | `policy.edit` |
+| publicar versão de política | POST | `policy.publish` |
+| suspender/arquivar política | POST | `policy.suspend` |
+| listar/consultar fluxos e solicitações | GET | `approval.view` |
+| criar/editar/ativar/suspender fluxo | POST/PATCH | `policy.manage` |
+| solicitar aprovação de ação | POST | `approval.request` |
+| aprovar/rejeitar solicitação | POST | `approval.resolve` |
+| cancelar solicitação | POST | `approval.cancel` |
+| criar/revogar delegação | POST | `approval.delegate` |
+| avaliar ação / validar autorização | POST | `authority.evaluate` |
+
+A decisão de autorização é **sempre do servidor** — a permissão de tela nunca autoriza a
+ação; a autoridade final é reavaliada contra a versão publicada e as políticas vinculadas.
