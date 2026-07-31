@@ -81,7 +81,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
       APP_VERSION: 0.1.0-ci
-      CORS_ORIGINS: http://localhost:5173
+      # CORS_ORIGINS NÃO é fixado aqui: os testes de integração definem o valor
+      # esperado (`http://allowed.test`) via test/setup-env.ts. Fixá-lo no job
+      # sobrescreveria esse default e quebraria o teste de allowlist de CORS.
       # Identidade em CI usa SEMPRE o provider fake — nunca credenciais reais do
       # Supabase. A validação de config proíbe o provider fake em production.
       AUTH_PROVIDER: fake
