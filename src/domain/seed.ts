@@ -28,10 +28,17 @@ const UNIT = 'unit_sudeste';
 const AREA = 'area_operacoes';
 const CC = 'cc_op_01';
 
-function person(id: string, name: string, email: string, roleKeys: RoleKey[], companyId = CO): Person {
+function person(
+  id: string,
+  name: string,
+  email: string,
+  roleKeys: RoleKey[],
+  companyId: string | undefined = CO,
+  organizationId: string = ORG,
+): Person {
   return {
     id,
-    organizationId: ORG,
+    organizationId,
     companyId,
     name,
     email,
@@ -50,6 +57,10 @@ const PEOPLE: Person[] = [
   person('p_ana', 'Camila Rocha', 'camila@arden.as', ['analyst']),
   person('p_aud', 'Paulo Mendes', 'paulo@arden.as', ['auditor']),
   { ...person('p_susp', 'Usuário Suspenso', 'suspenso@arden.as', ['analyst']), status: 'suspended' },
+  // Mesma identidade (e-mail) da administradora, com membership na 2ª organização.
+  // Permite trocar de organização e provar o isolamento de tenant (org_horizon é
+  // vazia). O usuário é membro de ambas — nunca escolhe um tenant arbitrário.
+  person('p_admin_h', 'Helena Vasques', 'helena@arden.as', ['corporate_admin'], undefined, ORG2),
 ];
 
 function step(

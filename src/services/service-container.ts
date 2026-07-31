@@ -9,6 +9,14 @@ import type { ArdenServices } from './contracts';
 import type { SnapshotStore } from './data/snapshot-store';
 import { IndexedDbSnapshotStore, MemorySnapshotStore } from './data/snapshot-store';
 import { ApiClient } from './api-client';
+import type { SessionRepository } from './session/session-contracts';
+import { SnapshotSessionRepository } from './session/snapshot-session-repository';
+import { ApiSessionRepository } from './session/api-session-repository';
+import {
+  IndexedDbSessionSelectionStore,
+  MemorySessionSelectionStore,
+} from './session/session-selection-store';
+import { getActiveOrganizationId } from './session/active-context';
 import { SnapshotOperationsRepository } from './repositories/operations-snapshot';
 import { ApiOperationsRepository } from './repositories/operations-api';
 import { SnapshotAuditRepository } from './repositories/audit-snapshot';
@@ -26,9 +34,13 @@ export function resolveProviderKind(): ProviderKind {
   return 'indexeddb';
 }
 
+function apiBaseUrl(): string {
+  return (import.meta.env.VITE_API_BASE_URL as string) ?? '';
+}
+
 function apiClient(): ApiClient {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string) ?? '';
-  return new ApiClient({ baseUrl });
+  // O tenant vai no header X-Arden-Organization, derivado da sessão ativa.
+  return new ApiClient({ baseUrl: apiBaseUrl(), getOrganizationId: getActiveOrganizationId });
 }
 
 // ── Gateway físico (modos mock/indexeddb) ────────────────────────────────────
@@ -50,6 +62,7 @@ export function getSnapshotStore(): SnapshotStore {
 export function setSnapshotStore(next: SnapshotStore): void {
   snapshotStore = next;
   services = null;
+  sessionRepository = null;
 }
 
 // ── Serviços de domínio ───────────────────────────────────────────────────────
@@ -82,4 +95,33 @@ export function getServices(): ArdenServices {
 /** Injeta serviços (testes). */
 export function setServices(next: ArdenServices | null): void {
   services = next;
+}
+
+// ── Sessão / tenant (ARDEN-FE-002) ────────────────────────────────────────────
+
+let sessionRepository: SessionRepository | null = null;
+
+/**
+ * Repositório de sessão. Selecionado por VITE_DATA_PROVIDER, no MESMO ponto único
+ * dos demais serviços. Modo `api` sem base URL lança erro tipado — nunca cai para
+ * mock silenciosamente.
+ */
+export function getSessionRepository(): SessionRepository {
+  if (sessionRepository) return sessionRepository;
+  const kind = resolveProviderKind();
+  if (kind === 'api') {
+    sessionRepository = new ApiSessionRepository(apiClient(), apiBaseUrl());
+  } else {
+    const selection =
+      kind === 'mock'
+        ? new MemorySessionSelectionStore()
+        : new IndexedDbSessionSelectionStore();
+    sessionRepository = new SnapshotSessionRepository(getSnapshotStore(), selection);
+  }
+  return sessionRepository;
+}
+
+/** Injeta um repositório de sessão (testes). */
+export function setSessionRepository(next: SessionRepository | null): void {
+  sessionRepository = next;
 }
