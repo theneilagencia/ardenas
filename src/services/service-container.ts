@@ -17,6 +17,7 @@ import {
   MemorySessionSelectionStore,
 } from './session/session-selection-store';
 import { getActiveOrganizationId } from './session/active-context';
+import { getAccessToken } from './session/access-token';
 import { SnapshotOperationsRepository } from './repositories/operations-snapshot';
 import { ApiOperationsRepository } from './repositories/operations-api';
 import { SnapshotAuditRepository } from './repositories/audit-snapshot';
@@ -39,8 +40,13 @@ function apiBaseUrl(): string {
 }
 
 function apiClient(): ApiClient {
-  // O tenant vai no header X-Arden-Organization, derivado da sessão ativa.
-  return new ApiClient({ baseUrl: apiBaseUrl(), getOrganizationId: getActiveOrganizationId });
+  // O tenant vai no header X-Arden-Organization, derivado da sessão ativa; o token
+  // Bearer vem do portador único de access token (BE-002).
+  return new ApiClient({
+    baseUrl: apiBaseUrl(),
+    getOrganizationId: getActiveOrganizationId,
+    getToken: getAccessToken,
+  });
 }
 
 // ── Gateway físico (modos mock/indexeddb) ────────────────────────────────────

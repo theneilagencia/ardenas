@@ -81,7 +81,12 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
       APP_VERSION: 0.1.0-ci
-      CORS_ORIGINS: http://localhost:5173
+      # CORS_ORIGINS NÃO é fixado aqui: os testes de integração definem o valor
+      # esperado (`http://allowed.test`) via test/setup-env.ts. Fixá-lo no job
+      # sobrescreveria esse default e quebraria o teste de allowlist de CORS.
+      # Identidade em CI usa SEMPRE o provider fake — nunca credenciais reais do
+      # Supabase. A validação de config proíbe o provider fake em production.
+      AUTH_PROVIDER: fake
     steps:
       - uses: actions/checkout@v4
 
@@ -105,6 +110,14 @@ jobs:
       - name: Migration status
         run: npm run db:migrate:status
 
+      - name: Seed identity catalog (idempotent)
+        run: |
+          npm run db:seed
+          npm run db:seed
+
+      - name: Bootstrap organization (dry-run smoke)
+        run: npm run bootstrap:organization -- --name "CI Org" --slug ci-org --user-subject ci-subject --provider fake --dry-run
+
       - name: Typecheck (api)
         run: npm run typecheck:api
 
@@ -119,6 +132,52 @@ jobs:
 
       - name: Build (api)
         run: npm run build:api
+
+  e2e-api:
+    name: E2E frontend↔backend (modo api)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arden_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
+      AUTH_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build shared contracts
+        run: npm -w @arden/contracts run build
+
+      - name: Prisma generate
+        run: npm run db:generate
+
+      - name: Build (api)
+        run: npm run build:api
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (api mode — session + organizations)
+        run: npm run test:e2e:api
 
   secrets:
     name: Secret hygiene

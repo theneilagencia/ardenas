@@ -35,6 +35,15 @@ export const envSchema = z
       .refine((v) => v.startsWith('/'), { message: 'API_PREFIX deve começar com "/".' }),
     ENABLE_SWAGGER: booleanish.default(true),
     GIT_SHA: z.string().optional().default(''),
+
+    // ── Autenticação (ARDEN-BE-002) ──────────────────────────────────────────
+    AUTH_PROVIDER: z.enum(['supabase', 'fake']).default('supabase'),
+    SUPABASE_URL: z.string().optional().default(''),
+    SUPABASE_ANON_KEY: z.string().optional().default(''),
+    SUPABASE_JWKS_URL: z.string().optional().default(''),
+    SUPABASE_JWT_ISSUER: z.string().optional().default(''),
+    SUPABASE_JWT_AUDIENCE: z.string().optional().default(''),
+    AUTH_CLOCK_TOLERANCE_SECONDS: z.coerce.number().int().min(0).max(300).default(5),
   })
   .transform((env) => ({
     ...env,
@@ -50,6 +59,33 @@ export const envSchema = z
           code: z.ZodIssueCode.custom,
           path: ['CORS_ORIGINS'],
           message: 'Em production, CORS_ORIGINS deve ser uma allowlist explícita (sem "*").',
+        });
+      }
+    }
+
+    // O provider fake NUNCA pode ser ativado em produção.
+    if (env.AUTH_PROVIDER === 'fake' && env.NODE_ENV === 'production') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['AUTH_PROVIDER'],
+        message: 'AUTH_PROVIDER=fake é proibido em production.',
+      });
+    }
+
+    // Supabase exige JWKS e issuer para verificação criptográfica do token.
+    if (env.AUTH_PROVIDER === 'supabase') {
+      if (!env.SUPABASE_JWKS_URL) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SUPABASE_JWKS_URL'],
+          message: 'AUTH_PROVIDER=supabase requer SUPABASE_JWKS_URL.',
+        });
+      }
+      if (!env.SUPABASE_JWT_ISSUER) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SUPABASE_JWT_ISSUER'],
+          message: 'AUTH_PROVIDER=supabase requer SUPABASE_JWT_ISSUER.',
         });
       }
     }

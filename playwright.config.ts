@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  // Os specs de modo api (e2e/api) exigem o backend real e rodam pela config
+  // dedicada `playwright.api.config.ts` (script test:e2e:api) — nunca aqui.
+  testIgnore: '**/api/**',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

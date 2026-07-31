@@ -43,3 +43,186 @@ model ApplicationMetadata {
 
   @@map("application_metadata")
 }
+
+// ── Identidade e tenancy (ARDEN-BE-002) ───────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REVOKED
+}
+
+enum RoleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILURE
+}
+
+/// Usuário interno. A IDENTIDADE ESTÁVEL é (externalProvider, externalSubject) —
+/// nunca o e-mail. Não guarda senha (autenticação é do provedor externo).
+model User {
+  id                  String     @id @default(uuid()) @db.Uuid
+  externalProvider    String     @map("external_provider")
+  externalSubject     String     @map("external_subject")
+  email               String?
+  displayName         String?    @map("display_name")
+  avatarUrl           String?    @map("avatar_url")
+  status              UserStatus @default(ACTIVE)
+  lastAuthenticatedAt DateTime?  @map("last_authenticated_at") @db.Timestamptz(6)
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships       Membership[]
+  sessionPreference UserSessionPreference?
+
+  @@unique([externalProvider, externalSubject], name: "uniq_external_identity")
+  @@index([email])
+  @@map("users")
+}
+
+model Organization {
+  id        String             @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String             @unique
+  status    OrganizationStatus @default(ACTIVE)
+  revision  Int                @default(0)
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships Membership[]
+  roles       Role[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  status         MembershipStatus @default(ACTIVE)
+  revision       Int              @default(0)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  roles        MembershipRole[]
+
+  @@unique([userId, organizationId], name: "uniq_membership")
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+/// Papel. `organizationId` nulo = papel GLOBAL de sistema; caso contrário,
+/// papel customizado da organização.
+model Role {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String?    @map("organization_id") @db.Uuid
+  key            String
+  name           String
+  description    String?
+  system         Boolean    @default(false)
+  status         RoleStatus @default(ACTIVE)
+  revision       Int        @default(0)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions     RolePermission[]
+  membershipRoles MembershipRole[]
+
+  // Unicidade por organização. Papéis de SISTEMA (organizationId = null) têm um
+  // índice único PARCIAL adicional (`uniq_system_role_key`, migração
+  // 20260731142624) porque NULL é distinto de NULL em índices compostos SQL —
+  // sem ele, papéis de sistema duplicados seriam possíveis.
+  @@unique([organizationId, key], name: "uniq_role_key_per_org")
+  @@map("roles")
+}
+
+/// Catálogo estável de permissões (sincronizado com o frontend — ARDEN-FE-002).
+model Permission {
+  id          String @id @default(uuid()) @db.Uuid
+  key         String @unique
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model MembershipRole {
+  membershipId String @map("membership_id") @db.Uuid
+  roleId       String @map("role_id") @db.Uuid
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, roleId])
+  @@index([roleId])
+  @@map("membership_roles")
+}
+
+model RolePermission {
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+/// Preferência de organização ativa. NÃO é prova de autorização (revalidada a cada
+/// requisição contra a membership).
+model UserSessionPreference {
+  userId               String   @id @map("user_id") @db.Uuid
+  activeOrganizationId String?  @map("active_organization_id") @db.Uuid
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_session_preferences")
+}
+
+/// Trilha de auditoria de identidade — SOMENTE LEITURA pela API pública (sem
+/// update/delete). Append-only.
+model IdentityAuditEvent {
+  id            String       @id @default(uuid()) @db.Uuid
+  actorUserId   String?      @map("actor_user_id") @db.Uuid
+  organizationId String?     @map("organization_id") @db.Uuid
+  action        String
+  resourceType  String       @map("resource_type")
+  resourceId    String?      @map("resource_id")
+  outcome       AuditOutcome
+  reasonCode    String?      @map("reason_code")
+  correlationId String       @map("correlation_id")
+  ipAddress     String?      @map("ip_address")
+  userAgent     String?      @map("user_agent")
+  metadata      Json         @default("{}")
+  occurredAt    DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([organizationId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([correlationId])
+  @@map("identity_audit_events")
+}

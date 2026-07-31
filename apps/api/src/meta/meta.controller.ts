@@ -4,6 +4,7 @@
  * (quando disponível). Sem informações sensíveis. Não é endpoint de negócio.
  */
 
+import { Public } from '../authz/decorators';
 import { Controller, Get, Inject } from '@nestjs/common';
 import { APP_CONFIG } from '../config/config.module';
 import type { AppConfig } from '../config/env.schema';
@@ -11,6 +12,7 @@ import type { AppConfig } from '../config/env.schema';
 const API_VERSION = 'v1';
 
 @Controller('meta')
+@Public()
 export class MetaController {
   constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {}
 

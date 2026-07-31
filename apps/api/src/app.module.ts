@@ -6,6 +6,7 @@
 
 import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './config/config.module';
 import { LoggerModule } from './common/logging/logger.module';
 import { DatabaseModule } from './database/database.module';
@@ -13,6 +14,9 @@ import { HealthModule } from './health/health.module';
 import { MetaModule } from './meta/meta.module';
 import { DocsModule } from './docs/docs.module';
 import { IdempotencyModule } from './modules/idempotency/idempotency.module';
+import { AuthzModule } from './authz/authz.module';
+import { SessionModule } from './session/session.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -21,10 +25,16 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     ConfigModule,
     LoggerModule,
     DatabaseModule,
+    // Rate limit base (endpoints de sessão aplicam limite próprio, mais estrito).
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 200 }]),
     HealthModule,
     MetaModule,
     DocsModule.register(),
     IdempotencyModule,
+    // Identidade e tenancy (ARDEN-BE-002). AuthzModule registra os guards globais.
+    AuthzModule,
+    SessionModule,
+    OrganizationsModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })

@@ -72,7 +72,7 @@ Tudo acima é **repetível/burlável no cliente** e deve ser tratado como conven
 - `GET  /session` → `SessionContext | null`
 - `POST /session/switch-organization { organizationId }` → `SessionContext`
 - `POST /session/refresh` → `SessionContext`
-- `POST /session/sign-out` → `204`
+- `POST /session/logout` → `204`
 - Todos os endpoints de domínio devem **derivar o tenant da sessão** e revalidar
   permissões server-side. O header `X-Arden-Organization` é dica, não autoridade.
 

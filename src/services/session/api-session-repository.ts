@@ -62,7 +62,9 @@ export class ApiSessionRepository implements SessionRepository {
   async signOut(): Promise<void> {
     this.ensureConfigured();
     try {
-      await this.client.post<void>('/session/sign-out');
+      // Endpoint canônico do contrato (operationId session.logout). O nome de
+      // domínio `signOut` é preservado; apenas o path segue o contrato/OpenAPI.
+      await this.client.post<void>('/session/logout');
     } catch (err) {
       throw toRepositoryError(err);
     }
