@@ -72,7 +72,38 @@ export const enUS = {
       grantedBy: 'Granted by',
       justification: 'Justification',
     },
-    org: { switch: 'Switch organization', active: 'Active organization' },
+    org: {
+      switch: 'Switch organization',
+      active: 'Active organization',
+      suspendedMembership: 'No access',
+      roleInOrg: 'Role',
+    },
+    session: {
+      loading: 'Loading session…',
+      signOut: 'Sign out',
+      reload: 'Reload',
+      refresh: 'Refresh session',
+      unauthenticated: {
+        title: 'Session not authenticated',
+        body: 'There is no active session. Authenticate to continue. (Real authentication will be provided by the backend.)',
+      },
+      expired: {
+        title: 'Session expired',
+        body: 'Your session expired due to inactivity. Refresh the session or reload to continue.',
+      },
+      suspended: {
+        title: 'Access suspended',
+        body: 'Your access is suspended. Contact an organization administrator.',
+      },
+      noOrganization: {
+        title: 'No active organization',
+        body: 'Your account has no active organization. You need an active membership to access the modules.',
+      },
+      error: {
+        title: 'Session error',
+        body: 'Could not load the session. Please try again.',
+      },
+    },
     theme: { light: 'Light', dark: 'Dark', toggle: 'Toggle theme' },
     profile: { switch: 'Switch profile', current: 'Current profile' },
     role: {
@@ -147,6 +178,7 @@ export const enUS = {
       noBlockers: 'No blockers present.',
       goToStep: 'Go to step',
       finish: 'Publish operation',
+      noPublishPermission: 'No permission to publish',
       steps: {
         identity: 'Identity',
         classification: 'Classification',

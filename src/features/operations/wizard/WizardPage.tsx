@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check, Lock } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAppStore } from '@/store/app-store';
-import { useScopedData } from '@/hooks/use-session';
+import { useScopedData, usePermission } from '@/hooks/use-session';
 import {
   useCreateOperation,
   useCreateOperationVersion,
@@ -21,6 +21,8 @@ export function WizardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { integrations, people } = useScopedData();
+  const permission = usePermission();
+  const canPublish = permission('operation.publish');
   const organizationId = useAppStore((s) => s.organizationId);
   const companyId = useAppStore((s) => s.session?.person.companyId ?? '');
 
@@ -52,7 +54,9 @@ export function WizardPage() {
     () => computeBlockers(op, { testedIntegrationIds }),
     [op, testedIntegrationIds],
   );
-  const publishable = blockers.length === 0;
+  // Publicar exige ausência de bloqueadores E a permissão operation.publish. A
+  // permissão é ergonomia de interface — o backend revalidará a ação.
+  const publishable = blockers.length === 0 && canPublish;
 
   const patch = (next: Partial<Operation>) => setOp((prev) => ({ ...prev, ...next }));
 
@@ -81,6 +85,11 @@ export function WizardPage() {
         subtitle={t('wizard.stepOf', { current: current + 1, total: WIZARD_STEPS.length })}
         actions={
           <>
+            {!canPublish && (
+              <span className="chip" data-testid="publish-no-permission" title={t('wizard.noPublishPermission')}>
+                {t('wizard.noPublishPermission')}
+              </span>
+            )}
             <button type="button" className="btn btn-ghost" onClick={onSaveDraft}>
               {t('common.saveDraft')}
             </button>

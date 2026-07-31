@@ -75,6 +75,34 @@ export const ptBR = {
     org: {
       switch: 'Trocar organização',
       active: 'Organização ativa',
+      suspendedMembership: 'Sem acesso',
+      roleInOrg: 'Papel',
+    },
+    session: {
+      loading: 'Carregando sessão…',
+      signOut: 'Encerrar sessão',
+      reload: 'Recarregar',
+      refresh: 'Renovar sessão',
+      unauthenticated: {
+        title: 'Sessão não autenticada',
+        body: 'Não há uma sessão ativa. Faça a autenticação para continuar. (A autenticação real será fornecida pelo backend.)',
+      },
+      expired: {
+        title: 'Sessão expirada',
+        body: 'Sua sessão expirou por inatividade. Renove a sessão ou recarregue para continuar.',
+      },
+      suspended: {
+        title: 'Acesso suspenso',
+        body: 'Seu acesso está suspenso. Procure um administrador da organização.',
+      },
+      noOrganization: {
+        title: 'Sem organização ativa',
+        body: 'Sua conta não possui uma organização ativa. Você precisa de uma membership ativa para acessar os módulos.',
+      },
+      error: {
+        title: 'Erro de sessão',
+        body: 'Não foi possível carregar a sessão. Tente novamente.',
+      },
     },
     theme: { light: 'Claro', dark: 'Escuro', toggle: 'Alternar tema' },
     profile: { switch: 'Trocar perfil', current: 'Perfil atual' },
@@ -150,6 +178,7 @@ export const ptBR = {
       noBlockers: 'Nenhum bloqueador presente.',
       goToStep: 'Ir para a etapa',
       finish: 'Publicar operação',
+      noPublishPermission: 'Sem permissão para publicar',
       steps: {
         identity: 'Identidade',
         classification: 'Classificação',
