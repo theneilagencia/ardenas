@@ -6,6 +6,10 @@
   "engines": {
     "node": ">=22"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -17,7 +21,21 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:a11y": "vitest run --project a11y",
-    "contracts:openapi": "vite-node scripts/generate-openapi.ts"
+    "contracts:openapi": "vite-node scripts/generate-openapi.ts",
+    "dev:api": "npm -w @arden/api run dev",
+    "build:api": "npm -w @arden/api run build",
+    "start:api": "npm -w @arden/api run start",
+    "typecheck:api": "npm -w @arden/api run typecheck",
+    "lint:api": "npm -w @arden/api run lint",
+    "test:api": "npm -w @arden/api run test",
+    "test:api:integration": "npm -w @arden/api run test:integration",
+    "db:generate": "npm -w @arden/api run db:generate",
+    "db:migrate": "npm -w @arden/api run db:migrate",
+    "db:migrate:deploy": "npm -w @arden/api run db:migrate:deploy",
+    "db:migrate:status": "npm -w @arden/api run db:migrate:status",
+    "db:reset:test": "npm -w @arden/api run db:reset:test",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",

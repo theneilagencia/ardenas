@@ -19,3 +19,9 @@ test-results
 
 # TS incremental build info
 *.tsbuildinfo
+
+# Backend secrets (ARDEN-BE-001)
+apps/api/.env
+apps/api/.env.local
+**/dist/
+**/*.tsbuildinfo

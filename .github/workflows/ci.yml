@@ -11,6 +11,7 @@ concurrency:
 
 jobs:
   verify:
+    name: Frontend (typecheck, lint, test, build, contracts)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +36,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: OpenAPI generation is in sync
+        run: |
+          npm run contracts:openapi
+          git diff --exit-code docs/api/openapi-v1.yaml
+
   e2e:
+    name: Frontend E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,3 +60,82 @@ jobs:
 
       - name: E2E
         run: npm run test:e2e
+
+  backend:
+    name: Backend (typecheck, lint, tests, migrations)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arden_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
+      APP_VERSION: 0.1.0-ci
+      CORS_ORIGINS: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build shared contracts
+        run: npm -w @arden/contracts run build
+
+      - name: Prisma generate
+        run: npm run db:generate
+
+      - name: Apply migrations (deploy)
+        run: npm run db:migrate:deploy
+
+      - name: Migration status
+        run: npm run db:migrate:status
+
+      - name: Typecheck (api)
+        run: npm run typecheck:api
+
+      - name: Lint (api)
+        run: npm run lint:api
+
+      - name: Unit tests (api)
+        run: npm run test:api
+
+      - name: Integration tests (api)
+        run: npm run test:api:integration
+
+      - name: Build (api)
+        run: npm run build:api
+
+  secrets:
+    name: Secret hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No committed .env files
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            echo "::error::committed .env file found"; exit 1
+          fi
+          echo "no committed .env files"
+
+      - name: No obvious hardcoded secrets
+        run: |
+          if git grep -nE '(-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|xox[baprs]-[0-9A-Za-z-]+)' -- . ':(exclude).github/workflows/*'; then
+            echo "::error::possible secret found"; exit 1
+          fi
+          echo "no obvious secrets"

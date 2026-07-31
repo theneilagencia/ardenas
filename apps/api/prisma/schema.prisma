@@ -1,0 +1,45 @@
+// Arden.AS — schema Prisma (ARDEN-BE-001).
+// Apenas tabelas TÉCNICAS de fundação. Sem tabelas de negócio (usuários,
+// organizações, operações, versões, auditoria) nesta issue.
+// A migração de schema é versionada pelo Prisma Migrate (tabela _prisma_migrations
+// cumpre o papel de "schema_migrations"). Não usar `db push` como produção.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Infraestrutura de idempotência (Idempotency-Key). Ainda NÃO aplicada a
+/// endpoints de negócio (inexistentes nesta issue); a tabela e o serviço existem
+/// para os módulos futuros. Escopo por (organização, usuário, método, rota, chave).
+model IdempotencyRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @map("organization_id")
+  userId         String?  @map("user_id")
+  method         String
+  path           String
+  idempotencyKey String   @map("idempotency_key")
+  requestHash    String   @map("request_hash")
+  statusCode     Int      @map("status_code")
+  response       Json
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@unique([method, path, idempotencyKey], name: "uniq_idempotency_scope")
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
+/// Metadados técnicos da aplicação (ex.: versão de schema, marcadores de bootstrap).
+/// Chave-valor simples; não guarda segredos.
+model ApplicationMetadata {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("application_metadata")
+}
