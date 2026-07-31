@@ -245,6 +245,27 @@ describe('POST /api/v1/session/switch-organization', () => {
   });
 });
 
+// ── Logout (endpoint canônico) ────────────────────────────────────────────────
+describe('POST /api/v1/session/logout', () => {
+  it('endpoint canônico responde 204 e audita session.logged_out', async () => {
+    await seedUser({ subject: 'sub-logout' });
+    const res = await request(server)
+      .post('/api/v1/session/logout')
+      .set('Authorization', bearer('sub-logout'));
+    expect(res.status).toBe(204);
+    const events = await auditEvents({ action: 'session.logged_out' });
+    expect(events.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('a rota antiga /session/sign-out não existe (404)', async () => {
+    await seedUser({ subject: 'sub-legacy' });
+    const res = await request(server)
+      .post('/api/v1/session/sign-out')
+      .set('Authorization', bearer('sub-legacy'));
+    expect(res.status).toBe(404);
+  });
+});
+
 // ── Auditoria e catálogo ──────────────────────────────────────────────────────
 describe('auditoria e catálogo', () => {
   it('metadados sensíveis são redigidos pelo IdentityAuditService', async () => {

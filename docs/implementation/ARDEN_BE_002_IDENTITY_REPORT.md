@@ -55,9 +55,11 @@
   Adicionamos `uniq_system_role_key` para garantir a invariante em banco.
 - **Contexto por requisição** em vez de `AsyncLocalStorage` — mais robusto na cadeia de
   guards do Nest.
-- **Alinhamento de endpoint**: o frontend usa `/session/sign-out`; o backend expõe
-  `/session/logout` (contrato BE-002). O E2E cobre sessão + organizações; o logout do
-  cliente permanece um ponto de alinhamento futuro (fora do milestone funcional).
+- **Alinhamento de endpoint (ARDEN-BE-002.1)**: o endpoint canônico de logout é
+  `POST /session/logout` (operationId `session.logout`), conforme o contrato compartilhado
+  e a OpenAPI. O adapter do frontend (`ApiSessionRepository.signOut`) foi corrigido para
+  usar esse path (antes chamava `/session/sign-out`, que o backend nunca implementou). Não
+  há endpoint duplicado nem alias; o nome de domínio `signOut` é preservado.
 
 ## Estado dos gates
 

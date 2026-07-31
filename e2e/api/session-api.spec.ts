@@ -32,6 +32,25 @@ test('usuário autenticado vê a sua organização vinda do backend real', async
   await expect(page.getByTestId(`org-option-${E2E_ORG_SLUG}`)).toBeVisible();
 });
 
+test('o backend do modo api serve o endpoint canônico de logout (session.logout)', async ({
+  request,
+}) => {
+  const token = issueFakeToken({ subject: E2E_SUBJECT });
+  const base = 'http://localhost:3000/api/v1';
+
+  // Endpoint canônico do contrato/OpenAPI.
+  const logout = await request.post(`${base}/session/logout`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(logout.status()).toBe(204);
+
+  // A rota antiga não existe (sem endpoint duplicado nem alias).
+  const legacy = await request.post(`${base}/session/sign-out`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(legacy.status()).toBe(404);
+});
+
 test('sem token, o modo api NÃO cai para mock (estado de sessão explícito)', async ({ page }) => {
   await page.addInitScript((key) => window.localStorage.removeItem(key), TOKEN_KEY);
 
