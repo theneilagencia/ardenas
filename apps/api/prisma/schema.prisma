@@ -107,15 +107,16 @@ model Organization {
   createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  memberships Membership[]
-  roles       Role[]
-  operations  Operation[]
+  memberships          Membership[]
+  roles                Role[]
+  operations           Operation[]
   policies             Policy[]
   approvalFlows        ApprovalFlow[]
   approvalRequests     ApprovalRequest[]
   approvalDelegations  ApprovalDelegation[]
   actionAuthorizations ActionAuthorization[]
   policyBindings       OperationPolicyBinding[]
+  executionRuns        ExecutionRun[]
 
   @@map("organizations")
 }
@@ -214,19 +215,19 @@ model UserSessionPreference {
 /// Trilha de auditoria de identidade — SOMENTE LEITURA pela API pública (sem
 /// update/delete). Append-only.
 model IdentityAuditEvent {
-  id            String       @id @default(uuid()) @db.Uuid
-  actorUserId   String?      @map("actor_user_id") @db.Uuid
-  organizationId String?     @map("organization_id") @db.Uuid
-  action        String
-  resourceType  String       @map("resource_type")
-  resourceId    String?      @map("resource_id")
-  outcome       AuditOutcome
-  reasonCode    String?      @map("reason_code")
-  correlationId String       @map("correlation_id")
-  ipAddress     String?      @map("ip_address")
-  userAgent     String?      @map("user_agent")
-  metadata      Json         @default("{}")
-  occurredAt    DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  id             String       @id @default(uuid()) @db.Uuid
+  actorUserId    String?      @map("actor_user_id") @db.Uuid
+  organizationId String?      @map("organization_id") @db.Uuid
+  action         String
+  resourceType   String       @map("resource_type")
+  resourceId     String?      @map("resource_id")
+  outcome        AuditOutcome
+  reasonCode     String?      @map("reason_code")
+  correlationId  String       @map("correlation_id")
+  ipAddress      String?      @map("ip_address")
+  userAgent      String?      @map("user_agent")
+  metadata       Json         @default("{}")
+  occurredAt     DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
 
   @@index([organizationId, occurredAt])
   @@index([actorUserId, occurredAt])
@@ -278,11 +279,12 @@ model Operation {
   createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  versions     OperationVersion[]
+  organization         Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versions             OperationVersion[]
   policyBindings       OperationPolicyBinding[]
   approvalRequests     ApprovalRequest[]
   actionAuthorizations ActionAuthorization[]
+  executionRuns        ExecutionRun[]
 
   @@index([organizationId, status])
   @@index([organizationId, updatedAt])
@@ -292,22 +294,23 @@ model Operation {
 /// Versão de uma operação. DRAFT é editável; PUBLISHED é IMUTÁVEL (mesmo após
 /// SUPERSEDED). Pertence ao mesmo tenant da operação.
 model OperationVersion {
-  id              String                 @id @default(uuid()) @db.Uuid
-  organizationId  String                 @map("organization_id") @db.Uuid
-  operationId     String                 @map("operation_id") @db.Uuid
-  versionNumber   Int                    @map("version_number")
-  status          OperationVersionStatus @default(draft)
-  definition      Json                   @default("{}")
-  authorityProfile Json                  @default("{}") @map("authority_profile")
-  changeSummary   String?                @map("change_summary")
-  createdBy       String                 @map("created_by") @db.Uuid
-  publishedBy     String?                @map("published_by") @db.Uuid
-  publishedAt     DateTime?              @map("published_at") @db.Timestamptz(6)
-  revision        Int                    @default(1)
-  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id               String                 @id @default(uuid()) @db.Uuid
+  organizationId   String                 @map("organization_id") @db.Uuid
+  operationId      String                 @map("operation_id") @db.Uuid
+  versionNumber    Int                    @map("version_number")
+  status           OperationVersionStatus @default(draft)
+  definition       Json                   @default("{}")
+  authorityProfile Json                   @default("{}") @map("authority_profile")
+  changeSummary    String?                @map("change_summary")
+  createdBy        String                 @map("created_by") @db.Uuid
+  publishedBy      String?                @map("published_by") @db.Uuid
+  publishedAt      DateTime?              @map("published_at") @db.Timestamptz(6)
+  revision         Int                    @default(1)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  operation Operation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  operation     Operation      @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  executionRuns ExecutionRun[]
 
   @@unique([operationId, versionNumber], name: "uniq_version_number_per_operation")
   @@index([organizationId, status])
@@ -499,7 +502,7 @@ model ApprovalFlow {
   createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   steps        ApprovalFlowStep[]
   requests     ApprovalRequest[]
 
@@ -537,26 +540,26 @@ model ApprovalFlowStep {
 
 /// Solicitação de aprovação de uma ação sobre uma operação/versão publicada.
 model ApprovalRequest {
-  id                 String                @id @default(uuid()) @db.Uuid
-  organizationId     String                @map("organization_id") @db.Uuid
-  operationId        String                @map("operation_id") @db.Uuid
-  operationVersionId String                @map("operation_version_id") @db.Uuid
-  actionKey          String                @map("action_key")
-  actionPayloadHash  String                @map("action_payload_hash")
-  actionContext      Json                  @default("{}") @map("action_context")
-  requestedBy        String                @map("requested_by") @db.Uuid
-  requestedAt        DateTime              @default(now()) @map("requested_at") @db.Timestamptz(6)
-  approvalFlowId     String                @map("approval_flow_id") @db.Uuid
-  currentStepSequence Int                  @default(1) @map("current_step_sequence")
-  status             ApprovalRequestStatus @default(PENDING)
-  expiresAt          DateTime?             @map("expires_at") @db.Timestamptz(6)
-  decidedAt          DateTime?             @map("decided_at") @db.Timestamptz(6)
-  policySnapshot     Json                  @default("{}") @map("policy_snapshot")
-  authoritySnapshot  Json                  @default("{}") @map("authority_snapshot")
-  correlationId      String                @map("correlation_id")
-  revision           Int                   @default(1)
-  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String                @id @default(uuid()) @db.Uuid
+  organizationId      String                @map("organization_id") @db.Uuid
+  operationId         String                @map("operation_id") @db.Uuid
+  operationVersionId  String                @map("operation_version_id") @db.Uuid
+  actionKey           String                @map("action_key")
+  actionPayloadHash   String                @map("action_payload_hash")
+  actionContext       Json                  @default("{}") @map("action_context")
+  requestedBy         String                @map("requested_by") @db.Uuid
+  requestedAt         DateTime              @default(now()) @map("requested_at") @db.Timestamptz(6)
+  approvalFlowId      String                @map("approval_flow_id") @db.Uuid
+  currentStepSequence Int                   @default(1) @map("current_step_sequence")
+  status              ApprovalRequestStatus @default(PENDING)
+  expiresAt           DateTime?             @map("expires_at") @db.Timestamptz(6)
+  decidedAt           DateTime?             @map("decided_at") @db.Timestamptz(6)
+  policySnapshot      Json                  @default("{}") @map("policy_snapshot")
+  authoritySnapshot   Json                  @default("{}") @map("authority_snapshot")
+  correlationId       String                @map("correlation_id")
+  revision            Int                   @default(1)
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   operation      Operation             @relation(fields: [operationId], references: [id], onDelete: Restrict)
@@ -571,15 +574,15 @@ model ApprovalRequest {
 
 /// Decisão registrada por um aprovador em uma etapa. IMUTÁVEL.
 model ApprovalDecision {
-  id                String               @id @default(uuid()) @db.Uuid
-  organizationId    String               @map("organization_id") @db.Uuid
-  approvalRequestId String               @map("approval_request_id") @db.Uuid
-  approvalFlowStepId String              @map("approval_flow_step_id") @db.Uuid
-  decidedBy         String               @map("decided_by") @db.Uuid
-  decision          ApprovalDecisionType
-  justification     String?
-  decidedAt         DateTime             @default(now()) @map("decided_at") @db.Timestamptz(6)
-  correlationId     String               @map("correlation_id")
+  id                 String               @id @default(uuid()) @db.Uuid
+  organizationId     String               @map("organization_id") @db.Uuid
+  approvalRequestId  String               @map("approval_request_id") @db.Uuid
+  approvalFlowStepId String               @map("approval_flow_step_id") @db.Uuid
+  decidedBy          String               @map("decided_by") @db.Uuid
+  decision           ApprovalDecisionType
+  justification      String?
+  decidedAt          DateTime             @default(now()) @map("decided_at") @db.Timestamptz(6)
+  correlationId      String               @map("correlation_id")
 
   request ApprovalRequest  @relation(fields: [approvalRequestId], references: [id], onDelete: Restrict)
   step    ApprovalFlowStep @relation(fields: [approvalFlowStepId], references: [id], onDelete: Restrict)
@@ -591,17 +594,17 @@ model ApprovalDecision {
 
 /// Delegação controlada de autoridade de decisão entre usuários do mesmo tenant.
 model ApprovalDelegation {
-  id             String                   @id @default(uuid()) @db.Uuid
-  organizationId String                   @map("organization_id") @db.Uuid
-  delegatorUserId String                  @map("delegator_user_id") @db.Uuid
-  delegateUserId String                   @map("delegate_user_id") @db.Uuid
-  validFrom      DateTime                 @map("valid_from") @db.Timestamptz(6)
-  validUntil     DateTime                 @map("valid_until") @db.Timestamptz(6)
-  scope          Json                     @default("{}")
-  status         ApprovalDelegationStatus @default(ACTIVE)
-  createdBy      String                   @map("created_by") @db.Uuid
-  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
-  revokedAt      DateTime?                @map("revoked_at") @db.Timestamptz(6)
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String                   @map("organization_id") @db.Uuid
+  delegatorUserId String                   @map("delegator_user_id") @db.Uuid
+  delegateUserId  String                   @map("delegate_user_id") @db.Uuid
+  validFrom       DateTime                 @map("valid_from") @db.Timestamptz(6)
+  validUntil      DateTime                 @map("valid_until") @db.Timestamptz(6)
+  scope           Json                     @default("{}")
+  status          ApprovalDelegationStatus @default(ACTIVE)
+  createdBy       String                   @map("created_by") @db.Uuid
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt       DateTime?                @map("revoked_at") @db.Timestamptz(6)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
@@ -634,7 +637,262 @@ model ActionAuthorization {
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   operation    Operation        @relation(fields: [operationId], references: [id], onDelete: Restrict)
   request      ApprovalRequest? @relation(fields: [approvalRequestId], references: [id], onDelete: SetNull)
+  executions   ExecutionRun[]
 
   @@index([organizationId, operationId, actionKey, status])
   @@map("action_authorizations")
+}
+
+// ─── Motor de execução (ARDEN-BE-005) ──────────────────────────────────────────
+
+enum ExecutionTriggerType {
+  MANUAL
+  API
+  SCHEDULED
+  SYSTEM
+}
+
+enum ExecutionRunStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  PAUSE_REQUESTED
+  PAUSED
+  RESUME_REQUESTED
+  CANCEL_REQUESTED
+  CANCELLED
+  SUCCEEDED
+  FAILED
+  COMPENSATING
+  COMPENSATED
+  COMPENSATION_FAILED
+  TIMED_OUT
+}
+
+enum ExecutionStepStatus {
+  PENDING
+  READY
+  RUNNING
+  RETRY_WAIT
+  PAUSED
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  CANCELLED
+  COMPENSATING
+  COMPENSATED
+  COMPENSATION_FAILED
+  TIMED_OUT
+}
+
+enum ExecutionAttemptStatus {
+  STARTED
+  SUCCEEDED
+  FAILED
+  TIMED_OUT
+  ABANDONED
+}
+
+enum ExecutionActorType {
+  USER
+  SYSTEM
+  WORKER
+}
+
+enum EvidenceType {
+  INPUT
+  OUTPUT
+  DECISION
+  AUTHORIZATION
+  ERROR
+  STATE_TRANSITION
+  COMPENSATION
+}
+
+enum ExecutionJobStatus {
+  QUEUED
+  RUNNING
+  RETRY_WAIT
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// Execução de uma versão PUBLICADA de uma operação. Fonte de verdade do estado.
+model ExecutionRun {
+  id                    String               @id @default(uuid()) @db.Uuid
+  organizationId        String               @map("organization_id") @db.Uuid
+  operationId           String               @map("operation_id") @db.Uuid
+  operationVersionId    String               @map("operation_version_id") @db.Uuid
+  requestedByUserId     String               @map("requested_by_user_id") @db.Uuid
+  actionAuthorizationId String?              @map("action_authorization_id") @db.Uuid
+  actionKey             String               @map("action_key")
+  triggerType           ExecutionTriggerType @default(MANUAL) @map("trigger_type")
+  triggerReference      String?              @map("trigger_reference")
+  status                ExecutionRunStatus   @default(PENDING)
+  input                 Json                 @default("{}")
+  inputHash             String               @map("input_hash")
+  output                Json?
+  errorCode             String?              @map("error_code")
+  errorSummary          String?              @map("error_summary")
+  currentStepId         String?              @map("current_step_id") @db.Uuid
+  startedAt             DateTime?            @map("started_at") @db.Timestamptz(6)
+  completedAt           DateTime?            @map("completed_at") @db.Timestamptz(6)
+  pausedAt              DateTime?            @map("paused_at") @db.Timestamptz(6)
+  cancelledAt           DateTime?            @map("cancelled_at") @db.Timestamptz(6)
+  timeoutAt             DateTime?            @map("timeout_at") @db.Timestamptz(6)
+  attemptCount          Int                  @default(0) @map("attempt_count")
+  maxAttempts           Int                  @default(1) @map("max_attempts")
+  correlationId         String               @map("correlation_id")
+  revision              Int                  @default(1)
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization  Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation     Operation            @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  version       OperationVersion     @relation(fields: [operationVersionId], references: [id], onDelete: Restrict)
+  authorization ActionAuthorization? @relation(fields: [actionAuthorizationId], references: [id], onDelete: SetNull)
+  steps         ExecutionStep[]
+  attempts      ExecutionAttempt[]
+  events        ExecutionEvent[]
+  evidence      EvidenceRecord[]
+  jobs          ExecutionJob[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([operationId, createdAt])
+  @@index([operationVersionId, createdAt])
+  @@map("execution_runs")
+}
+
+/// Etapa materializada de uma execução (snapshot da etapa da versão publicada).
+model ExecutionStep {
+  id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String              @map("organization_id") @db.Uuid
+  executionRunId    String              @map("execution_run_id") @db.Uuid
+  definitionStepKey String              @map("definition_step_key")
+  sequence          Int
+  name              String
+  actionKey         String              @map("action_key")
+  status            ExecutionStepStatus @default(PENDING)
+  input             Json                @default("{}")
+  inputHash         String              @map("input_hash")
+  output            Json?
+  errorCode         String?             @map("error_code")
+  errorSummary      String?             @map("error_summary")
+  attemptCount      Int                 @default(0) @map("attempt_count")
+  maxAttempts       Int                 @default(1) @map("max_attempts")
+  nextAttemptAt     DateTime?           @map("next_attempt_at") @db.Timestamptz(6)
+  startedAt         DateTime?           @map("started_at") @db.Timestamptz(6)
+  completedAt       DateTime?           @map("completed_at") @db.Timestamptz(6)
+  timeoutAt         DateTime?           @map("timeout_at") @db.Timestamptz(6)
+  revision          Int                 @default(1)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  run      ExecutionRun       @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  attempts ExecutionAttempt[]
+  events   ExecutionEvent[]
+  evidence EvidenceRecord[]
+
+  @@unique([executionRunId, sequence], name: "uniq_step_sequence_per_run")
+  @@index([executionRunId, sequence])
+  @@index([organizationId, status, nextAttemptAt])
+  @@map("execution_steps")
+}
+
+/// Tentativa de processamento de uma etapa por um worker. Append-only.
+model ExecutionAttempt {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @map("organization_id") @db.Uuid
+  executionRunId  String                 @map("execution_run_id") @db.Uuid
+  executionStepId String                 @map("execution_step_id") @db.Uuid
+  attemptNumber   Int                    @map("attempt_number")
+  workerId        String                 @map("worker_id")
+  status          ExecutionAttemptStatus @default(STARTED)
+  startedAt       DateTime               @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt     DateTime?              @map("completed_at") @db.Timestamptz(6)
+  errorCode       String?                @map("error_code")
+  errorSummary    String?                @map("error_summary")
+  metadata        Json                   @default("{}")
+
+  run  ExecutionRun  @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  step ExecutionStep @relation(fields: [executionStepId], references: [id], onDelete: Restrict)
+
+  @@unique([executionStepId, attemptNumber], name: "uniq_attempt_number_per_step")
+  @@index([executionStepId, attemptNumber])
+  @@map("execution_attempts")
+}
+
+/// Evento imutável de execução. Sequência monotônica por execução. Append-only.
+model ExecutionEvent {
+  id              String             @id @default(uuid()) @db.Uuid
+  organizationId  String             @map("organization_id") @db.Uuid
+  executionRunId  String             @map("execution_run_id") @db.Uuid
+  executionStepId String?            @map("execution_step_id") @db.Uuid
+  sequence        BigInt
+  eventType       String             @map("event_type")
+  actorType       ExecutionActorType @map("actor_type")
+  actorId         String?            @map("actor_id") @db.Uuid
+  correlationId   String             @map("correlation_id")
+  causationId     String?            @map("causation_id")
+  payload         Json               @default("{}")
+  occurredAt      DateTime           @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  run  ExecutionRun   @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  step ExecutionStep? @relation(fields: [executionStepId], references: [id], onDelete: Restrict)
+
+  @@unique([executionRunId, sequence], name: "uniq_event_sequence_per_run")
+  @@index([executionRunId, sequence])
+  @@map("execution_events")
+}
+
+/// Evidência operacional imutável (hash + origem). Append-only.
+model EvidenceRecord {
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @map("organization_id") @db.Uuid
+  executionRunId   String             @map("execution_run_id") @db.Uuid
+  executionStepId  String?            @map("execution_step_id") @db.Uuid
+  evidenceType     EvidenceType       @map("evidence_type")
+  content          Json               @default("{}")
+  contentHash      String             @map("content_hash")
+  storageReference String?            @map("storage_reference")
+  mimeType         String?            @map("mime_type")
+  createdByType    ExecutionActorType @map("created_by_type")
+  createdById      String?            @map("created_by_id") @db.Uuid
+  correlationId    String             @map("correlation_id")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  run  ExecutionRun   @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  step ExecutionStep? @relation(fields: [executionStepId], references: [id], onDelete: Restrict)
+
+  @@index([executionRunId, createdAt])
+  @@index([executionStepId, createdAt])
+  @@map("evidence_records")
+}
+
+/// Fila durável de jobs (PostgreSQL + FOR UPDATE SKIP LOCKED + lease).
+model ExecutionJob {
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @map("organization_id") @db.Uuid
+  executionRunId   String             @map("execution_run_id") @db.Uuid
+  status           ExecutionJobStatus @default(QUEUED)
+  payload          Json               @default("{}")
+  attempts         Int                @default(0)
+  maxAttempts      Int                @default(20) @map("max_attempts")
+  availableAt      DateTime           @default(now()) @map("available_at") @db.Timestamptz(6)
+  lockedAt         DateTime?          @map("locked_at") @db.Timestamptz(6)
+  lockedBy         String?            @map("locked_by")
+  leaseExpiresAt   DateTime?          @map("lease_expires_at") @db.Timestamptz(6)
+  lastError        String?            @map("last_error")
+  deduplicationKey String             @map("deduplication_key")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  run ExecutionRun @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+
+  @@unique([deduplicationKey], name: "uniq_job_dedup_key")
+  @@index([status, availableAt])
+  @@index([organizationId, status])
+  @@index([leaseExpiresAt])
+  @@map("execution_jobs")
 }
