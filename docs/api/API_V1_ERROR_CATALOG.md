@@ -63,3 +63,23 @@ Não usar sempre 400: validação semântica → **422**; conflitos → **409**.
 Recurso de **outro tenant** retorna `RESOURCE_NOT_FOUND` (404) — **nunca** 403 com
 detalhes que revelem existência. Testes de contrato garantem variedade de status
 (não apenas 400) e presença obrigatória de `correlationId`.
+
+## Códigos de governança e enforcement (ARDEN-BE-004)
+
+| Código | HTTP | Quando |
+|---|---|---|
+| `APPROVAL_REQUIRED` | 403 | a ação exige aprovação humana antes de autorizar |
+| `ACTION_DENIED` | 403 | ação bloqueada pela avaliação de autoridade |
+| `ACTION_NOT_DECLARED` | 409 | ação não declarada no Gradiente da operação |
+| `APPROVAL_NOT_PENDING` | 409 | solicitação já decidida/cancelada/expirada |
+| `APPROVAL_NOT_ELIGIBLE` | 403 | aprovador não elegível para a etapa |
+| `SELF_APPROVAL_FORBIDDEN` | 403 | solicitante não pode aprovar a própria ação |
+| `APPROVAL_EXPIRED` | 409 | solicitação expirada não autoriza |
+| `APPROVAL_INVALIDATED` | 409 | solicitação invalidada por mudança material |
+| `APPROVAL_ALREADY_DECIDED` | 409 | mesmo aprovador já decidiu a etapa |
+| `QUORUM_NOT_REACHED` | 409 | quórum da etapa ainda não atingido |
+| `POLICY_CONFLICT` | 409 | conflito entre políticas aplicáveis |
+| `POLICY_NOT_ACTIVE` | 409 | política/fluxo referido não está ativo |
+| `AUTHORIZATION_EXPIRED` | 409 | autorização de ação expirada |
+| `AUTHORIZATION_INVALIDATED` | 409 | autorização de ação invalidada |
+| `AUTHORIZATION_PAYLOAD_MISMATCH` | 409 | payload difere do autorizado |

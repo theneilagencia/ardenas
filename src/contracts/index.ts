@@ -13,4 +13,7 @@ export * from './operations';
 export * from './operation-versions';
 export * from './authority';
 export * from './audit';
+export * from './policies';
+export * from './approvals';
+export * from './enforcement';
 export { schemaRegistry, endpoints } from './registry';

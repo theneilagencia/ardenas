@@ -93,11 +93,16 @@ describe('paginação por cursor', () => {
 });
 
 describe('tenant fora dos bodies comuns', () => {
-  it('nenhum *Request contém organizationId, exceto SwitchOrganizationRequest', () => {
+  it('nenhum CORPO de request contém organizationId, exceto SwitchOrganizationRequest', () => {
+    // Considera apenas os schemas de fato usados como corpo de request por um
+    // endpoint (recursos como `ApprovalRequest` legitimamente têm organizationId).
+    const requestBodies = new Set(
+      endpoints.map((e) => e.requestSchema).filter((s): s is string => Boolean(s)),
+    );
     const offenders: string[] = [];
-    for (const [name, schema] of Object.entries(schemaRegistry)) {
-      if (!name.endsWith('Request')) continue;
+    for (const name of requestBodies) {
       if (name === 'SwitchOrganizationRequest') continue; // exceção legítima (comando de sessão)
+      const schema = schemaRegistry[name];
       if (schema instanceof z.ZodObject && 'organizationId' in schema.shape) {
         offenders.push(name);
       }

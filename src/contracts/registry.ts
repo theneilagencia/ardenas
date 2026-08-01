@@ -17,6 +17,9 @@ import {
 } from './operation-versions/operation-versions.contract';
 import { authoritySchemas, authorityEndpoints } from './authority/authority.contract';
 import { auditSchemas, auditEndpoints } from './audit/audit.contract';
+import { policiesSchemas, policiesEndpoints } from './policies/policies.contract';
+import { approvalsSchemas, approvalsEndpoints } from './approvals/approvals.contract';
+import { enforcementSchemas, enforcementEndpoints } from './enforcement/enforcement.contract';
 
 /** Schemas nomeados → components.schemas do OpenAPI. */
 export const schemaRegistry: Record<string, z.ZodTypeAny> = {
@@ -26,6 +29,9 @@ export const schemaRegistry: Record<string, z.ZodTypeAny> = {
   ...operationVersionsSchemas,
   ...authoritySchemas,
   ...auditSchemas,
+  ...policiesSchemas,
+  ...approvalsSchemas,
+  ...enforcementSchemas,
 };
 
 /** Todos os endpoints da API v1. */
@@ -35,4 +41,7 @@ export const endpoints: EndpointContract[] = [
   ...operationVersionsEndpoints,
   ...authorityEndpoints,
   ...auditEndpoints,
+  ...policiesEndpoints,
+  ...approvalsEndpoints,
+  ...enforcementEndpoints,
 ];
