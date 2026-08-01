@@ -130,7 +130,10 @@ jobs:
       - name: Integration tests (api)
         run: npm run test:api:integration
 
-      - name: Build (api)
+      - name: Execution + worker integration (api)
+        run: npm run test:api:execution:integration
+
+      - name: Build (api + worker)
         run: npm run build:api
 
   e2e-api:

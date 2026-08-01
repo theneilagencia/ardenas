@@ -79,3 +79,18 @@ pertence a `ALL_PERMISSIONS` e que endpoints de sessão têm permissão nula.
 
 A decisão de autorização é **sempre do servidor** — a permissão de tela nunca autoriza a
 ação; a autoridade final é reavaliada contra a versão publicada e as políticas vinculadas.
+
+## Execução (ARDEN-BE-005)
+
+| Ação | Método | Permissão |
+|---|---|---|
+| listar/consultar execuções, etapas, eventos | GET | `execution.view` |
+| iniciar execução | POST | `execution.create` |
+| pausar execução | POST | `execution.pause` |
+| retomar execução | POST | `execution.resume` |
+| cancelar execução | POST | `execution.cancel` |
+| reprocessar execução | POST | `execution.retry` |
+| listar/consultar evidências | GET | `evidence.view` |
+
+O worker executa sob a autoridade da execução criada; nunca ignora a autorização e
+nunca aceita o tenant vindo do payload sem validação.

@@ -83,3 +83,25 @@ detalhes que revelem existência. Testes de contrato garantem variedade de statu
 | `AUTHORIZATION_EXPIRED` | 409 | autorização de ação expirada |
 | `AUTHORIZATION_INVALIDATED` | 409 | autorização de ação invalidada |
 | `AUTHORIZATION_PAYLOAD_MISMATCH` | 409 | payload difere do autorizado |
+
+## Códigos de execução (ARDEN-BE-005)
+
+| Código | HTTP | Quando |
+|---|---|---|
+| `EXECUTION_NOT_ALLOWED` | 403 | operação inativa/sem versão publicada/rascunho |
+| `EXECUTION_ALREADY_STARTED` | 409 | execução já iniciada |
+| `EXECUTION_NOT_PAUSABLE` | 409 | estado incompatível com pausa |
+| `EXECUTION_NOT_RESUMABLE` | 409 | estado incompatível com retomada |
+| `EXECUTION_NOT_CANCELLABLE` | 409 | estado incompatível com cancelamento |
+| `EXECUTION_NOT_RETRYABLE` | 409 | estado incompatível com retry |
+| `EXECUTION_TERMINAL` | 409 | execução em estado terminal |
+| `EXECUTION_TIMED_OUT` | 409 | execução excedeu o timeout |
+| `EXECUTION_RETRY_EXHAUSTED` | 409 | tentativas esgotadas |
+| `STEP_EXECUTOR_NOT_AVAILABLE` | 409 | executor de etapa não registrado |
+| `STEP_INPUT_INVALID` | 422 | entrada de etapa inválida |
+| `STEP_FAILED` | 409 | etapa falhou |
+| `STEP_TIMED_OUT` | 409 | etapa excedeu o timeout |
+| `AUTHORIZATION_REQUIRED` | 403 | ação exige autorização de ação |
+| `AUTHORIZATION_ALREADY_USED` | 409 | autorização de uso único já consumida |
+| `JOB_LEASE_CONFLICT` | 409 | conflito de lease de job |
+| `JOB_NOT_RECOVERABLE` | 409 | job não recuperável |
