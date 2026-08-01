@@ -58,6 +58,15 @@ import type {
   ApprovalDecisionResult,
   EvaluateActionRequest,
   ValidateAuthorizationRequest,
+  // Execução (ARDEN-BE-005)
+  ExecutionRun,
+  ExecutionStep,
+  ExecutionEvent,
+  EvidenceRecord,
+  CreateExecutionRequest,
+  ExecutionCommandRequest,
+  ListExecutionsQuery,
+  ListExecutionEventsQuery,
 } from '@/contracts';
 
 /** Paginação por cursor comum aos recursos de governança. */
@@ -237,4 +246,18 @@ export interface ArdenApiV1Client {
   // ── Enforcement de autoridade (ARDEN-BE-004) ─────────────────────────────────
   evaluateAction(organizationId: string, operationId: string, body: EvaluateActionRequest, opts?: CallOptions): Promise<ActionEvaluationResult>;
   validateAuthorization(organizationId: string, body: ValidateAuthorizationRequest, opts?: CallOptions): Promise<ActionValidationResult>;
+
+  // ── Execução (ARDEN-BE-005) ──────────────────────────────────────────────────
+  listExecutions(organizationId: string, query: ListExecutionsQuery, opts?: CallOptions): Promise<ClientPage<ExecutionRun>>;
+  createExecution(organizationId: string, operationId: string, body: CreateExecutionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ExecutionRun>;
+  getExecution(organizationId: string, executionId: string, opts?: CallOptions): Promise<ExecutionRun>;
+  pauseExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions): Promise<ExecutionRun>;
+  resumeExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions): Promise<ExecutionRun>;
+  cancelExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions): Promise<ExecutionRun>;
+  retryExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions): Promise<ExecutionRun>;
+  listExecutionSteps(organizationId: string, executionId: string, opts?: CallOptions): Promise<ExecutionStep[]>;
+  getExecutionStep(organizationId: string, executionId: string, stepId: string, opts?: CallOptions): Promise<ExecutionStep>;
+  listExecutionEvents(organizationId: string, executionId: string, query: ListExecutionEventsQuery, opts?: CallOptions): Promise<ClientPage<ExecutionEvent>>;
+  listExecutionEvidence(organizationId: string, executionId: string, opts?: CallOptions): Promise<EvidenceRecord[]>;
+  getExecutionEvidence(organizationId: string, executionId: string, evidenceId: string, opts?: CallOptions): Promise<EvidenceRecord>;
 }
