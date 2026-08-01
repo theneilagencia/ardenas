@@ -37,9 +37,11 @@ export const executionStepStatus = z.enum([
 ]);
 export type ExecutionStepStatus = z.infer<typeof executionStepStatus>;
 export const executionActorType = z.enum(['USER', 'SYSTEM', 'WORKER']);
+export type ExecutionActorType = z.infer<typeof executionActorType>;
 export const evidenceType = z.enum([
   'INPUT', 'OUTPUT', 'DECISION', 'AUTHORIZATION', 'ERROR', 'STATE_TRANSITION', 'COMPENSATION',
 ]);
+export type EvidenceType = z.infer<typeof evidenceType>;
 
 /** Executores determinísticos internos permitidos nesta fase (ARDEN-BE-005 §15). */
 export const executorActionKey = z.enum([
