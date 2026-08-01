@@ -31,6 +31,8 @@ tags:
     description: Fluxos, solicitações, decisões e delegações de aprovação.
   - name: Enforcement
     description: Avaliação de ações e autorizações de ação.
+  - name: Executions
+    description: Execuções assíncronas, etapas, eventos e evidências.
 paths:
   /session:
     get:
@@ -4720,6 +4722,1095 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ValidateAuthorizationRequest'
+  /organizations/{organizationId}/executions:
+    get:
+      operationId: executions.list
+      summary: Lista execuções
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - PENDING
+                  - QUEUED
+                  - RUNNING
+                  - PAUSE_REQUESTED
+                  - PAUSED
+                  - RESUME_REQUESTED
+                  - CANCEL_REQUESTED
+                  - CANCELLED
+                  - SUCCEEDED
+                  - FAILED
+                  - COMPENSATING
+                  - COMPENSATED
+                  - COMPENSATION_FAILED
+                  - TIMED_OUT
+        - name: operationId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionRunListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/operations/{operationId}/executions:
+    post:
+      operationId: executions.create
+      summary: Inicia uma execução
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionRunResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.create
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExecutionRequest'
+  /organizations/{organizationId}/executions/{executionId}:
+    get:
+      operationId: executions.get
+      summary: Consulta uma execução
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionRunResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/executions/{executionId}/pause:
+    post:
+      operationId: executions.pause
+      summary: Pausa uma execução
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionRunResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.pause
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionCommandRequest'
+  /organizations/{organizationId}/executions/{executionId}/resume:
+    post:
+      operationId: executions.resume
+      summary: Retoma uma execução
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionRunResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.resume
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionCommandRequest'
+  /organizations/{organizationId}/executions/{executionId}/cancel:
+    post:
+      operationId: executions.cancel
+      summary: Cancela uma execução
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionRunResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.cancel
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionCommandRequest'
+  /organizations/{organizationId}/executions/{executionId}/retry:
+    post:
+      operationId: executions.retry
+      summary: Reprocessa uma execução falha
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionRunResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.retry
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionCommandRequest'
+  /organizations/{organizationId}/executions/{executionId}/steps:
+    get:
+      operationId: executionSteps.list
+      summary: Lista etapas
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStepListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/executions/{executionId}/steps/{stepId}:
+    get:
+      operationId: executionSteps.get
+      summary: Consulta etapa
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: stepId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionStepResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/executions/{executionId}/events:
+    get:
+      operationId: executionEvents.list
+      summary: Lista eventos
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionEventListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: execution.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/executions/{executionId}/evidence:
+    get:
+      operationId: executionEvidence.list
+      summary: Lista evidências
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceRecordListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: evidence.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/executions/{executionId}/evidence/{evidenceId}:
+    get:
+      operationId: executionEvidence.get
+      summary: Consulta evidência
+      tags:
+        - Executions
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceRecordResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: evidence.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
 components:
   securitySchemes:
     bearerAuth:
@@ -4765,6 +5856,23 @@ components:
                 - AUTHORIZATION_EXPIRED
                 - AUTHORIZATION_INVALIDATED
                 - AUTHORIZATION_PAYLOAD_MISMATCH
+                - EXECUTION_NOT_ALLOWED
+                - EXECUTION_ALREADY_STARTED
+                - EXECUTION_NOT_PAUSABLE
+                - EXECUTION_NOT_RESUMABLE
+                - EXECUTION_NOT_CANCELLABLE
+                - EXECUTION_NOT_RETRYABLE
+                - EXECUTION_TERMINAL
+                - EXECUTION_TIMED_OUT
+                - EXECUTION_RETRY_EXHAUSTED
+                - STEP_EXECUTOR_NOT_AVAILABLE
+                - STEP_INPUT_INVALID
+                - STEP_FAILED
+                - STEP_TIMED_OUT
+                - AUTHORIZATION_REQUIRED
+                - AUTHORIZATION_ALREADY_USED
+                - JOB_LEASE_CONFLICT
+                - JOB_NOT_RECOVERABLE
                 - RATE_LIMITED
                 - DEPENDENCY_UNAVAILABLE
                 - INTERNAL_ERROR
@@ -12155,4 +13263,1458 @@ components:
         - operationId
         - operationVersionId
         - actionKey
+      additionalProperties: false
+    ExecutionRun:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        requestedByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        actionAuthorizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        actionKey:
+          type: string
+          enum:
+            - data.read
+            - data.write
+            - record.create
+            - record.update
+            - record.delete
+            - document.generate
+            - communication.prepare
+            - communication.send
+            - approval.request
+            - financial.prepare
+            - financial.execute
+            - access.grant
+            - access.revoke
+            - integration.invoke
+            - operation.pause
+            - operation.resume
+        triggerType:
+          type: string
+          enum:
+            - MANUAL
+            - API
+            - SCHEDULED
+            - SYSTEM
+        triggerReference:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - PENDING
+            - QUEUED
+            - RUNNING
+            - PAUSE_REQUESTED
+            - PAUSED
+            - RESUME_REQUESTED
+            - CANCEL_REQUESTED
+            - CANCELLED
+            - SUCCEEDED
+            - FAILED
+            - COMPENSATING
+            - COMPENSATED
+            - COMPENSATION_FAILED
+            - TIMED_OUT
+        input: {}
+        inputHash:
+          type: string
+        output:
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorSummary:
+          type: string
+          nullable: true
+        currentStepId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        pausedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        timeoutAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        attemptCount:
+          type: integer
+          minimum: 0
+        maxAttempts:
+          type: integer
+          minimum: 1
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - operationId
+        - operationVersionId
+        - requestedByUserId
+        - actionAuthorizationId
+        - actionKey
+        - triggerType
+        - triggerReference
+        - status
+        - inputHash
+        - errorCode
+        - errorSummary
+        - currentStepId
+        - startedAt
+        - completedAt
+        - pausedAt
+        - cancelledAt
+        - timeoutAt
+        - attemptCount
+        - maxAttempts
+        - correlationId
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ExecutionStep:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        executionRunId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        definitionStepKey:
+          type: string
+        sequence:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        actionKey:
+          type: string
+          enum:
+            - system.noop
+            - data.transform.static
+            - data.validate.schema
+            - record.create.internal
+            - record.update.internal
+            - decision.evaluate.static
+            - evidence.record
+            - delay.simulated
+            - failure.deterministic
+        status:
+          type: string
+          enum:
+            - PENDING
+            - READY
+            - RUNNING
+            - RETRY_WAIT
+            - PAUSED
+            - SUCCEEDED
+            - FAILED
+            - SKIPPED
+            - CANCELLED
+            - COMPENSATING
+            - COMPENSATED
+            - COMPENSATION_FAILED
+            - TIMED_OUT
+        input: {}
+        inputHash:
+          type: string
+        output:
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorSummary:
+          type: string
+          nullable: true
+        attemptCount:
+          type: integer
+          minimum: 0
+        maxAttempts:
+          type: integer
+          minimum: 1
+        nextAttemptAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        timeoutAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - executionRunId
+        - definitionStepKey
+        - sequence
+        - name
+        - actionKey
+        - status
+        - inputHash
+        - errorCode
+        - errorSummary
+        - attemptCount
+        - maxAttempts
+        - nextAttemptAt
+        - startedAt
+        - completedAt
+        - timeoutAt
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ExecutionEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        executionRunId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        executionStepId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        sequence:
+          type: integer
+          minimum: 1
+        eventType:
+          type: string
+        actorType:
+          type: string
+          enum:
+            - USER
+            - SYSTEM
+            - WORKER
+        actorId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        causationId:
+          type: string
+          nullable: true
+        payload:
+          type: object
+          additionalProperties: {}
+        occurredAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - executionRunId
+        - executionStepId
+        - sequence
+        - eventType
+        - actorType
+        - actorId
+        - correlationId
+        - causationId
+        - payload
+        - occurredAt
+      additionalProperties: false
+    EvidenceRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        executionRunId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        executionStepId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        evidenceType:
+          type: string
+          enum:
+            - INPUT
+            - OUTPUT
+            - DECISION
+            - AUTHORIZATION
+            - ERROR
+            - STATE_TRANSITION
+            - COMPENSATION
+        content:
+          type: object
+          additionalProperties: {}
+        contentHash:
+          type: string
+        storageReference:
+          type: string
+          nullable: true
+        mimeType:
+          type: string
+          nullable: true
+        createdByType:
+          type: string
+          enum:
+            - USER
+            - SYSTEM
+            - WORKER
+        createdById:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - executionRunId
+        - executionStepId
+        - evidenceType
+        - content
+        - contentHash
+        - storageReference
+        - mimeType
+        - createdByType
+        - createdById
+        - correlationId
+        - createdAt
+      additionalProperties: false
+    ExecutionRunResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            operationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            operationVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            requestedByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            actionAuthorizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            actionKey:
+              type: string
+              enum:
+                - data.read
+                - data.write
+                - record.create
+                - record.update
+                - record.delete
+                - document.generate
+                - communication.prepare
+                - communication.send
+                - approval.request
+                - financial.prepare
+                - financial.execute
+                - access.grant
+                - access.revoke
+                - integration.invoke
+                - operation.pause
+                - operation.resume
+            triggerType:
+              type: string
+              enum:
+                - MANUAL
+                - API
+                - SCHEDULED
+                - SYSTEM
+            triggerReference:
+              type: string
+              nullable: true
+            status:
+              type: string
+              enum:
+                - PENDING
+                - QUEUED
+                - RUNNING
+                - PAUSE_REQUESTED
+                - PAUSED
+                - RESUME_REQUESTED
+                - CANCEL_REQUESTED
+                - CANCELLED
+                - SUCCEEDED
+                - FAILED
+                - COMPENSATING
+                - COMPENSATED
+                - COMPENSATION_FAILED
+                - TIMED_OUT
+            input: {}
+            inputHash:
+              type: string
+            output:
+              nullable: true
+            errorCode:
+              type: string
+              nullable: true
+            errorSummary:
+              type: string
+              nullable: true
+            currentStepId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            startedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            completedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            pausedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            cancelledAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            timeoutAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            attemptCount:
+              type: integer
+              minimum: 0
+            maxAttempts:
+              type: integer
+              minimum: 1
+            correlationId:
+              type: string
+              minLength: 1
+              maxLength: 200
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - operationId
+            - operationVersionId
+            - requestedByUserId
+            - actionAuthorizationId
+            - actionKey
+            - triggerType
+            - triggerReference
+            - status
+            - inputHash
+            - errorCode
+            - errorSummary
+            - currentStepId
+            - startedAt
+            - completedAt
+            - pausedAt
+            - cancelledAt
+            - timeoutAt
+            - attemptCount
+            - maxAttempts
+            - correlationId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ExecutionRunListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              operationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              operationVersionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              requestedByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              actionAuthorizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              actionKey:
+                type: string
+                enum:
+                  - data.read
+                  - data.write
+                  - record.create
+                  - record.update
+                  - record.delete
+                  - document.generate
+                  - communication.prepare
+                  - communication.send
+                  - approval.request
+                  - financial.prepare
+                  - financial.execute
+                  - access.grant
+                  - access.revoke
+                  - integration.invoke
+                  - operation.pause
+                  - operation.resume
+              triggerType:
+                type: string
+                enum:
+                  - MANUAL
+                  - API
+                  - SCHEDULED
+                  - SYSTEM
+              triggerReference:
+                type: string
+                nullable: true
+              status:
+                type: string
+                enum:
+                  - PENDING
+                  - QUEUED
+                  - RUNNING
+                  - PAUSE_REQUESTED
+                  - PAUSED
+                  - RESUME_REQUESTED
+                  - CANCEL_REQUESTED
+                  - CANCELLED
+                  - SUCCEEDED
+                  - FAILED
+                  - COMPENSATING
+                  - COMPENSATED
+                  - COMPENSATION_FAILED
+                  - TIMED_OUT
+              input: {}
+              inputHash:
+                type: string
+              output:
+                nullable: true
+              errorCode:
+                type: string
+                nullable: true
+              errorSummary:
+                type: string
+                nullable: true
+              currentStepId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              startedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              completedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              pausedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              cancelledAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              timeoutAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              attemptCount:
+                type: integer
+                minimum: 0
+              maxAttempts:
+                type: integer
+                minimum: 1
+              correlationId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - operationId
+              - operationVersionId
+              - requestedByUserId
+              - actionAuthorizationId
+              - actionKey
+              - triggerType
+              - triggerReference
+              - status
+              - inputHash
+              - errorCode
+              - errorSummary
+              - currentStepId
+              - startedAt
+              - completedAt
+              - pausedAt
+              - cancelledAt
+              - timeoutAt
+              - attemptCount
+              - maxAttempts
+              - correlationId
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    ExecutionStepResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            executionRunId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            definitionStepKey:
+              type: string
+            sequence:
+              type: integer
+              minimum: 1
+            name:
+              type: string
+            actionKey:
+              type: string
+              enum:
+                - system.noop
+                - data.transform.static
+                - data.validate.schema
+                - record.create.internal
+                - record.update.internal
+                - decision.evaluate.static
+                - evidence.record
+                - delay.simulated
+                - failure.deterministic
+            status:
+              type: string
+              enum:
+                - PENDING
+                - READY
+                - RUNNING
+                - RETRY_WAIT
+                - PAUSED
+                - SUCCEEDED
+                - FAILED
+                - SKIPPED
+                - CANCELLED
+                - COMPENSATING
+                - COMPENSATED
+                - COMPENSATION_FAILED
+                - TIMED_OUT
+            input: {}
+            inputHash:
+              type: string
+            output:
+              nullable: true
+            errorCode:
+              type: string
+              nullable: true
+            errorSummary:
+              type: string
+              nullable: true
+            attemptCount:
+              type: integer
+              minimum: 0
+            maxAttempts:
+              type: integer
+              minimum: 1
+            nextAttemptAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            startedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            completedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            timeoutAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - executionRunId
+            - definitionStepKey
+            - sequence
+            - name
+            - actionKey
+            - status
+            - inputHash
+            - errorCode
+            - errorSummary
+            - attemptCount
+            - maxAttempts
+            - nextAttemptAt
+            - startedAt
+            - completedAt
+            - timeoutAt
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ExecutionStepListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              executionRunId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              definitionStepKey:
+                type: string
+              sequence:
+                type: integer
+                minimum: 1
+              name:
+                type: string
+              actionKey:
+                type: string
+                enum:
+                  - system.noop
+                  - data.transform.static
+                  - data.validate.schema
+                  - record.create.internal
+                  - record.update.internal
+                  - decision.evaluate.static
+                  - evidence.record
+                  - delay.simulated
+                  - failure.deterministic
+              status:
+                type: string
+                enum:
+                  - PENDING
+                  - READY
+                  - RUNNING
+                  - RETRY_WAIT
+                  - PAUSED
+                  - SUCCEEDED
+                  - FAILED
+                  - SKIPPED
+                  - CANCELLED
+                  - COMPENSATING
+                  - COMPENSATED
+                  - COMPENSATION_FAILED
+                  - TIMED_OUT
+              input: {}
+              inputHash:
+                type: string
+              output:
+                nullable: true
+              errorCode:
+                type: string
+                nullable: true
+              errorSummary:
+                type: string
+                nullable: true
+              attemptCount:
+                type: integer
+                minimum: 0
+              maxAttempts:
+                type: integer
+                minimum: 1
+              nextAttemptAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              startedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              completedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              timeoutAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - executionRunId
+              - definitionStepKey
+              - sequence
+              - name
+              - actionKey
+              - status
+              - inputHash
+              - errorCode
+              - errorSummary
+              - attemptCount
+              - maxAttempts
+              - nextAttemptAt
+              - startedAt
+              - completedAt
+              - timeoutAt
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    ExecutionEventListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              executionRunId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              executionStepId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              sequence:
+                type: integer
+                minimum: 1
+              eventType:
+                type: string
+              actorType:
+                type: string
+                enum:
+                  - USER
+                  - SYSTEM
+                  - WORKER
+              actorId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              correlationId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              causationId:
+                type: string
+                nullable: true
+              payload:
+                type: object
+                additionalProperties: {}
+              occurredAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - executionRunId
+              - executionStepId
+              - sequence
+              - eventType
+              - actorType
+              - actorId
+              - correlationId
+              - causationId
+              - payload
+              - occurredAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    EvidenceRecordResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            executionRunId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            executionStepId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            evidenceType:
+              type: string
+              enum:
+                - INPUT
+                - OUTPUT
+                - DECISION
+                - AUTHORIZATION
+                - ERROR
+                - STATE_TRANSITION
+                - COMPENSATION
+            content:
+              type: object
+              additionalProperties: {}
+            contentHash:
+              type: string
+            storageReference:
+              type: string
+              nullable: true
+            mimeType:
+              type: string
+              nullable: true
+            createdByType:
+              type: string
+              enum:
+                - USER
+                - SYSTEM
+                - WORKER
+            createdById:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            correlationId:
+              type: string
+              minLength: 1
+              maxLength: 200
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - executionRunId
+            - executionStepId
+            - evidenceType
+            - content
+            - contentHash
+            - storageReference
+            - mimeType
+            - createdByType
+            - createdById
+            - correlationId
+            - createdAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    EvidenceRecordListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              executionRunId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              executionStepId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              evidenceType:
+                type: string
+                enum:
+                  - INPUT
+                  - OUTPUT
+                  - DECISION
+                  - AUTHORIZATION
+                  - ERROR
+                  - STATE_TRANSITION
+                  - COMPENSATION
+              content:
+                type: object
+                additionalProperties: {}
+              contentHash:
+                type: string
+              storageReference:
+                type: string
+                nullable: true
+              mimeType:
+                type: string
+                nullable: true
+              createdByType:
+                type: string
+                enum:
+                  - USER
+                  - SYSTEM
+                  - WORKER
+              createdById:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              correlationId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - executionRunId
+              - executionStepId
+              - evidenceType
+              - content
+              - contentHash
+              - storageReference
+              - mimeType
+              - createdByType
+              - createdById
+              - correlationId
+              - createdAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    CreateExecutionRequest:
+      type: object
+      properties:
+        operationVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        actionKey:
+          type: string
+          enum:
+            - data.read
+            - data.write
+            - record.create
+            - record.update
+            - record.delete
+            - document.generate
+            - communication.prepare
+            - communication.send
+            - approval.request
+            - financial.prepare
+            - financial.execute
+            - access.grant
+            - access.revoke
+            - integration.invoke
+            - operation.pause
+            - operation.resume
+        input: {}
+        actionAuthorizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        maxAttempts:
+          type: integer
+          minimum: 1
+          maximum: 50
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+          maximum: 86400
+        stepExecutors:
+          type: object
+          additionalProperties:
+            type: string
+            enum:
+              - system.noop
+              - data.transform.static
+              - data.validate.schema
+              - record.create.internal
+              - record.update.internal
+              - decision.evaluate.static
+              - evidence.record
+              - delay.simulated
+              - failure.deterministic
+      required:
+        - actionKey
+      additionalProperties: false
+    ExecutionCommandRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ListExecutionsQuery:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - PENDING
+            - QUEUED
+            - RUNNING
+            - PAUSE_REQUESTED
+            - PAUSED
+            - RESUME_REQUESTED
+            - CANCEL_REQUESTED
+            - CANCELLED
+            - SUCCEEDED
+            - FAILED
+            - COMPENSATING
+            - COMPENSATED
+            - COMPENSATION_FAILED
+            - TIMED_OUT
+        operationId:
+          type: string
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      additionalProperties: false
+    ListExecutionEventsQuery:
+      type: object
+      properties:
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 100
       additionalProperties: false

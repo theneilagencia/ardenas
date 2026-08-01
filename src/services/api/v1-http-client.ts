@@ -57,6 +57,14 @@ import type {
   ApprovalDecisionResult,
   EvaluateActionRequest,
   ValidateAuthorizationRequest,
+  ExecutionRun,
+  ExecutionStep,
+  ExecutionEvent,
+  EvidenceRecord,
+  CreateExecutionRequest,
+  ExecutionCommandRequest,
+  ListExecutionsQuery,
+  ListExecutionEventsQuery,
 } from '@/contracts';
 import type { ArdenApiV1Client, ClientPage, CallOptions, CursorPageQuery } from './generated/api-v1-client';
 
@@ -283,5 +291,43 @@ export class ApiV1HttpClient implements ArdenApiV1Client {
   }
   validateAuthorization(organizationId: string, body: ValidateAuthorizationRequest, opts?: CallOptions) {
     return this.send<ActionValidationResult>('POST', `${this.base(organizationId)}/action-authorizations/validate`, body, opts);
+  }
+
+  // ── Execução (ARDEN-BE-005) ──────────────────────────────────────────────────
+  listExecutions(organizationId: string, q: ListExecutionsQuery, opts?: CallOptions) {
+    return this.list<ExecutionRun>(`${this.base(organizationId)}/executions${query(q as Record<string, unknown>)}`, opts);
+  }
+  createExecution(organizationId: string, operationId: string, body: CreateExecutionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ExecutionRun>('POST', `${this.base(organizationId)}/operations/${operationId}/executions`, body, opts);
+  }
+  getExecution(organizationId: string, executionId: string, opts?: CallOptions) {
+    return this.get<ExecutionRun>(`${this.base(organizationId)}/executions/${executionId}`, opts);
+  }
+  pauseExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions) {
+    return this.send<ExecutionRun>('POST', `${this.base(organizationId)}/executions/${executionId}/pause`, body, opts);
+  }
+  resumeExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions) {
+    return this.send<ExecutionRun>('POST', `${this.base(organizationId)}/executions/${executionId}/resume`, body, opts);
+  }
+  cancelExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions) {
+    return this.send<ExecutionRun>('POST', `${this.base(organizationId)}/executions/${executionId}/cancel`, body, opts);
+  }
+  retryExecution(organizationId: string, executionId: string, body: ExecutionCommandRequest, opts?: CallOptions) {
+    return this.send<ExecutionRun>('POST', `${this.base(organizationId)}/executions/${executionId}/retry`, body, opts);
+  }
+  listExecutionSteps(organizationId: string, executionId: string, opts?: CallOptions) {
+    return this.get<ExecutionStep[]>(`${this.base(organizationId)}/executions/${executionId}/steps`, opts);
+  }
+  getExecutionStep(organizationId: string, executionId: string, stepId: string, opts?: CallOptions) {
+    return this.get<ExecutionStep>(`${this.base(organizationId)}/executions/${executionId}/steps/${stepId}`, opts);
+  }
+  listExecutionEvents(organizationId: string, executionId: string, q: ListExecutionEventsQuery, opts?: CallOptions) {
+    return this.list<ExecutionEvent>(`${this.base(organizationId)}/executions/${executionId}/events${query(q as Record<string, unknown>)}`, opts);
+  }
+  listExecutionEvidence(organizationId: string, executionId: string, opts?: CallOptions) {
+    return this.get<EvidenceRecord[]>(`${this.base(organizationId)}/executions/${executionId}/evidence`, opts);
+  }
+  getExecutionEvidence(organizationId: string, executionId: string, evidenceId: string, opts?: CallOptions) {
+    return this.get<EvidenceRecord>(`${this.base(organizationId)}/executions/${executionId}/evidence/${evidenceId}`, opts);
   }
 }

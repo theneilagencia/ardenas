@@ -22,8 +22,12 @@ export type Permission =
   | 'operation.pause'
   | 'execution.view'
   | 'execution.start'
+  | 'execution.create'
   | 'execution.pause'
   | 'execution.resume'
+  | 'execution.cancel'
+  | 'execution.retry'
+  | 'evidence.view'
   | 'approval.view'
   | 'approval.resolve'
   | 'approval.request'
@@ -72,8 +76,12 @@ export const ALL_PERMISSIONS: Permission[] = [
   'operation.pause',
   'execution.view',
   'execution.start',
+  'execution.create',
   'execution.pause',
   'execution.resume',
+  'execution.cancel',
+  'execution.retry',
+  'evidence.view',
   'approval.view',
   'approval.resolve',
   'approval.request',
@@ -129,8 +137,12 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'operation.pause',
     'execution.view',
     'execution.start',
+    'execution.create',
     'execution.pause',
     'execution.resume',
+    'execution.cancel',
+    'execution.retry',
+    'evidence.view',
     'approval.view',
     'approval.request',
     'authority.evaluate',
@@ -148,6 +160,8 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.view',
     'execution.pause',
     'execution.resume',
+    'execution.cancel',
+    'evidence.view',
     'approval.view',
     'authority.evaluate',
     'risk.view',

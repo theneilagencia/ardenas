@@ -16,4 +16,5 @@ export * from './audit';
 export * from './policies';
 export * from './approvals';
 export * from './enforcement';
+export * from './executions';
 export { schemaRegistry, endpoints } from './registry';

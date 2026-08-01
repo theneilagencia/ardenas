@@ -67,3 +67,11 @@ posterior (sinalizadas como indisponíveis no v1, sem quebrar tipos).
 Em modo `api` os módulos de Governança e Aprovações consomem os recursos v1 sem fallback
 para mock/IndexedDB. A UI usa `POST …/actions/evaluate` apenas como ergonomia; a decisão
 final é do servidor.
+
+## Execução (ARDEN-BE-005)
+
+- **Execuções/etapas/eventos** → `docs/api/EXECUTION_MODEL_ADAPTER_MAP.md`.
+- **Evidências** → `docs/api/EVIDENCE_MODEL_ADAPTER_MAP.md`.
+
+Em modo `api`, os módulos de Execuções/Evidências consomem os recursos v1 sem fallback e
+sem simulação local (sem `setTimeout`/mudança de status local); acompanhamento por polling.

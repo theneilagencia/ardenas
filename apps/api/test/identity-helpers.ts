@@ -29,6 +29,13 @@ export function bearer(subject: string, opts: { email?: string; ttlSeconds?: num
 export async function resetIdentity(): Promise<void> {
   await prisma.$transaction([
     prisma.identityAuditEvent.deleteMany(),
+    // Execução (ARDEN-BE-005): limpar ANTES de autorizações/operações/versões (FKs).
+    prisma.executionJob.deleteMany(),
+    prisma.evidenceRecord.deleteMany(),
+    prisma.executionEvent.deleteMany(),
+    prisma.executionAttempt.deleteMany(),
+    prisma.executionStep.deleteMany(),
+    prisma.executionRun.deleteMany(),
     // Políticas/aprovações/autorizações (ARDEN-BE-004): limpar ANTES de operações
     // e organizações (FKs). Ordem respeita as dependências.
     prisma.approvalDecision.deleteMany(),
