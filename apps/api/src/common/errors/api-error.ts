@@ -66,3 +66,64 @@ export const invalidStateTransition = (message = 'Transição de estado inválid
 /** Conflito de estado do recurso (ex.: já existe um rascunho ativo). */
 export const resourceConflict = (message = 'Conflito de estado do recurso.') =>
   new ApiException('RESOURCE_CONFLICT', { message });
+
+// ── Governança, aprovações e enforcement (ARDEN-BE-004) ─────────────────────────
+/** A ação exige aprovação humana antes de ser autorizada. */
+export const approvalRequired = (message = 'Ação exige aprovação.', details?: Record<string, unknown>) =>
+  new ApiException('APPROVAL_REQUIRED', { message, details });
+
+/** A solicitação não está mais pendente (decidida/cancelada/expirada). */
+export const approvalNotPending = (message = 'Solicitação não está pendente.') =>
+  new ApiException('APPROVAL_NOT_PENDING', { message });
+
+/** O usuário não é elegível a decidir esta etapa. */
+export const approvalNotEligible = (message = 'Aprovador não elegível para esta etapa.') =>
+  new ApiException('APPROVAL_NOT_ELIGIBLE', { message });
+
+/** Segregação de funções: o solicitante não pode aprovar a própria ação. */
+export const selfApprovalForbidden = (message = 'Solicitante não pode aprovar a própria ação.') =>
+  new ApiException('SELF_APPROVAL_FORBIDDEN', { message });
+
+/** A solicitação expirou e não autoriza mais a ação. */
+export const approvalExpired = (message = 'Solicitação de aprovação expirada.') =>
+  new ApiException('APPROVAL_EXPIRED', { message });
+
+/** A solicitação foi invalidada por mudança material na operação/política. */
+export const approvalInvalidated = (message = 'Solicitação invalidada por mudança material.') =>
+  new ApiException('APPROVAL_INVALIDATED', { message });
+
+/** O mesmo aprovador já decidiu esta etapa (decisão imutável). */
+export const approvalAlreadyDecided = (message = 'Aprovador já decidiu esta etapa.') =>
+  new ApiException('APPROVAL_ALREADY_DECIDED', { message });
+
+/** O quórum da etapa ainda não foi atingido. */
+export const quorumNotReached = (message = 'Quórum não atingido.') =>
+  new ApiException('QUORUM_NOT_REACHED', { message });
+
+/** Conflito entre políticas aplicáveis. */
+export const policyConflict = (message = 'Conflito de políticas.') =>
+  new ApiException('POLICY_CONFLICT', { message });
+
+/** A política referida não está ativa/publicada. */
+export const policyNotActive = (message = 'Política não está ativa.') =>
+  new ApiException('POLICY_NOT_ACTIVE', { message });
+
+/** A ação foi bloqueada pela avaliação de autoridade. */
+export const actionDenied = (message = 'Ação bloqueada.', details?: Record<string, unknown>) =>
+  new ApiException('ACTION_DENIED', { message, details });
+
+/** A ação não está declarada no Gradiente de Autoridade da operação. */
+export const actionNotDeclared = (message = 'Ação não declarada para esta operação.') =>
+  new ApiException('ACTION_NOT_DECLARED', { message });
+
+/** A autorização de ação expirou. */
+export const authorizationExpired = (message = 'Autorização de ação expirada.') =>
+  new ApiException('AUTHORIZATION_EXPIRED', { message });
+
+/** A autorização de ação foi invalidada. */
+export const authorizationInvalidated = (message = 'Autorização de ação invalidada.') =>
+  new ApiException('AUTHORIZATION_INVALIDATED', { message });
+
+/** O payload apresentado não casa com o payload autorizado. */
+export const authorizationPayloadMismatch = (message = 'Payload difere do autorizado.') =>
+  new ApiException('AUTHORIZATION_PAYLOAD_MISMATCH', { message });

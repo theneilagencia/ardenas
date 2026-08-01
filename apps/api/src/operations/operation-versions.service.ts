@@ -297,6 +297,28 @@ export class OperationVersionsService {
           data: { publishedVersionId: version.id, currentDraftVersionId: null, status: nextStatus, revision: { increment: 1 } },
         });
 
+        // 3.1. Invalidação por mudança material (ARDEN-BE-004 §36): publicar uma
+        // nova versão de autoridade torna STALE toda solicitação PENDENTE e toda
+        // autorização ATIVA presas à autoridade anterior. O histórico é preservado
+        // (status → INVALIDATED, nada é apagado).
+        const invalidatedRequests = await tx.approvalRequest.updateMany({
+          where: { organizationId: orgId, operationId: op.id, status: 'PENDING', operationVersionId: { not: version.id } },
+          data: { status: 'INVALIDATED', decidedAt: new Date(), revision: { increment: 1 } },
+        });
+        const invalidatedAuths = await tx.actionAuthorization.updateMany({
+          where: { organizationId: orgId, operationId: op.id, status: 'ACTIVE', operationVersionId: { not: version.id } },
+          data: { status: 'INVALIDATED', revision: { increment: 1 } },
+        });
+        if (invalidatedRequests.count > 0 || invalidatedAuths.count > 0) {
+          audits.push(
+            await this.audit.record(tx, {
+              organizationId: orgId, actorUserId: ctx.userId, action: 'authority.invalidated_by_publish',
+              resourceType: 'operation', resourceId: op.id, correlationId: ctx.correlationId,
+              metadata: { publishedVersionId: version.id, invalidatedRequests: invalidatedRequests.count, invalidatedAuthorizations: invalidatedAuths.count },
+            }),
+          );
+        }
+
         const publishedVersion = (await this.versions.findById(orgId, op.id, version.id, tx))!;
         const updatedOp = (await this.operations.findById(orgId, op.id, tx))!;
 

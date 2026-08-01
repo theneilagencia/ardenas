@@ -171,6 +171,9 @@ const TAGS = [
   { name: 'OperationVersions', description: 'Versões de operação; publicada é imutável.' },
   { name: 'Authority', description: 'Gradiente de Autoridade da versão.' },
   { name: 'Audit', description: 'Trilha de auditoria (somente leitura).' },
+  { name: 'Policies', description: 'Políticas de governança versionadas e vínculos.' },
+  { name: 'Approvals', description: 'Fluxos, solicitações, decisões e delegações de aprovação.' },
+  { name: 'Enforcement', description: 'Avaliação de ações e autorizações de ação.' },
 ];
 
 /** Constrói o documento OpenAPI 3.0.3 completo. */

@@ -29,7 +29,42 @@ import type {
   VersionComparison,
   AuthorityProfile,
   UpdateAuthorityProfileRequest,
+  // Governança e aprovações (ARDEN-BE-004)
+  Policy,
+  PolicyVersion,
+  OperationPolicyBinding,
+  CreatePolicyRequest,
+  UpdatePolicyRequest,
+  CreatePolicyVersionRequest,
+  UpdatePolicyVersionRequest,
+  PublishPolicyVersionRequest,
+  PolicyTransitionRequest,
+  CreatePolicyBindingRequest,
+  UpdatePolicyBindingRequest,
+  ApprovalFlow,
+  ApprovalRequest,
+  ApprovalDelegation,
+  CreateApprovalFlowRequest,
+  UpdateApprovalFlowRequest,
+  ApprovalFlowTransitionRequest,
+  CreateApprovalRequestRequest,
+  DecideApprovalRequest,
+  CancelApprovalRequest,
+  ListApprovalRequestsQuery,
+  CreateApprovalDelegationRequest,
+  RevokeApprovalDelegationRequest,
+  ActionEvaluationResult,
+  ActionValidationResult,
+  ApprovalDecisionResult,
+  EvaluateActionRequest,
+  ValidateAuthorizationRequest,
 } from '@/contracts';
+
+/** Paginação por cursor comum aos recursos de governança. */
+export interface CursorPageQuery {
+  cursor?: string;
+  limit?: number;
+}
 
 /** Lista já desembrulhada (data + pagination). */
 export interface ClientPage<T> {
@@ -166,4 +201,40 @@ export interface ArdenApiV1Client {
     eventId: string,
     opts?: CallOptions,
   ): Promise<AuditEvent>;
+
+  // ── Governança: políticas (ARDEN-BE-004) ────────────────────────────────────
+  listPolicies(organizationId: string, query: CursorPageQuery, opts?: CallOptions): Promise<ClientPage<Policy>>;
+  getPolicy(organizationId: string, policyId: string, opts?: CallOptions): Promise<Policy>;
+  createPolicy(organizationId: string, body: CreatePolicyRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Policy>;
+  updatePolicy(organizationId: string, policyId: string, body: UpdatePolicyRequest, opts?: CallOptions): Promise<Policy>;
+  createPolicyVersion(organizationId: string, policyId: string, body: CreatePolicyVersionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<PolicyVersion>;
+  updatePolicyVersion(organizationId: string, policyId: string, versionId: string, body: UpdatePolicyVersionRequest, opts?: CallOptions): Promise<PolicyVersion>;
+  publishPolicyVersion(organizationId: string, policyId: string, versionId: string, body: PublishPolicyVersionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<PolicyVersion>;
+  suspendPolicy(organizationId: string, policyId: string, body: PolicyTransitionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Policy>;
+  archivePolicy(organizationId: string, policyId: string, body: PolicyTransitionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Policy>;
+  listPolicyBindings(organizationId: string, operationId: string, opts?: CallOptions): Promise<OperationPolicyBinding[]>;
+  createPolicyBinding(organizationId: string, operationId: string, body: CreatePolicyBindingRequest, opts: CallOptions & { idempotencyKey: string }): Promise<OperationPolicyBinding>;
+  updatePolicyBinding(organizationId: string, operationId: string, bindingId: string, body: UpdatePolicyBindingRequest, opts?: CallOptions): Promise<OperationPolicyBinding>;
+  deletePolicyBinding(organizationId: string, operationId: string, bindingId: string, opts?: CallOptions): Promise<OperationPolicyBinding>;
+
+  // ── Aprovações: fluxos, solicitações, delegações (ARDEN-BE-004) ──────────────
+  listApprovalFlows(organizationId: string, query: CursorPageQuery, opts?: CallOptions): Promise<ClientPage<ApprovalFlow>>;
+  getApprovalFlow(organizationId: string, flowId: string, opts?: CallOptions): Promise<ApprovalFlow>;
+  createApprovalFlow(organizationId: string, body: CreateApprovalFlowRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ApprovalFlow>;
+  updateApprovalFlow(organizationId: string, flowId: string, body: UpdateApprovalFlowRequest, opts?: CallOptions): Promise<ApprovalFlow>;
+  activateApprovalFlow(organizationId: string, flowId: string, body: ApprovalFlowTransitionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ApprovalFlow>;
+  suspendApprovalFlow(organizationId: string, flowId: string, body: ApprovalFlowTransitionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ApprovalFlow>;
+  listApprovalRequests(organizationId: string, query: ListApprovalRequestsQuery, opts?: CallOptions): Promise<ClientPage<ApprovalRequest>>;
+  getApprovalRequest(organizationId: string, requestId: string, opts?: CallOptions): Promise<ApprovalRequest>;
+  createApprovalRequest(organizationId: string, operationId: string, body: CreateApprovalRequestRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ApprovalRequest>;
+  approveApprovalRequest(organizationId: string, requestId: string, body: DecideApprovalRequest, opts?: CallOptions): Promise<ApprovalDecisionResult>;
+  rejectApprovalRequest(organizationId: string, requestId: string, body: DecideApprovalRequest, opts?: CallOptions): Promise<ApprovalRequest>;
+  cancelApprovalRequest(organizationId: string, requestId: string, body: CancelApprovalRequest, opts?: CallOptions): Promise<ApprovalRequest>;
+  listApprovalDelegations(organizationId: string, opts?: CallOptions): Promise<ApprovalDelegation[]>;
+  createApprovalDelegation(organizationId: string, body: CreateApprovalDelegationRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ApprovalDelegation>;
+  revokeApprovalDelegation(organizationId: string, delegationId: string, body: RevokeApprovalDelegationRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ApprovalDelegation>;
+
+  // ── Enforcement de autoridade (ARDEN-BE-004) ─────────────────────────────────
+  evaluateAction(organizationId: string, operationId: string, body: EvaluateActionRequest, opts?: CallOptions): Promise<ActionEvaluationResult>;
+  validateAuthorization(organizationId: string, body: ValidateAuthorizationRequest, opts?: CallOptions): Promise<ActionValidationResult>;
 }
