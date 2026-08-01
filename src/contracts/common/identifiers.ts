@@ -68,3 +68,19 @@ export type ApprovalDelegationId = z.infer<typeof approvalDelegationId>;
 
 export const actionAuthorizationId = opaqueId;
 export type ActionAuthorizationId = z.infer<typeof actionAuthorizationId>;
+
+// Execução (ARDEN-BE-005)
+export const executionRunId = opaqueId;
+export type ExecutionRunId = z.infer<typeof executionRunId>;
+
+export const executionStepId = opaqueId;
+export type ExecutionStepId = z.infer<typeof executionStepId>;
+
+export const executionAttemptId = opaqueId;
+export type ExecutionAttemptId = z.infer<typeof executionAttemptId>;
+
+export const executionEventId = opaqueId;
+export type ExecutionEventId = z.infer<typeof executionEventId>;
+
+export const evidenceRecordId = opaqueId;
+export type EvidenceRecordId = z.infer<typeof evidenceRecordId>;

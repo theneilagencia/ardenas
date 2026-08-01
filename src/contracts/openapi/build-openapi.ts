@@ -174,6 +174,7 @@ const TAGS = [
   { name: 'Policies', description: 'Políticas de governança versionadas e vínculos.' },
   { name: 'Approvals', description: 'Fluxos, solicitações, decisões e delegações de aprovação.' },
   { name: 'Enforcement', description: 'Avaliação de ações e autorizações de ação.' },
+  { name: 'Executions', description: 'Execuções assíncronas, etapas, eventos e evidências.' },
 ];
 
 /** Constrói o documento OpenAPI 3.0.3 completo. */

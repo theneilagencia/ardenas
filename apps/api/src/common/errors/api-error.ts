@@ -127,3 +127,31 @@ export const authorizationInvalidated = (message = 'Autorização de ação inva
 /** O payload apresentado não casa com o payload autorizado. */
 export const authorizationPayloadMismatch = (message = 'Payload difere do autorizado.') =>
   new ApiException('AUTHORIZATION_PAYLOAD_MISMATCH', { message });
+
+// ── Motor de execução (ARDEN-BE-005) ────────────────────────────────────────────
+export const executionNotAllowed = (message = 'Execução não permitida.', details?: Record<string, unknown>) =>
+  new ApiException('EXECUTION_NOT_ALLOWED', { message, details });
+export const executionAlreadyStarted = (message = 'Execução já iniciada.') =>
+  new ApiException('EXECUTION_ALREADY_STARTED', { message });
+export const executionNotPausable = (message = 'Execução não pode ser pausada neste estado.') =>
+  new ApiException('EXECUTION_NOT_PAUSABLE', { message });
+export const executionNotResumable = (message = 'Execução não pode ser retomada neste estado.') =>
+  new ApiException('EXECUTION_NOT_RESUMABLE', { message });
+export const executionNotCancellable = (message = 'Execução não pode ser cancelada neste estado.') =>
+  new ApiException('EXECUTION_NOT_CANCELLABLE', { message });
+export const executionNotRetryable = (message = 'Execução não pode ser reprocessada neste estado.') =>
+  new ApiException('EXECUTION_NOT_RETRYABLE', { message });
+export const executionTerminal = (message = 'Execução em estado terminal.') =>
+  new ApiException('EXECUTION_TERMINAL', { message });
+export const executionRetryExhausted = (message = 'Tentativas de execução esgotadas.') =>
+  new ApiException('EXECUTION_RETRY_EXHAUSTED', { message });
+export const stepExecutorNotAvailable = (message = 'Executor de etapa indisponível.') =>
+  new ApiException('STEP_EXECUTOR_NOT_AVAILABLE', { message });
+export const stepInputInvalid = (fieldErrors: FieldError[], message = 'Entrada de etapa inválida.') =>
+  new ApiException('STEP_INPUT_INVALID', { message, fieldErrors });
+export const authorizationRequired = (message = 'Ação exige uma autorização de ação.') =>
+  new ApiException('AUTHORIZATION_REQUIRED', { message });
+export const authorizationAlreadyUsed = (message = 'Autorização de ação já utilizada.') =>
+  new ApiException('AUTHORIZATION_ALREADY_USED', { message });
+export const jobLeaseConflict = (message = 'Conflito de lease de job.') =>
+  new ApiException('JOB_LEASE_CONFLICT', { message });
