@@ -115,7 +115,9 @@ describe('permissões mapeadas ao catálogo estável (ARDEN-FE-002)', () => {
   it('todo endpoint não-sessão exige permissão do catálogo; sessão não exige', () => {
     const catalog = new Set<string>(ALL_PERMISSIONS);
     for (const e of endpoints) {
-      if (e.tag === 'Session') {
+      // Sessão (autenticação) e endpoints públicos autenticados por outro mecanismo
+      // (ex.: webhook de entrada por assinatura — ARDEN-BE-006) não exigem permissão.
+      if (e.tag === 'Session' || e.public) {
         expect(e.permission, e.id).toBeNull();
       } else {
         expect(e.permission, e.id).not.toBeNull();

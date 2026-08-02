@@ -84,3 +84,28 @@ export type ExecutionEventId = z.infer<typeof executionEventId>;
 
 export const evidenceRecordId = opaqueId;
 export type EvidenceRecordId = z.infer<typeof evidenceRecordId>;
+
+// Conectores, credenciais, ferramentas e webhooks (ARDEN-BE-006)
+export const connectorDefinitionId = opaqueId;
+export type ConnectorDefinitionId = z.infer<typeof connectorDefinitionId>;
+
+export const connectorToolDefinitionId = opaqueId;
+export type ConnectorToolDefinitionId = z.infer<typeof connectorToolDefinitionId>;
+
+export const connectionId = opaqueId;
+export type ConnectionId = z.infer<typeof connectionId>;
+
+export const credentialVersionId = opaqueId;
+export type CredentialVersionId = z.infer<typeof credentialVersionId>;
+
+export const organizationToolBindingId = opaqueId;
+export type OrganizationToolBindingId = z.infer<typeof organizationToolBindingId>;
+
+export const operationToolBindingId = opaqueId;
+export type OperationToolBindingId = z.infer<typeof operationToolBindingId>;
+
+export const webhookEndpointId = opaqueId;
+export type WebhookEndpointId = z.infer<typeof webhookEndpointId>;
+
+export const webhookDeliveryId = opaqueId;
+export type WebhookDeliveryId = z.infer<typeof webhookDeliveryId>;

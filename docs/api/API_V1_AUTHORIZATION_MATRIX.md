@@ -94,3 +94,34 @@ ação; a autoridade final é reavaliada contra a versão publicada e as políti
 
 O worker executa sob a autoridade da execução criada; nunca ignora a autorização e
 nunca aceita o tenant vindo do payload sem validação.
+
+## ARDEN-BE-006 — Connectors and External Tools (contratado)
+
+> Endpoints **contratados** nesta fase (006.2); implementação funcional nas fases
+> seguintes. Catálogo é público (leitura por `connector.view`). O webhook de entrada
+> é **público** (autenticado por assinatura/token — sem permissão de usuário). Toda
+> permissão pertence à fonte única `src/domain/permissions.ts`; o teste
+> `src/contracts/contracts.test.ts` garante que cada permissão de endpoint ∈ `ALL_PERMISSIONS`.
+
+| operationId | Método | Path | Permission | Idempotency | Revision |
+|---|---|---|---|---|---|
+| connectors.list / get / listTools | GET | `/connectors...` | `connector.view` | não | não |
+| connections.list / get | GET | `.../connections...` | `connection.view` | não | não |
+| connections.create | POST | `.../connections` | `connection.create` | sim | não |
+| connections.update | PATCH | `.../connections/{id}` | `connection.edit` | não | sim |
+| connections.test | POST | `.../connections/{id}/test` | `connection.test` | sim | não |
+| connections.activate/suspend/reactivate | POST | `.../connections/{id}/...` | `connection.edit` | sim | sim |
+| connections.revoke | POST | `.../connections/{id}/revoke` | `connection.revoke` | sim | sim |
+| credentials.list | GET | `.../credentials` | `connection.view` | não | não |
+| credentials.create / rotate | POST | `.../credentials[/rotate]` | `connection.rotate_credentials` | sim | rotate: sim |
+| credentials.revoke | POST | `.../credentials/{id}/revoke` | `connection.revoke` | sim | não |
+| toolBindings.list / get | GET | `.../tool-bindings...` | `tool.view` | não | não |
+| toolBindings.create / update / disable | POST/PATCH | `.../tool-bindings...` | `tool.bind` | create/disable: sim | update/disable: sim |
+| operationToolBindings.* | GET/POST/PATCH/DELETE | `.../operations/{id}/tool-bindings...` | `tool.view` / `tool.bind` | create: sim | update/remove: sim |
+| webhooks.listEndpoints / getEndpoint | GET | `.../webhook-endpoints...` | `webhook.view` | não | não |
+| webhooks.createEndpoint | POST | `.../webhook-endpoints` | `webhook.manage` | sim | não |
+| webhooks.updateEndpoint | PATCH | `.../webhook-endpoints/{id}` | `webhook.manage` | não | sim |
+| webhooks.suspend/reactivate/revoke | POST | `.../webhook-endpoints/{id}/...` | `webhook.manage` | sim | sim |
+| webhooks.receive | POST | `/webhooks/{endpointToken}` | **público (assinatura)** | replay-idempotente | não |
+
+Permissão adicional `integration.execute` valida o uso de ferramenta externa na criação de execução (BE-005), além de `execution.create`. Papéis iniciais: `corporate_admin` (todas), `security_admin` (gestão completa de conexões/credenciais/webhooks), `operation_owner` (view + `tool.bind` + `integration.execute`), `supervisor` (view + `connection.test` + `integration.execute`), `auditor` (somente leitura).

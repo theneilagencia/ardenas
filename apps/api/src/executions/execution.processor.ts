@@ -14,7 +14,8 @@ import { PrismaService } from '../database/prisma.service';
 import { ExecutionsRepository } from './executions.repository';
 import { ExecutionRecorder } from './execution.recorder';
 import { ExecutionQueue, type AcquiredJob } from './execution.queue';
-import { getExecutor, StepExecutionError, type StepExecutionContext } from './executors';
+import { StepExecutionError, type StepExecutionContext } from './executors';
+import { StepExecutorRegistry } from './step-executor-registry';
 import { canTransition, isTerminal } from './execution.state-machine';
 import { backoffDelayMs, DEFAULT_RETRY } from './retry-policy';
 
@@ -25,6 +26,7 @@ export class ExecutionProcessor {
     private readonly repo: ExecutionsRepository,
     private readonly recorder: ExecutionRecorder,
     private readonly queue: ExecutionQueue,
+    private readonly registry: StepExecutorRegistry,
   ) {}
 
   /** Processa um job adquirido. Retorna quando o job é liberado/concluído. */
@@ -121,7 +123,7 @@ export class ExecutionProcessor {
     };
 
     try {
-      const executor = getExecutor(step.actionKey);
+      const executor = this.registry.resolve(step.actionKey);
       const result = await executor.execute(context);
       await this.prisma.$transaction(async (tx) => {
         await tx.executionStep.updateMany({ where: { id: step.id }, data: { status: 'SUCCEEDED', output: (result.output ?? null) as Prisma.InputJsonValue, completedAt: new Date(), errorCode: null, errorSummary: null, revision: { increment: 1 } } });
@@ -145,7 +147,10 @@ export class ExecutionProcessor {
           await this.recorder.recordEvent(tx, { organizationId: run.organizationId, executionRunId: run.id, executionStepId: step.id, eventType: 'execution_step.retry_scheduled', actorType: 'WORKER', correlationId: corr, payload: { attempt: attemptNumber, code } });
         } else {
           await tx.executionStep.updateMany({ where: { id: step.id }, data: { status: 'FAILED', errorCode: code, errorSummary: summary, completedAt: new Date(), revision: { increment: 1 } } });
-          await this.recorder.recordEvidence(tx, { organizationId: run.organizationId, executionRunId: run.id, executionStepId: step.id, evidenceType: 'ERROR', content: { code, summary, attempt: attemptNumber }, createdByType: 'WORKER', correlationId: corr });
+          // Evidência de ferramenta externa (sanitizada) quando disponível; senão, o erro base.
+          const toolEvidence = (err as { toolEvidence?: Record<string, unknown> }).toolEvidence;
+          const content = toolEvidence ? { ...toolEvidence, code, summary, attempt: attemptNumber } : { code, summary, attempt: attemptNumber };
+          await this.recorder.recordEvidence(tx, { organizationId: run.organizationId, executionRunId: run.id, executionStepId: step.id, evidenceType: 'ERROR', content, createdByType: 'WORKER', correlationId: corr });
           await this.recorder.recordEvent(tx, { organizationId: run.organizationId, executionRunId: run.id, executionStepId: step.id, eventType: 'execution_step.failed', actorType: 'WORKER', correlationId: corr, payload: { attempt: attemptNumber, code } });
         }
       });
@@ -168,7 +173,7 @@ export class ExecutionProcessor {
     const succeeded = (await this.repo.stepsForRun(run.id)).filter((s) => s.status === 'SUCCEEDED').sort((a, b) => b.sequence - a.sequence);
     let compensationFailed = false;
     for (const step of succeeded) {
-      const executor = getExecutor(step.actionKey);
+      const executor = this.registry.resolve(step.actionKey);
       if (!executor.compensate) continue;
       try {
         await this.prisma.$transaction(async (tx) => {

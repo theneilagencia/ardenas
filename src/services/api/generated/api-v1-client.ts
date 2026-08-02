@@ -67,6 +67,32 @@ import type {
   ExecutionCommandRequest,
   ListExecutionsQuery,
   ListExecutionEventsQuery,
+  // Conectores, credenciais, ferramentas e webhooks (ARDEN-BE-006)
+  ConnectorDefinition,
+  ConnectorToolDefinition,
+  Connection,
+  CreateConnectionRequest,
+  UpdateConnectionRequest,
+  TestConnectionRequest,
+  TestConnectionResult,
+  ConnectionCommandRequest,
+  ListConnectionsQuery,
+  CreateConnectionCredentialRequest,
+  RotateConnectionCredentialRequest,
+  CredentialMetadata,
+  OrganizationToolBinding,
+  CreateOrganizationToolBindingRequest,
+  UpdateOrganizationToolBindingRequest,
+  ListToolBindingsQuery,
+  OperationToolBinding,
+  CreateOperationToolBindingRequest,
+  UpdateOperationToolBindingRequest,
+  WebhookEndpoint,
+  WebhookEndpointSecret,
+  CreateWebhookEndpointRequest,
+  UpdateWebhookEndpointRequest,
+  WebhookCommandRequest,
+  ListWebhookEndpointsQuery,
 } from '@/contracts';
 
 /** Paginação por cursor comum aos recursos de governança. */
@@ -260,4 +286,48 @@ export interface ArdenApiV1Client {
   listExecutionEvents(organizationId: string, executionId: string, query: ListExecutionEventsQuery, opts?: CallOptions): Promise<ClientPage<ExecutionEvent>>;
   listExecutionEvidence(organizationId: string, executionId: string, opts?: CallOptions): Promise<EvidenceRecord[]>;
   getExecutionEvidence(organizationId: string, executionId: string, evidenceId: string, opts?: CallOptions): Promise<EvidenceRecord>;
+
+  // ── Conectores: catálogo (público) (ARDEN-BE-006) ────────────────────────────
+  listConnectors(opts?: CallOptions): Promise<ConnectorDefinition[]>;
+  getConnector(connectorKey: string, opts?: CallOptions): Promise<ConnectorDefinition>;
+  listConnectorTools(connectorKey: string, opts?: CallOptions): Promise<ConnectorToolDefinition[]>;
+
+  // ── Conexões ─────────────────────────────────────────────────────────────────
+  listConnections(organizationId: string, query: ListConnectionsQuery, opts?: CallOptions): Promise<ClientPage<Connection>>;
+  createConnection(organizationId: string, body: CreateConnectionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
+  getConnection(organizationId: string, connectionId: string, opts?: CallOptions): Promise<Connection>;
+  updateConnection(organizationId: string, connectionId: string, body: UpdateConnectionRequest, opts?: CallOptions): Promise<Connection>;
+  testConnection(organizationId: string, connectionId: string, body: TestConnectionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<TestConnectionResult>;
+  activateConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
+  suspendConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
+  reactivateConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
+  revokeConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
+
+  // ── Credenciais (request sensível; response só metadados) ─────────────────────
+  listCredentials(organizationId: string, connectionId: string, opts?: CallOptions): Promise<ClientPage<CredentialMetadata>>;
+  createCredential(organizationId: string, connectionId: string, body: CreateConnectionCredentialRequest, opts: CallOptions & { idempotencyKey: string }): Promise<CredentialMetadata>;
+  rotateCredential(organizationId: string, connectionId: string, body: RotateConnectionCredentialRequest, opts: CallOptions & { idempotencyKey: string }): Promise<CredentialMetadata>;
+  revokeCredential(organizationId: string, connectionId: string, credentialVersionId: string, opts: CallOptions & { idempotencyKey: string }): Promise<CredentialMetadata>;
+
+  // ── Tool bindings ────────────────────────────────────────────────────────────
+  listToolBindings(organizationId: string, query: ListToolBindingsQuery, opts?: CallOptions): Promise<ClientPage<OrganizationToolBinding>>;
+  createToolBinding(organizationId: string, body: CreateOrganizationToolBindingRequest, opts: CallOptions & { idempotencyKey: string }): Promise<OrganizationToolBinding>;
+  getToolBinding(organizationId: string, bindingId: string, opts?: CallOptions): Promise<OrganizationToolBinding>;
+  updateToolBinding(organizationId: string, bindingId: string, body: UpdateOrganizationToolBindingRequest, opts?: CallOptions): Promise<OrganizationToolBinding>;
+  disableToolBinding(organizationId: string, bindingId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<OrganizationToolBinding>;
+
+  // ── Operation bindings ───────────────────────────────────────────────────────
+  listOperationToolBindings(organizationId: string, operationId: string, opts?: CallOptions): Promise<OperationToolBinding[]>;
+  createOperationToolBinding(organizationId: string, operationId: string, body: CreateOperationToolBindingRequest, opts: CallOptions & { idempotencyKey: string }): Promise<OperationToolBinding>;
+  updateOperationToolBinding(organizationId: string, operationId: string, bindingId: string, body: UpdateOperationToolBindingRequest, opts?: CallOptions): Promise<OperationToolBinding>;
+  removeOperationToolBinding(organizationId: string, operationId: string, bindingId: string, opts?: CallOptions): Promise<OperationToolBinding>;
+
+  // ── Webhooks ─────────────────────────────────────────────────────────────────
+  listWebhookEndpoints(organizationId: string, query: ListWebhookEndpointsQuery, opts?: CallOptions): Promise<ClientPage<WebhookEndpoint>>;
+  createWebhookEndpoint(organizationId: string, body: CreateWebhookEndpointRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpointSecret>;
+  getWebhookEndpoint(organizationId: string, webhookEndpointId: string, opts?: CallOptions): Promise<WebhookEndpoint>;
+  updateWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: UpdateWebhookEndpointRequest, opts?: CallOptions): Promise<WebhookEndpoint>;
+  suspendWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
+  reactivateWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
+  revokeWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
 }

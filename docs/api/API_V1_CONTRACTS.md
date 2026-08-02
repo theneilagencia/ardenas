@@ -78,3 +78,26 @@ e apenas quando o perfil permite destrutivas. O backend é a autoridade final.
 action, resourceType, resourceId, occurredAt, correlationId, source, before|null,
 after|null, metadata }`. Filtros: actorId, action, resourceType, resourceId, from, to,
 correlationId, cursor, limit. **Sem** `POST/PATCH/DELETE` público.
+
+## ARDEN-BE-006 — Connectors and External Tools (contratado)
+
+Contratos compartilhados em `src/contracts/connectors/*` (schemas Zod), registrados
+em `src/contracts/registry.ts` e projetados no OpenAPI (`docs/api/openapi-v1.yaml`,
+tag `Connectors`). **Os endpoints estão contratados, porém ainda NÃO operacionais** —
+a persistência, o cofre de credenciais, o cliente HTTP seguro e os webhooks funcionais
+chegam nas fases 006.3+.
+
+- **Catálogo canônico** (híbrido): fonte em código `connector-catalog.ts` (conectores
+  `system.http`, `system.webhook`, `internal.test` + ferramentas), validada pelos
+  schemas; projeção idempotente para o banco preparada como função pura
+  (`projectConnectorCatalog()`), sem persistir nesta fase.
+- **Segurança contratual:** requests sensíveis (segredo de credencial, `signingSecret`)
+  são **write-only** e distintos das responses; nenhuma resposta declara
+  `secret/ciphertext/nonce/authTag/pathTokenHash`. O token de webhook e o segredo de
+  assinatura são retornados **uma única vez** na criação (`WebhookEndpointSecret`).
+- **Action keys externas:** `external.http.request`, `external.webhook.send`,
+  `connector.test.{echo,failure,timeout}` — namespace próprio, sem alterar os
+  executores determinísticos do BE-005.
+- **Política de rede** (`ConnectorNetworkPolicy`): defaults de produção restritivos
+  (só `https`, sem redirects, sem redes privadas/loopback/link-local). Enforcement de
+  SSRF é fase futura (só o contrato aqui).

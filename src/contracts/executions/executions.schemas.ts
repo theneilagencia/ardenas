@@ -43,7 +43,12 @@ export const evidenceType = z.enum([
 ]);
 export type EvidenceType = z.infer<typeof evidenceType>;
 
-/** Executores determinísticos internos permitidos nesta fase (ARDEN-BE-005 §15). */
+/**
+ * Executores permitidos. Internos determinísticos (ARDEN-BE-005 §15) + externos de
+ * conector (ARDEN-BE-006.6). As chaves `external.*`/`connector.test.*` são resolvidas
+ * pelo `ExternalToolStepExecutor` via DI (nunca por classe vinda do banco); as
+ * `connector.test.*` são executores internos de teste, proibidos em produção.
+ */
 export const executorActionKey = z.enum([
   'system.noop',
   'data.transform.static',
@@ -54,8 +59,26 @@ export const executorActionKey = z.enum([
   'evidence.record',
   'delay.simulated',
   'failure.deterministic',
+  'external.http.request',
+  'external.webhook.send',
+  'connector.test.echo',
+  'connector.test.failure',
+  'connector.test.timeout',
 ]);
 export type ExecutorActionKey = z.infer<typeof executorActionKey>;
+
+/** Action keys que roteiam para o executor externo de conector (DI, não estático). */
+export const EXTERNAL_EXECUTOR_ACTION_KEYS: readonly ExecutorActionKey[] = [
+  'external.http.request',
+  'external.webhook.send',
+  'connector.test.echo',
+  'connector.test.failure',
+  'connector.test.timeout',
+];
+
+export function isExternalExecutorActionKey(actionKey: string): boolean {
+  return (EXTERNAL_EXECUTOR_ACTION_KEYS as readonly string[]).includes(actionKey);
+}
 
 export const backoffStrategy = z.enum(['FIXED', 'EXPONENTIAL']);
 

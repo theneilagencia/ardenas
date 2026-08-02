@@ -15,3 +15,8 @@ export * from './operations/publish-operation-version';
 export * from './operations/operation-lifecycle';
 export * from './audit/list-audit-events';
 export * from './audit/audit-context';
+export * from './connectors/catalog';
+export * from './connectors/connections';
+export * from './connectors/credentials';
+export * from './connectors/tool-bindings';
+export * from './connectors/webhooks';

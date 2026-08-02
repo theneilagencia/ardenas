@@ -10,6 +10,7 @@
 import { PrismaClient } from '@prisma/client';
 import { ALL_PERMISSIONS, ROLE_PERMISSIONS } from '../../../src/domain/permissions';
 import type { RoleKey } from '../../../src/domain/types';
+import { runCatalogProjection, type CatalogDbClient } from '../src/connectors/catalog/project-catalog';
 
 /** Nomes legíveis dos papéis de sistema (chaves = catálogo do frontend). */
 export const SYSTEM_ROLE_NAMES: Record<RoleKey, string> = {
@@ -77,8 +78,14 @@ async function main(): Promise<void> {
   const prisma = new PrismaClient();
   try {
     const result = await seedIdentityCatalog(prisma);
+    // Projeta o catálogo canônico de conectores DEPOIS das permissões (idempotente;
+    // não toca dados tenant-scoped; internal.test permanece productionAllowed=false).
+    const catalog = await prisma.$transaction((tx) => runCatalogProjection(tx as unknown as CatalogDbClient));
     // eslint-disable-next-line no-console
-    console.log(`Seed do catálogo concluído: ${result.permissions} permissões, ${result.roles} papéis.`);
+    console.log(
+      `Seed do catálogo concluído: ${result.permissions} permissões, ${result.roles} papéis, ` +
+        `conectores (+${catalog.connectorsCreated}/~${catalog.connectorsUnchanged}), ferramentas (+${catalog.toolsCreated}/~${catalog.toolsUnchanged}).`,
+    );
   } finally {
     await prisma.$disconnect();
   }

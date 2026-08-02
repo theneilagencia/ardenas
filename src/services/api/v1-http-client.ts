@@ -65,6 +65,31 @@ import type {
   ExecutionCommandRequest,
   ListExecutionsQuery,
   ListExecutionEventsQuery,
+  ConnectorDefinition,
+  ConnectorToolDefinition,
+  Connection,
+  CreateConnectionRequest,
+  UpdateConnectionRequest,
+  TestConnectionRequest,
+  TestConnectionResult,
+  ConnectionCommandRequest,
+  ListConnectionsQuery,
+  CreateConnectionCredentialRequest,
+  RotateConnectionCredentialRequest,
+  CredentialMetadata,
+  OrganizationToolBinding,
+  CreateOrganizationToolBindingRequest,
+  UpdateOrganizationToolBindingRequest,
+  ListToolBindingsQuery,
+  OperationToolBinding,
+  CreateOperationToolBindingRequest,
+  UpdateOperationToolBindingRequest,
+  WebhookEndpoint,
+  WebhookEndpointSecret,
+  CreateWebhookEndpointRequest,
+  UpdateWebhookEndpointRequest,
+  WebhookCommandRequest,
+  ListWebhookEndpointsQuery,
 } from '@/contracts';
 import type { ArdenApiV1Client, ClientPage, CallOptions, CursorPageQuery } from './generated/api-v1-client';
 
@@ -329,5 +354,113 @@ export class ApiV1HttpClient implements ArdenApiV1Client {
   }
   getExecutionEvidence(organizationId: string, executionId: string, evidenceId: string, opts?: CallOptions) {
     return this.get<EvidenceRecord>(`${this.base(organizationId)}/executions/${executionId}/evidence/${evidenceId}`, opts);
+  }
+
+  // ── Conectores: catálogo (público, não tenant-scoped) (ARDEN-BE-006) ─────────
+  listConnectors(opts?: CallOptions) {
+    return this.get<ConnectorDefinition[]>('/connectors', opts);
+  }
+  getConnector(connectorKey: string, opts?: CallOptions) {
+    return this.get<ConnectorDefinition>(`/connectors/${connectorKey}`, opts);
+  }
+  listConnectorTools(connectorKey: string, opts?: CallOptions) {
+    return this.get<ConnectorToolDefinition[]>(`/connectors/${connectorKey}/tools`, opts);
+  }
+
+  // ── Conexões ─────────────────────────────────────────────────────────────────
+  listConnections(organizationId: string, q: ListConnectionsQuery, opts?: CallOptions) {
+    return this.list<Connection>(`${this.base(organizationId)}/connections${query(q as Record<string, unknown>)}`, opts);
+  }
+  createConnection(organizationId: string, body: CreateConnectionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Connection>('POST', `${this.base(organizationId)}/connections`, body, opts);
+  }
+  getConnection(organizationId: string, connectionId: string, opts?: CallOptions) {
+    return this.get<Connection>(`${this.base(organizationId)}/connections/${connectionId}`, opts);
+  }
+  updateConnection(organizationId: string, connectionId: string, body: UpdateConnectionRequest, opts?: CallOptions) {
+    return this.send<Connection>('PATCH', `${this.base(organizationId)}/connections/${connectionId}`, body, opts);
+  }
+  testConnection(organizationId: string, connectionId: string, body: TestConnectionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<TestConnectionResult>('POST', `${this.base(organizationId)}/connections/${connectionId}/test`, body, opts);
+  }
+  activateConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Connection>('POST', `${this.base(organizationId)}/connections/${connectionId}/activate`, body, opts);
+  }
+  suspendConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Connection>('POST', `${this.base(organizationId)}/connections/${connectionId}/suspend`, body, opts);
+  }
+  reactivateConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Connection>('POST', `${this.base(organizationId)}/connections/${connectionId}/reactivate`, body, opts);
+  }
+  revokeConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<Connection>('POST', `${this.base(organizationId)}/connections/${connectionId}/revoke`, body, opts);
+  }
+
+  // ── Credenciais ──────────────────────────────────────────────────────────────
+  listCredentials(organizationId: string, connectionId: string, opts?: CallOptions) {
+    return this.list<CredentialMetadata>(`${this.base(organizationId)}/connections/${connectionId}/credentials`, opts);
+  }
+  createCredential(organizationId: string, connectionId: string, body: CreateConnectionCredentialRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<CredentialMetadata>('POST', `${this.base(organizationId)}/connections/${connectionId}/credentials`, body, opts);
+  }
+  rotateCredential(organizationId: string, connectionId: string, body: RotateConnectionCredentialRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<CredentialMetadata>('POST', `${this.base(organizationId)}/connections/${connectionId}/credentials/rotate`, body, opts);
+  }
+  revokeCredential(organizationId: string, connectionId: string, credentialVersionId: string, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<CredentialMetadata>('POST', `${this.base(organizationId)}/connections/${connectionId}/credentials/${credentialVersionId}/revoke`, undefined, opts);
+  }
+
+  // ── Tool bindings ────────────────────────────────────────────────────────────
+  listToolBindings(organizationId: string, q: ListToolBindingsQuery, opts?: CallOptions) {
+    return this.list<OrganizationToolBinding>(`${this.base(organizationId)}/tool-bindings${query(q as Record<string, unknown>)}`, opts);
+  }
+  createToolBinding(organizationId: string, body: CreateOrganizationToolBindingRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<OrganizationToolBinding>('POST', `${this.base(organizationId)}/tool-bindings`, body, opts);
+  }
+  getToolBinding(organizationId: string, bindingId: string, opts?: CallOptions) {
+    return this.get<OrganizationToolBinding>(`${this.base(organizationId)}/tool-bindings/${bindingId}`, opts);
+  }
+  updateToolBinding(organizationId: string, bindingId: string, body: UpdateOrganizationToolBindingRequest, opts?: CallOptions) {
+    return this.send<OrganizationToolBinding>('PATCH', `${this.base(organizationId)}/tool-bindings/${bindingId}`, body, opts);
+  }
+  disableToolBinding(organizationId: string, bindingId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<OrganizationToolBinding>('POST', `${this.base(organizationId)}/tool-bindings/${bindingId}/disable`, body, opts);
+  }
+
+  // ── Operation bindings ───────────────────────────────────────────────────────
+  listOperationToolBindings(organizationId: string, operationId: string, opts?: CallOptions) {
+    return this.get<OperationToolBinding[]>(`${this.base(organizationId)}/operations/${operationId}/tool-bindings`, opts);
+  }
+  createOperationToolBinding(organizationId: string, operationId: string, body: CreateOperationToolBindingRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<OperationToolBinding>('POST', `${this.base(organizationId)}/operations/${operationId}/tool-bindings`, body, opts);
+  }
+  updateOperationToolBinding(organizationId: string, operationId: string, bindingId: string, body: UpdateOperationToolBindingRequest, opts?: CallOptions) {
+    return this.send<OperationToolBinding>('PATCH', `${this.base(organizationId)}/operations/${operationId}/tool-bindings/${bindingId}`, body, opts);
+  }
+  removeOperationToolBinding(organizationId: string, operationId: string, bindingId: string, opts?: CallOptions) {
+    return this.send<OperationToolBinding>('DELETE', `${this.base(organizationId)}/operations/${operationId}/tool-bindings/${bindingId}`, undefined, opts);
+  }
+
+  // ── Webhooks ─────────────────────────────────────────────────────────────────
+  listWebhookEndpoints(organizationId: string, q: ListWebhookEndpointsQuery, opts?: CallOptions) {
+    return this.list<WebhookEndpoint>(`${this.base(organizationId)}/webhook-endpoints${query(q as Record<string, unknown>)}`, opts);
+  }
+  createWebhookEndpoint(organizationId: string, body: CreateWebhookEndpointRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<WebhookEndpointSecret>('POST', `${this.base(organizationId)}/webhook-endpoints`, body, opts);
+  }
+  getWebhookEndpoint(organizationId: string, webhookEndpointId: string, opts?: CallOptions) {
+    return this.get<WebhookEndpoint>(`${this.base(organizationId)}/webhook-endpoints/${webhookEndpointId}`, opts);
+  }
+  updateWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: UpdateWebhookEndpointRequest, opts?: CallOptions) {
+    return this.send<WebhookEndpoint>('PATCH', `${this.base(organizationId)}/webhook-endpoints/${webhookEndpointId}`, body, opts);
+  }
+  suspendWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<WebhookEndpoint>('POST', `${this.base(organizationId)}/webhook-endpoints/${webhookEndpointId}/suspend`, body, opts);
+  }
+  reactivateWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<WebhookEndpoint>('POST', `${this.base(organizationId)}/webhook-endpoints/${webhookEndpointId}/reactivate`, body, opts);
+  }
+  revokeWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<WebhookEndpoint>('POST', `${this.base(organizationId)}/webhook-endpoints/${webhookEndpointId}/revoke`, body, opts);
   }
 }

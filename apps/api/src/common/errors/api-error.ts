@@ -155,3 +155,81 @@ export const authorizationAlreadyUsed = (message = 'Autorização de ação já 
   new ApiException('AUTHORIZATION_ALREADY_USED', { message });
 export const jobLeaseConflict = (message = 'Conflito de lease de job.') =>
   new ApiException('JOB_LEASE_CONFLICT', { message });
+
+// ── Conectores, credenciais, ferramentas e webhooks (ARDEN-BE-006) ──────────────
+export const connectorNotAvailable = (message = 'Conector indisponível.') =>
+  new ApiException('CONNECTOR_NOT_AVAILABLE', { message });
+export const connectorDeprecated = (message = 'Conector descontinuado.') =>
+  new ApiException('CONNECTOR_DEPRECATED', { message });
+export const connectionNotActive = (message = 'Conexão não está ativa.') =>
+  new ApiException('CONNECTION_NOT_ACTIVE', { message });
+export const connectionSuspended = (message = 'Conexão suspensa.') =>
+  new ApiException('CONNECTION_SUSPENDED', { message });
+export const connectionRevoked = (message = 'Conexão revogada (terminal).') =>
+  new ApiException('CONNECTION_REVOKED', { message });
+export const credentialRequired = (message = 'Conexão sem credencial ativa.') =>
+  new ApiException('CREDENTIAL_REQUIRED', { message });
+export const credentialInvalid = (fieldErrors: FieldError[], message = 'Credencial inválida.') =>
+  new ApiException('CREDENTIAL_INVALID', { message, fieldErrors });
+export const credentialRevoked = (message = 'Credencial revogada.') =>
+  new ApiException('CREDENTIAL_REVOKED', { message });
+/** Falha SANITIZADA ao resolver/decifrar (nunca expõe detalhe criptográfico). */
+export const credentialResolutionFailed = (message = 'Não foi possível resolver a credencial.') =>
+  new ApiException('CREDENTIAL_RESOLUTION_FAILED', { message });
+export const credentialRotationConflict = (message = 'Rotação de credencial concorrente.') =>
+  new ApiException('CREDENTIAL_ROTATION_CONFLICT', { message });
+export const toolNotAvailable = (message = 'Ferramenta indisponível.') =>
+  new ApiException('TOOL_NOT_AVAILABLE', { message });
+export const toolBindingNotFound = (message = 'Vínculo de ferramenta não encontrado.') =>
+  new ApiException('TOOL_BINDING_NOT_FOUND', { message });
+export const toolInputInvalid = (fieldErrors: FieldError[], message = 'Entrada de ferramenta inválida.') =>
+  new ApiException('TOOL_INPUT_INVALID', { message, fieldErrors });
+export const toolOutputInvalid = (fieldErrors: FieldError[], message = 'Saída de ferramenta inválida.') =>
+  new ApiException('TOOL_OUTPUT_INVALID', { message, fieldErrors });
+export const toolExecutionDenied = (message = 'Execução de ferramenta negada.') =>
+  new ApiException('TOOL_EXECUTION_DENIED', { message });
+export const webhookEndpointRevoked = (message = 'Endpoint de webhook revogado.') =>
+  new ApiException('WEBHOOK_ENDPOINT_REVOKED', { message });
+// ── Webhooks de ENTRADA (ARDEN-BE-006.7) — mensagens públicas GENÉRICAS ──────────
+export const webhookSignatureInvalid = (message = 'Assinatura inválida.') =>
+  new ApiException('WEBHOOK_SIGNATURE_INVALID', { message });
+export const webhookTimestampInvalid = (message = 'Timestamp inválido.') =>
+  new ApiException('WEBHOOK_TIMESTAMP_INVALID', { message });
+export const webhookReplayed = (message = 'Evento já processado.') =>
+  new ApiException('WEBHOOK_REPLAYED', { message });
+export const webhookEventNotAllowed = (message = 'Tipo de evento não permitido.') =>
+  new ApiException('WEBHOOK_EVENT_NOT_ALLOWED', { message });
+export const webhookEndpointSuspended = (message = 'Endpoint indisponível.') =>
+  new ApiException('WEBHOOK_ENDPOINT_SUSPENDED', { message });
+export const webhookTriggerDenied = (message = 'Gatilho não autorizado.') =>
+  new ApiException('WEBHOOK_TRIGGER_DENIED', { message });
+export const webhookDeliveryConflict = (message = 'Conflito de entrega.') =>
+  new ApiException('WEBHOOK_DELIVERY_CONFLICT', { message });
+export const rateLimited = (message = 'Muitas requisições.') =>
+  new ApiException('RATE_LIMITED', { message });
+
+// ── Rede segura / SSRF (ARDEN-BE-006.5) — mensagens públicas GENÉRICAS ───────────
+export const networkPolicyDenied = (message = 'Requisição bloqueada pela política de rede.') =>
+  new ApiException('NETWORK_POLICY_DENIED', { message });
+export const hostNotAllowed = (message = 'Host não permitido pela allowlist.') =>
+  new ApiException('HOST_NOT_ALLOWED', { message });
+export const protocolNotAllowed = (message = 'Protocolo ou porta não permitidos.') =>
+  new ApiException('PROTOCOL_NOT_ALLOWED', { message });
+export const privateNetworkDenied = (message = 'Destino em rede privada não é permitido.') =>
+  new ApiException('PRIVATE_NETWORK_DENIED', { message });
+export const ssrfBlocked = (message = 'Destino bloqueado por política de segurança.') =>
+  new ApiException('SSRF_BLOCKED', { message });
+export const redirectDenied = (message = 'Redirecionamento não permitido.') =>
+  new ApiException('REDIRECT_DENIED', { message });
+export const requestTooLarge = (message = 'Corpo da requisição excede o limite.') =>
+  new ApiException('REQUEST_TOO_LARGE', { message });
+export const responseTooLarge = (message = 'Resposta externa excede o limite.') =>
+  new ApiException('RESPONSE_TOO_LARGE', { message });
+export const externalTimeout = (message = 'Tempo limite da chamada externa.') =>
+  new ApiException('EXTERNAL_TIMEOUT', { message });
+export const externalRateLimited = (message = 'Provedor externo limitou a taxa.', details?: Record<string, unknown>) =>
+  new ApiException('EXTERNAL_RATE_LIMITED', { message, details });
+export const externalProviderError = (message = 'Erro do provedor externo.') =>
+  new ApiException('EXTERNAL_PROVIDER_ERROR', { message });
+export const externalResultUnknown = (message = 'Resultado da operação externa é incerto.') =>
+  new ApiException('EXTERNAL_RESULT_UNKNOWN', { message });

@@ -896,3 +896,305 @@ model ExecutionJob {
   @@index([leaseExpiresAt])
   @@map("execution_jobs")
 }
+
+// ─── Conectores, credenciais, ferramentas e webhooks (ARDEN-BE-006) ─────────────
+// Persistência (006.3). `organizationId` escalar (padrão AuditEvent); FKs e índices
+// parciais adicionais criados na migração SQL. NENHUM segredo persistido nesta fase:
+// os campos criptográficos permanecem NULL até o cofre (006.4).
+
+enum ConnectorCategory {
+  HTTP
+  WEBHOOK
+  DATABASE
+  MESSAGING
+  BUSINESS_SYSTEM
+  INTERNAL_TEST
+}
+
+enum ConnectorStatus {
+  ACTIVE
+  DEPRECATED
+  DISABLED
+}
+
+enum ConnectorToolRiskLevel {
+  READ
+  WRITE
+  DESTRUCTIVE
+  FINANCIAL
+  SECURITY_CRITICAL
+}
+
+enum ToolIdempotencyMode {
+  NONE
+  OPTIONAL
+  REQUIRED
+  PROVIDER_NATIVE
+}
+
+enum ToolRetryMode {
+  NEVER
+  SAFE
+  CONDITIONAL
+}
+
+enum ConnectionStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ERROR
+  REVOKED
+}
+
+enum ConnectionTestStatus {
+  SUCCESS
+  FAILURE
+  NOT_TESTED
+}
+
+enum CredentialStatus {
+  PENDING
+  ACTIVE
+  SUPERSEDED
+  REVOKED
+}
+
+enum WebhookEndpointStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum WebhookSignatureScheme {
+  HMAC_SHA256
+  STATIC_BEARER
+  NONE
+}
+
+enum WebhookDeliveryStatus {
+  RECEIVED
+  ACCEPTED
+  REJECTED
+  REPLAYED
+  PROCESSED
+  FAILED
+}
+
+/// Catálogo VERSIONADO de conectores (system-managed). `catalogHash` identifica a
+/// projeção da definição canônica (código → banco). CRUD público não altera.
+model ConnectorDefinition {
+  id                    String            @id @default(uuid()) @db.Uuid
+  key                   String
+  version               String
+  name                  String
+  description           String?
+  category              ConnectorCategory
+  status                ConnectorStatus   @default(ACTIVE)
+  systemManaged         Boolean           @default(true) @map("system_managed")
+  productionAllowed     Boolean           @default(true) @map("production_allowed")
+  configurationSchema   Json              @default("{}") @map("configuration_schema")
+  credentialSchema      Json              @default("{}") @map("credential_schema")
+  networkPolicyTemplate Json              @default("{}") @map("network_policy_template")
+  capabilityKeys        Json              @default("[]") @map("capability_keys")
+  catalogHash           String            @map("catalog_hash")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tools ConnectorToolDefinition[]
+
+  @@unique([key, version], name: "uniq_connector_key_version")
+  @@index([status])
+  @@map("connector_definitions")
+}
+
+/// Ferramenta TIPADA de um conector (system-managed). `actionKey` indexada.
+model ConnectorToolDefinition {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  connectorDefinitionId String                 @map("connector_definition_id") @db.Uuid
+  key                   String
+  version               String
+  name                  String
+  description           String?
+  actionKey             String                 @map("action_key")
+  inputSchema           Json                   @default("{}") @map("input_schema")
+  outputSchema          Json                   @default("{}") @map("output_schema")
+  riskLevel             ConnectorToolRiskLevel @default(READ) @map("risk_level")
+  idempotencyMode       ToolIdempotencyMode    @default(NONE) @map("idempotency_mode")
+  retryMode             ToolRetryMode          @default(NEVER) @map("retry_mode")
+  defaultTimeoutMs      Int                    @default(15000) @map("default_timeout_ms")
+  maximumTimeoutMs      Int                    @default(60000) @map("maximum_timeout_ms")
+  active                Boolean                @default(true)
+  catalogHash           String                 @map("catalog_hash")
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  connector    ConnectorDefinition       @relation(fields: [connectorDefinitionId], references: [id], onDelete: Cascade)
+  toolBindings OrganizationToolBinding[]
+
+  @@unique([connectorDefinitionId, key, version], name: "uniq_tool_key_version")
+  @@index([actionKey])
+  @@map("connector_tool_definitions")
+}
+
+/// Conexão de uma organização com um sistema externo. `configuration` NUNCA guarda
+/// segredo. Segredos vivem (cifrados, futuramente) em ConnectionCredentialVersion.
+model OrganizationConnection {
+  id                         String               @id @default(uuid()) @db.Uuid
+  organizationId             String               @map("organization_id") @db.Uuid
+  connectorDefinitionId      String               @map("connector_definition_id") @db.Uuid
+  name                       String
+  description                String?
+  status                     ConnectionStatus     @default(DRAFT)
+  configuration              Json                 @default("{}")
+  networkPolicy              Json                 @default("{}") @map("network_policy")
+  currentCredentialVersionId String?              @map("current_credential_version_id") @db.Uuid
+  lastTestedAt               DateTime?            @map("last_tested_at") @db.Timestamptz(6)
+  lastTestStatus             ConnectionTestStatus @default(NOT_TESTED) @map("last_test_status")
+  lastErrorCode              String?              @map("last_error_code")
+  lastErrorSummary           String?              @map("last_error_summary")
+  createdByUserId            String               @map("created_by_user_id") @db.Uuid
+  revision                   Int                  @default(1)
+  createdAt                  DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  credentialVersions ConnectionCredentialVersion[]
+  toolBindings       OrganizationToolBinding[]
+  webhookEndpoints   WebhookEndpoint[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, connectorDefinitionId])
+  @@index([organizationId, updatedAt])
+  @@map("organization_connections")
+}
+
+/// Versão de credencial. Estrutura final; campos criptográficos NULOS até o cofre
+/// (006.4). Índice parcial único garante ≤ 1 versão ACTIVE por conexão.
+model ConnectionCredentialVersion {
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @map("organization_id") @db.Uuid
+  connectionId     String           @map("connection_id") @db.Uuid
+  versionNumber    Int              @map("version_number")
+  status           CredentialStatus @default(PENDING)
+  encryptedSecret  String?          @map("encrypted_secret")
+  encryptedDataKey String?          @map("encrypted_data_key")
+  algorithm        String?
+  keyVersion       String?          @map("key_version")
+  nonce            String?
+  authTag          String?          @map("auth_tag")
+  fingerprint      String?
+  metadata         Json             @default("{}")
+  createdByUserId  String           @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  activatedAt      DateTime?        @map("activated_at") @db.Timestamptz(6)
+  supersededAt     DateTime?        @map("superseded_at") @db.Timestamptz(6)
+  revokedAt        DateTime?        @map("revoked_at") @db.Timestamptz(6)
+
+  connection OrganizationConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+
+  @@unique([connectionId, versionNumber], name: "uniq_credential_version_per_connection")
+  @@index([organizationId, status])
+  @@map("connection_credential_versions")
+}
+
+/// Vínculo organização → ferramenta de um conector, sobre uma conexão.
+model OrganizationToolBinding {
+  id                        String   @id @default(uuid()) @db.Uuid
+  organizationId            String   @map("organization_id") @db.Uuid
+  connectionId              String   @map("connection_id") @db.Uuid
+  connectorToolDefinitionId String   @map("connector_tool_definition_id") @db.Uuid
+  name                      String
+  enabled                   Boolean  @default(true)
+  configurationOverrides    Json     @default("{}") @map("configuration_overrides")
+  policyOverrides           Json     @default("{}") @map("policy_overrides")
+  createdByUserId           String   @map("created_by_user_id") @db.Uuid
+  revision                  Int      @default(1)
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  connection        OrganizationConnection  @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  tool              ConnectorToolDefinition @relation(fields: [connectorToolDefinitionId], references: [id], onDelete: Restrict)
+  operationBindings OperationToolBinding[]
+
+  @@index([organizationId, enabled])
+  @@index([connectionId])
+  @@index([connectorToolDefinitionId])
+  @@map("organization_tool_bindings")
+}
+
+/// Vínculo de ferramenta a operação/versão (alias + mapeamento declarativo).
+/// Remoção é LÓGICA (removedAt/removedByUserId) — preserva histórico.
+model OperationToolBinding {
+  id                        String    @id @default(uuid()) @db.Uuid
+  organizationId            String    @map("organization_id") @db.Uuid
+  operationId               String    @map("operation_id") @db.Uuid
+  operationVersionId        String?   @map("operation_version_id") @db.Uuid
+  organizationToolBindingId String    @map("organization_tool_binding_id") @db.Uuid
+  alias                     String
+  enabled                   Boolean   @default(true)
+  allowedActionKeys         Json      @default("[]") @map("allowed_action_keys")
+  inputMapping              Json      @default("{}") @map("input_mapping")
+  outputMapping             Json      @default("{}") @map("output_mapping")
+  removedAt                 DateTime? @map("removed_at") @db.Timestamptz(6)
+  removedByUserId           String?   @map("removed_by_user_id") @db.Uuid
+  createdByUserId           String    @map("created_by_user_id") @db.Uuid
+  revision                  Int       @default(1)
+  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  binding OrganizationToolBinding @relation(fields: [organizationToolBindingId], references: [id], onDelete: Restrict)
+
+  @@index([operationId, enabled])
+  @@index([operationVersionId, enabled])
+  @@index([organizationId, alias])
+  @@map("operation_tool_bindings")
+}
+
+/// Endpoint de webhook de ENTRADA. Token só como hash (nunca em claro).
+model WebhookEndpoint {
+  id                        String                 @id @default(uuid()) @db.Uuid
+  organizationId            String                 @map("organization_id") @db.Uuid
+  connectionId              String                 @map("connection_id") @db.Uuid
+  key                       String
+  status                    WebhookEndpointStatus  @default(ACTIVE)
+  pathTokenHash             String                 @map("path_token_hash")
+  signatureScheme           WebhookSignatureScheme @default(HMAC_SHA256) @map("signature_scheme")
+  secretCredentialVersionId String?                @map("secret_credential_version_id") @db.Uuid
+  replayWindowSeconds       Int                    @default(300) @map("replay_window_seconds")
+  allowedEventTypes         Json                   @default("[]") @map("allowed_event_types")
+  operationId               String?                @map("operation_id") @db.Uuid
+  operationVersionId        String?                @map("operation_version_id") @db.Uuid
+  createdByUserId           String                 @map("created_by_user_id") @db.Uuid
+  revision                  Int                    @default(1)
+  createdAt                 DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  connection OrganizationConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  deliveries WebhookDelivery[]
+
+  @@unique([pathTokenHash], name: "uniq_webhook_token_hash")
+  @@index([organizationId, status])
+  @@index([connectionId])
+  @@map("webhook_endpoints")
+}
+
+/// Entrega recebida em um webhook. Append-oriented; transições só por service.
+model WebhookDelivery {
+  id                 String                @id @default(uuid()) @db.Uuid
+  organizationId     String                @map("organization_id") @db.Uuid
+  webhookEndpointId  String                @map("webhook_endpoint_id") @db.Uuid
+  externalDeliveryId String?               @map("external_delivery_id")
+  payloadHash        String                @map("payload_hash")
+  status             WebhookDeliveryStatus @default(RECEIVED)
+  receivedAt         DateTime              @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt        DateTime?             @map("processed_at") @db.Timestamptz(6)
+  correlationId      String                @map("correlation_id")
+  errorCode          String?               @map("error_code")
+  errorSummary       String?               @map("error_summary")
+
+  endpoint WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Restrict)
+
+  @@index([webhookEndpointId, receivedAt])
+  @@index([organizationId, receivedAt])
+  @@index([organizationId, payloadHash])
+  @@map("webhook_deliveries")
+}

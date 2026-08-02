@@ -44,6 +44,18 @@ export const envSchema = z
     SUPABASE_JWT_ISSUER: z.string().optional().default(''),
     SUPABASE_JWT_AUDIENCE: z.string().optional().default(''),
     AUTH_CLOCK_TOLERANCE_SECONDS: z.coerce.number().int().min(0).max(300).default(5),
+
+    // ── Cofre de credenciais (ARDEN-BE-006.4) ────────────────────────────────
+    // Provider do cofre. `fake` só para testes; proibido em production.
+    CONNECTOR_VAULT_PROVIDER: z.enum(['app-aes-gcm', 'fake']).default('app-aes-gcm'),
+    // Master key AES-256 (Base64 → exatamente 32 bytes). NUNCA versionada; NUNCA
+    // com default. Obrigatória em production com provider app-aes-gcm.
+    CONNECTOR_MASTER_KEY: z.string().optional().default(''),
+    // Versão da chave corrente (persistida nos metadados da credencial).
+    CONNECTOR_KEY_VERSION: z.string().min(1).default('v1'),
+    // Keyring opcional (JSON { "<version>": "<base64-32-bytes>" }) para decifrar
+    // versões antigas após rotação de master key.
+    CONNECTOR_KEYRING_JSON: z.string().optional().default(''),
   })
   .transform((env) => ({
     ...env,
@@ -70,6 +82,55 @@ export const envSchema = z
         path: ['AUTH_PROVIDER'],
         message: 'AUTH_PROVIDER=fake é proibido em production.',
       });
+    }
+
+    // ── Cofre de credenciais (ARDEN-BE-006.4) ────────────────────────────────
+    // O provider fake NUNCA pode ser ativado em produção.
+    if (env.CONNECTOR_VAULT_PROVIDER === 'fake' && env.NODE_ENV === 'production') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['CONNECTOR_VAULT_PROVIDER'],
+        message: 'CONNECTOR_VAULT_PROVIDER=fake é proibido em production.',
+      });
+    }
+    if (env.CONNECTOR_VAULT_PROVIDER === 'app-aes-gcm') {
+      const key = env.CONNECTOR_MASTER_KEY;
+      if (!key) {
+        if (env.NODE_ENV === 'production') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['CONNECTOR_MASTER_KEY'],
+            message: 'CONNECTOR_MASTER_KEY é obrigatória em production (Base64 de 32 bytes).',
+          });
+        }
+      } else {
+        // Se fornecida, DEVE decodificar para exatamente 32 bytes (AES-256).
+        let bytes = -1;
+        try {
+          bytes = Buffer.from(key, 'base64').length;
+        } catch {
+          bytes = -1;
+        }
+        if (bytes !== 32) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['CONNECTOR_MASTER_KEY'],
+            message: 'CONNECTOR_MASTER_KEY deve ser Base64 de exatamente 32 bytes.',
+          });
+        }
+      }
+    }
+    if (env.CONNECTOR_KEYRING_JSON) {
+      try {
+        const parsed = JSON.parse(env.CONNECTOR_KEYRING_JSON) as Record<string, string>;
+        for (const [ver, b64] of Object.entries(parsed)) {
+          if (Buffer.from(b64, 'base64').length !== 32) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['CONNECTOR_KEYRING_JSON'], message: `Chave ${ver} do keyring deve ter 32 bytes.` });
+          }
+        }
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['CONNECTOR_KEYRING_JSON'], message: 'CONNECTOR_KEYRING_JSON deve ser JSON válido.' });
+      }
     }
 
     // Supabase exige JWKS e issuer para verificação criptográfica do token.
