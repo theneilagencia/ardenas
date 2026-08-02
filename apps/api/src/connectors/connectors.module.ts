@@ -27,6 +27,8 @@ import { OrganizationToolBindingsRepository, OperationToolBindingsRepository } f
 import { ToolBindingsService } from './tool-bindings/tool-bindings.service';
 import { WebhookEndpointsRepository, WebhookDeliveriesRepository } from './webhooks/webhooks.repository';
 import { WebhooksService } from './webhooks/webhooks.service';
+import { NodeSecureHttpClient } from './http/secure-http-client';
+import { SECURE_HTTP_CLIENT } from './http/secure-http.types';
 
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule],
@@ -48,6 +50,8 @@ import { WebhooksService } from './webhooks/webhooks.service';
     // Cofre de credenciais (ARDEN-BE-006.4).
     ConnectorKeyProvider,
     CredentialResolver,
+    // Cliente HTTP seguro / prevenção SSRF (ARDEN-BE-006.5).
+    { provide: SECURE_HTTP_CLIENT, useClass: NodeSecureHttpClient },
     {
       provide: SECRET_VAULT,
       inject: [APP_CONFIG, ConnectorKeyProvider, PrismaService],
@@ -79,6 +83,7 @@ import { WebhooksService } from './webhooks/webhooks.service';
     WebhookDeliveriesRepository,
     CredentialResolver,
     SECRET_VAULT,
+    SECURE_HTTP_CLIENT,
   ],
 })
 export class ConnectorsModule {}

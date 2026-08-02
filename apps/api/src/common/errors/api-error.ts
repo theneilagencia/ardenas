@@ -188,3 +188,29 @@ export const toolExecutionDenied = (message = 'Execução de ferramenta negada.'
   new ApiException('TOOL_EXECUTION_DENIED', { message });
 export const webhookEndpointRevoked = (message = 'Endpoint de webhook revogado.') =>
   new ApiException('WEBHOOK_ENDPOINT_REVOKED', { message });
+
+// ── Rede segura / SSRF (ARDEN-BE-006.5) — mensagens públicas GENÉRICAS ───────────
+export const networkPolicyDenied = (message = 'Requisição bloqueada pela política de rede.') =>
+  new ApiException('NETWORK_POLICY_DENIED', { message });
+export const hostNotAllowed = (message = 'Host não permitido pela allowlist.') =>
+  new ApiException('HOST_NOT_ALLOWED', { message });
+export const protocolNotAllowed = (message = 'Protocolo ou porta não permitidos.') =>
+  new ApiException('PROTOCOL_NOT_ALLOWED', { message });
+export const privateNetworkDenied = (message = 'Destino em rede privada não é permitido.') =>
+  new ApiException('PRIVATE_NETWORK_DENIED', { message });
+export const ssrfBlocked = (message = 'Destino bloqueado por política de segurança.') =>
+  new ApiException('SSRF_BLOCKED', { message });
+export const redirectDenied = (message = 'Redirecionamento não permitido.') =>
+  new ApiException('REDIRECT_DENIED', { message });
+export const requestTooLarge = (message = 'Corpo da requisição excede o limite.') =>
+  new ApiException('REQUEST_TOO_LARGE', { message });
+export const responseTooLarge = (message = 'Resposta externa excede o limite.') =>
+  new ApiException('RESPONSE_TOO_LARGE', { message });
+export const externalTimeout = (message = 'Tempo limite da chamada externa.') =>
+  new ApiException('EXTERNAL_TIMEOUT', { message });
+export const externalRateLimited = (message = 'Provedor externo limitou a taxa.', details?: Record<string, unknown>) =>
+  new ApiException('EXTERNAL_RATE_LIMITED', { message, details });
+export const externalProviderError = (message = 'Erro do provedor externo.') =>
+  new ApiException('EXTERNAL_PROVIDER_ERROR', { message });
+export const externalResultUnknown = (message = 'Resultado da operação externa é incerto.') =>
+  new ApiException('EXTERNAL_RESULT_UNKNOWN', { message });
