@@ -58,6 +58,21 @@ export type Permission =
   | 'webhook.view'
   | 'webhook.manage'
   | 'integration.execute'
+  // Runtime de agentes e modelos (ARDEN-BE-007).
+  | 'agent.view'
+  | 'agent.create'
+  | 'agent.edit'
+  | 'agent.publish'
+  | 'agent.suspend'
+  | 'agent.revoke'
+  | 'agent.execute'
+  | 'agent.cost.view'
+  | 'model_provider.view'
+  | 'model_provider.manage'
+  | 'model_configuration.view'
+  | 'model_configuration.create'
+  | 'model_configuration.edit'
+  | 'model_configuration.revoke'
   | 'context.view'
   | 'context.manage'
   | 'file.view'
@@ -125,6 +140,20 @@ export const ALL_PERMISSIONS: Permission[] = [
   'webhook.view',
   'webhook.manage',
   'integration.execute',
+  'agent.view',
+  'agent.create',
+  'agent.edit',
+  'agent.publish',
+  'agent.suspend',
+  'agent.revoke',
+  'agent.execute',
+  'agent.cost.view',
+  'model_provider.view',
+  'model_provider.manage',
+  'model_configuration.view',
+  'model_configuration.create',
+  'model_configuration.edit',
+  'model_configuration.revoke',
   'context.view',
   'context.manage',
   'file.view',
@@ -182,6 +211,13 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'tool.bind',
     'webhook.view',
     'integration.execute',
+    'agent.view',
+    'agent.create',
+    'agent.edit',
+    'agent.publish',
+    'agent.execute',
+    'model_provider.view',
+    'model_configuration.view',
     'file.view',
     'budget.view',
     'audit.view',
@@ -204,6 +240,9 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'connection.view',
     'connection.test',
     'integration.execute',
+    'agent.view',
+    'agent.execute',
+    'agent.cost.view',
   ],
   approver: [
     'organization.view',
@@ -245,6 +284,15 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'tool.bind',
     'webhook.view',
     'webhook.manage',
+    'agent.view',
+    'agent.suspend',
+    'agent.revoke',
+    'model_provider.view',
+    'model_provider.manage',
+    'model_configuration.view',
+    'model_configuration.create',
+    'model_configuration.edit',
+    'model_configuration.revoke',
     'risk.view',
     'risk.manage',
     'audit.view',
@@ -271,6 +319,10 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'connection.view',
     'tool.view',
     'webhook.view',
+    'agent.view',
+    'agent.cost.view',
+    'model_provider.view',
+    'model_configuration.view',
   ],
 };
 
@@ -369,5 +421,8 @@ export function grantedBy(permission: Permission): RoleKey {
   if (permission.startsWith('policy') || permission.startsWith('security'))
     return 'security_admin';
   if (permission.startsWith('role')) return 'security_admin';
+  if (permission.startsWith('model_')) return 'security_admin';
+  if (permission === 'agent.suspend' || permission === 'agent.revoke') return 'security_admin';
+  if (permission.startsWith('agent')) return 'operation_owner';
   return 'corporate_admin';
 }
