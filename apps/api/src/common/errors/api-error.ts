@@ -173,6 +173,9 @@ export const credentialInvalid = (fieldErrors: FieldError[], message = 'Credenci
   new ApiException('CREDENTIAL_INVALID', { message, fieldErrors });
 export const credentialRevoked = (message = 'Credencial revogada.') =>
   new ApiException('CREDENTIAL_REVOKED', { message });
+/** Falha SANITIZADA ao resolver/decifrar (nunca expõe detalhe criptográfico). */
+export const credentialResolutionFailed = (message = 'Não foi possível resolver a credencial.') =>
+  new ApiException('CREDENTIAL_RESOLUTION_FAILED', { message });
 export const credentialRotationConflict = (message = 'Rotação de credencial concorrente.') =>
   new ApiException('CREDENTIAL_ROTATION_CONFLICT', { message });
 export const toolNotAvailable = (message = 'Ferramenta indisponível.') =>
