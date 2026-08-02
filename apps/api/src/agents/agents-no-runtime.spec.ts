@@ -1,7 +1,7 @@
 /**
- * Arden.AS API — guarda de escopo do ARDEN-BE-007.2: APENAS persistência/admin.
- * Falha se aparecer runtime de LLM, executor de agente, SDK de provider ou rota de
- * execução direta no módulo de agentes.
+ * Arden.AS API — guarda de escopo do runtime de agentes (ARDEN-BE-007.3).
+ * O runtime determinístico é permitido; falha se aparecer SDK COMERCIAL de LLM,
+ * chamada real de rede a modelo ou rota de execução direta no módulo de agentes.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -27,17 +27,17 @@ function stripComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
-describe('escopo 007.2 — sem runtime, SDK ou execução', () => {
-  it('nenhum arquivo importa SDK de LLM', () => {
-    const forbidden = ['@anthropic-ai', "'openai'", 'bedrock', 'vertexai', 'langchain', 'llamaindex'];
+describe('escopo 007.3 — runtime determinístico, sem SDK comercial nem execução direta', () => {
+  it('nenhum arquivo importa SDK COMERCIAL de LLM', () => {
+    const forbidden = ['@anthropic-ai', "'openai'", 'bedrock', 'vertexai', 'langchain', 'llamaindex', '@aws-sdk/client-bedrock', '@google-cloud/vertexai'];
     for (const f of files) {
       const src = readFileSync(f, 'utf8').toLowerCase();
       for (const dep of forbidden) expect(src.includes(dep.toLowerCase()), `${f} → ${dep}`).toBe(false);
     }
   });
 
-  it('nenhuma classe de execução/runtime de agente é definida', () => {
-    const forbidden = ['ExecuteAgentService', 'AgentStepExecutor', 'class AgentRuntime', 'ModelProviderRuntime', 'callModel', 'generateCompletion'];
+  it('nenhum arquivo faz chamada de rede real (fetch/http/https/undici)', () => {
+    const forbidden = ["from 'node:http'", "from 'node:https'", "from 'undici'", 'globalThis.fetch(', 'await fetch('];
     for (const f of files) {
       const src = stripComments(readFileSync(f, 'utf8'));
       for (const token of forbidden) expect(src.includes(token), `${f} → ${token}`).toBe(false);
