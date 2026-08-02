@@ -330,4 +330,9 @@ export interface ArdenApiV1Client {
   suspendWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
   reactivateWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
   revokeWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
+
+  // Agentes/modelos (ARDEN-BE-007): APIs administrativas contratadas em OpenAPI. As
+  // assinaturas tipadas do cliente serão adicionadas na fase que implementar o
+  // transporte/persistência (007.2+) — evita métodos mortos contra endpoints ainda
+  // inexistentes e mantém o cliente funcional inalterado nesta fase de contratos.
 }

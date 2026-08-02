@@ -18,4 +18,5 @@ export * from './approvals';
 export * from './enforcement';
 export * from './executions';
 export * from './connectors';
+export * from './agents';
 export { schemaRegistry, endpoints } from './registry';

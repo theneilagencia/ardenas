@@ -22,6 +22,7 @@ import { approvalsSchemas, approvalsEndpoints } from './approvals/approvals.cont
 import { enforcementSchemas, enforcementEndpoints } from './enforcement/enforcement.contract';
 import { executionsSchemas, executionsEndpoints } from './executions/executions.contract';
 import { connectorsSchemas, connectorsEndpoints } from './connectors/connectors.contract';
+import { agentsSchemas, agentsEndpoints } from './agents/agents.contract';
 
 /** Schemas nomeados → components.schemas do OpenAPI. */
 export const schemaRegistry: Record<string, z.ZodTypeAny> = {
@@ -36,6 +37,7 @@ export const schemaRegistry: Record<string, z.ZodTypeAny> = {
   ...enforcementSchemas,
   ...executionsSchemas,
   ...connectorsSchemas,
+  ...agentsSchemas,
 };
 
 /** Todos os endpoints da API v1. */
@@ -50,4 +52,5 @@ export const endpoints: EndpointContract[] = [
   ...enforcementEndpoints,
   ...executionsEndpoints,
   ...connectorsEndpoints,
+  ...agentsEndpoints,
 ];

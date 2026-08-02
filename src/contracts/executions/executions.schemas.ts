@@ -64,8 +64,18 @@ export const executorActionKey = z.enum([
   'connector.test.echo',
   'connector.test.failure',
   'connector.test.timeout',
+  // Runtime de agentes (ARDEN-BE-007). Roteia (fase futura) para o `AgentStepExecutor`
+  // via DI no `StepExecutorRegistry` — nunca por classe vinda do banco. Único da fase.
+  'agent.execute',
 ]);
 export type ExecutorActionKey = z.infer<typeof executorActionKey>;
+
+/** Action keys que roteiam para o executor de agente (DI, não estático). */
+export const AGENT_EXECUTOR_ACTION_KEYS: readonly ExecutorActionKey[] = ['agent.execute'];
+
+export function isAgentExecutorActionKey(actionKey: string): boolean {
+  return (AGENT_EXECUTOR_ACTION_KEYS as readonly string[]).includes(actionKey);
+}
 
 /** Action keys que roteiam para o executor externo de conector (DI, não estático). */
 export const EXTERNAL_EXECUTOR_ACTION_KEYS: readonly ExecutorActionKey[] = [

@@ -109,3 +109,16 @@ export type WebhookEndpointId = z.infer<typeof webhookEndpointId>;
 
 export const webhookDeliveryId = opaqueId;
 export type WebhookDeliveryId = z.infer<typeof webhookDeliveryId>;
+
+// Runtime de agentes e modelos (ARDEN-BE-007)
+export const agentDefinitionId = opaqueId;
+export type AgentDefinitionId = z.infer<typeof agentDefinitionId>;
+
+export const agentVersionId = opaqueId;
+export type AgentVersionId = z.infer<typeof agentVersionId>;
+
+export const modelConfigurationId = opaqueId;
+export type ModelConfigurationId = z.infer<typeof modelConfigurationId>;
+
+export const agentModelCallId = opaqueId;
+export type AgentModelCallId = z.infer<typeof agentModelCallId>;

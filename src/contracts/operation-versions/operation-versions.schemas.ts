@@ -31,6 +31,18 @@ export const operationStepTool = z.object({
 });
 export type OperationStepTool = z.infer<typeof operationStepTool>;
 
+/**
+ * Referência OPCIONAL a um agente executado por esta etapa (ARDEN-BE-007). Declara
+ * que a etapa invoca a versão PUBLICADA do agente `agentKey` via a action key
+ * `agent.execute` (resolvida tenant-scoped na execução, pelo `AgentStepExecutor`).
+ * NÃO carrega prompt, modelId, provider, segredo nem classe — sem execução direta.
+ */
+export const operationStepAgent = z.object({
+  agentKey: z.string().min(1).max(80),
+  actionKey: z.literal('agent.execute'),
+});
+export type OperationStepAgent = z.infer<typeof operationStepAgent>;
+
 /** Passo da operação (espelha `OperationStep` do frontend). */
 export const operationStep = z.object({
   id: z.string().min(1),
@@ -42,6 +54,7 @@ export const operationStep = z.object({
   workUnitCost: z.number().int().min(0),
   producesEvidence: z.boolean(),
   tool: operationStepTool.optional(),
+  agent: operationStepAgent.optional(),
 });
 export type OperationStep = z.infer<typeof operationStep>;
 
