@@ -39,4 +39,10 @@ export interface EndpointContract {
   responseSchema: string;
   /** Descrição adicional (ex.: efeitos transacionais, imutabilidade). */
   description?: string;
+  /**
+   * Endpoint PÚBLICO autenticado por outro mecanismo que não permissão de usuário
+   * (ex.: webhook de entrada autenticado por assinatura/token na URL — ARDEN-BE-006).
+   * Nestes casos `permission` é `null` e o backend valida a assinatura, não a sessão.
+   */
+  public?: boolean;
 }
