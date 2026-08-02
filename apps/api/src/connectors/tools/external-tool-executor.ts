@@ -220,7 +220,10 @@ export class ExternalToolExecutor {
     let responseHash: string | undefined;
     if (classification.status === 'SUCCEEDED') {
       const parsedBody = safeJsonParse(response.body);
-      const rawOutput = { status: response.status, headers: sanitizeHeaders(response.headers), body: parsedBody };
+      // Formato do output conforme a ferramenta: webhook = {status,delivered}; http = {status,headers,body}.
+      const rawOutput = binding.actionKey === 'external.webhook.send'
+        ? { status: response.status, delivered: response.status >= 200 && response.status < 300 }
+        : { status: response.status, headers: sanitizeHeaders(response.headers), body: parsedBody };
       responseHash = sha256(rawOutput);
       // (11) valida o output contra o schema da ferramenta ANTES de sucesso.
       const outputViolations = validateAgainstSchema(rawOutput, binding.outputSchema);
