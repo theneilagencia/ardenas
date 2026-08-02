@@ -259,3 +259,13 @@ export const modelConfigurationNotActive = (message = 'Configuração de modelo 
   new ApiException('MODEL_CONFIGURATION_NOT_ACTIVE', { message });
 export const agentInputInvalid = (fieldErrors: FieldError[], message = 'Entrada de agente inválida.') =>
   new ApiException('AGENT_INPUT_INVALID', { message, fieldErrors });
+
+// ── Montagem de contexto e guardrails (ARDEN-BE-007.4) ──────────────────────────
+export const agentContextSourceNotAllowed = (message = 'Fonte de contexto não permitida pela política do agente.') =>
+  new ApiException('AGENT_CONTEXT_SOURCE_NOT_ALLOWED', { message });
+export const agentContextSourceNotFound = (message = 'Fonte de contexto referenciada não encontrada para o tenant.') =>
+  new ApiException('AGENT_CONTEXT_SOURCE_NOT_FOUND', { message });
+export const agentContextSourceInvalid = (message = 'Conteúdo de fonte de contexto inválido ou não serializável.') =>
+  new ApiException('AGENT_CONTEXT_SOURCE_INVALID', { message });
+export const agentContextBudgetExceeded = (message = 'Orçamento de contexto excedido após alocação e truncamento.') =>
+  new ApiException('AGENT_CONTEXT_BUDGET_EXCEEDED', { message });

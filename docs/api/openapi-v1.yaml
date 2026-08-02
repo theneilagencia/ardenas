@@ -10983,6 +10983,10 @@ components:
                 - MODEL_CONTENT_FILTERED
                 - AGENT_EVALUATION_FAILED
                 - AGENT_PROMPT_INJECTION_DETECTED
+                - AGENT_CONTEXT_SOURCE_NOT_ALLOWED
+                - AGENT_CONTEXT_SOURCE_NOT_FOUND
+                - AGENT_CONTEXT_SOURCE_INVALID
+                - AGENT_CONTEXT_BUDGET_EXCEEDED
                 - RATE_LIMITED
                 - DEPENDENCY_UNAVAILABLE
                 - INTERNAL_ERROR
