@@ -13,6 +13,8 @@ import { PrismaService } from '../database/prisma.service';
 import { APP_CONFIG } from '../config/config.module';
 import type { AppConfig } from '../config/env.schema';
 import { ConnectorDefinitionsRepository, ConnectorToolDefinitionsRepository } from './catalog/catalog.repository';
+import { ConnectorsController } from './catalog/connectors.controller';
+import { ConnectionsController } from './connections/connections.controller';
 import { ConnectorKeyProvider } from './vault/connector-key-provider';
 import { AppAesGcmVault } from './vault/app-aes-gcm.vault';
 import { FakeVault } from './vault/fake.vault';
@@ -38,7 +40,7 @@ import { ToolBindingsController } from './tool-bindings/tool-bindings.controller
 
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule],
-  controllers: [CredentialsController, ToolBindingsController, WebhooksController],
+  controllers: [ConnectorsController, ConnectionsController, CredentialsController, ToolBindingsController, WebhooksController],
   providers: [
     ConnectorDefinitionsRepository,
     ConnectorToolDefinitionsRepository,

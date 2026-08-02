@@ -8,9 +8,9 @@
  * para 006.4 (documentado). NÃO aceita segredo.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { connectorNetworkPolicy, type CreateConnectionRequest, type UpdateConnectionRequest, type Connection, type ConnectionStatus } from '@arden/contracts';
+import { connectorNetworkPolicy, type CreateConnectionRequest, type UpdateConnectionRequest, type Connection, type ConnectionStatus, type TestConnectionResult } from '@arden/contracts';
 import { PrismaService } from '../../database/prisma.service';
 import { IdempotencyService } from '../../modules/idempotency/idempotency.service';
 import { AuditRecorder } from '../../audit/audit.recorder';
@@ -18,9 +18,14 @@ import { runIdempotentCommand } from '../../operations/command.helpers';
 import { assertRevision } from '../../common/concurrency/optimistic-concurrency';
 import type { AuthenticatedRequestContext } from '../../identity/request-context';
 import {
-  notFound, connectorNotAvailable, connectorDeprecated, invalidStateTransition, connectionRevoked, versionConflict,
+  notFound, connectorNotAvailable, connectorDeprecated, invalidStateTransition, connectionRevoked, versionConflict, toolExecutionDenied, ApiException,
 } from '../../common/errors/api-error';
-import { OrganizationConnectionsRepository } from './connections.repository';
+import { sensitiveDataRedactor } from '../../common/redaction/sensitive-data-redactor';
+import { SECURE_HTTP_CLIENT, type SecureHttpClient } from '../http/secure-http.types';
+import { buildSecureHttpPolicy } from '../tools/network-policy-runtime';
+import { buildAuthHeaders, deriveAuthMode } from '../tools/auth-builder';
+import { CredentialResolver } from '../vault/credential-resolver';
+import { OrganizationConnectionsRepository, ConnectionCredentialVersionsRepository } from './connections.repository';
 import { ConnectorDefinitionsRepository } from '../catalog/catalog.repository';
 import { canTransitionConnection } from '../connector.state-machines';
 import { toConnectionContract } from '../connectors.serializers';
@@ -38,9 +43,12 @@ export class ConnectionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly repo: OrganizationConnectionsRepository,
+    private readonly credentials: ConnectionCredentialVersionsRepository,
     private readonly connectors: ConnectorDefinitionsRepository,
+    private readonly credentialResolver: CredentialResolver,
     private readonly idem: IdempotencyService,
     private readonly audit: AuditRecorder,
+    @Inject(SECURE_HTTP_CLIENT) private readonly http: SecureHttpClient,
   ) {}
 
   private orgId(ctx: AuthenticatedRequestContext): string {
@@ -133,6 +141,67 @@ export class ConnectionsService {
     const row = await this.repo.findById(this.orgId(ctx), id);
     if (!row) throw notFound('Conexão não encontrada.');
     return { data: await this.withKey(row) };
+  }
+
+  /**
+   * Teste FUNCIONAL da conexão (ARDEN-BE-006.6/.8): resolve a credencial ativa
+   * server-side, monta um request ao endpoint FIXO da configuração (nunca URL
+   * arbitrária) e usa o SecureHttpClient (SSRF + política de rede). Resultado
+   * SANITIZADO; nunca persiste/retorna segredo. Atualiza lastTested* e audita.
+   */
+  async test(ctx: AuthenticatedRequestContext, id: string): Promise<{ data: TestConnectionResult }> {
+    const orgId = this.orgId(ctx);
+    const nodeEnv = process.env.NODE_ENV ?? 'development';
+    const conn = await this.repo.findById(orgId, id);
+    if (!conn) throw notFound('Conexão não encontrada.');
+    if (conn.status === 'REVOKED') throw connectionRevoked();
+    const def = await this.connectors.findById(conn.connectorDefinitionId);
+    if (!def) throw connectorNotAvailable();
+    if (!def.productionAllowed && nodeEnv === 'production') throw toolExecutionDenied('Conector de teste é proibido em produção.');
+
+    const config = (conn.configuration ?? {}) as Record<string, unknown>;
+    const startedAt = Date.now();
+    let status: TestConnectionResult['status'] = 'SUCCESS';
+    let latencyMs: number | null = null;
+    let errorCode: string | null = null;
+    let errorSummary: string | null = null;
+    let fingerprint: string | null = null;
+
+    try {
+      // internal.test não faz rede: teste determinístico (só fora de produção).
+      if (def.key === 'internal.test') {
+        latencyMs = 0;
+      } else {
+        const endpoint = def.key === 'system.webhook' ? config.endpointUrl : config.baseUrl;
+        if (typeof endpoint !== 'string' || !endpoint) throw toolExecutionDenied('Configuração sem endpoint fixo.');
+        const policy = buildSecureHttpPolicy({ template: def.networkPolicyTemplate, connectionPolicy: conn.networkPolicy }, nodeEnv);
+
+        const headers: Record<string, string> = {};
+        if (conn.currentCredentialVersionId) {
+          const resolved = await this.credentialResolver.resolveCredentialVersion({ organizationId: orgId, connectionId: id, credentialVersionId: conn.currentCredentialVersionId });
+          fingerprint = resolved.fingerprint;
+          const mode = deriveAuthMode(def.key, resolved.secret, false);
+          Object.assign(headers, buildAuthHeaders({ mode, secret: resolved.secret, headerName: typeof resolved.secret.headerName === 'string' ? resolved.secret.headerName : undefined, now: new Date(), correlationId: ctx.correlationId }));
+          resolved.secret = {};
+        }
+        const resp = await this.http.execute({ url: endpoint, method: 'GET', headers }, policy, { organizationId: orgId, correlationId: ctx.correlationId, connectionId: id });
+        latencyMs = Date.now() - startedAt;
+        if (resp.status >= 500) { status = 'FAILURE'; errorCode = 'EXTERNAL_PROVIDER_ERROR'; errorSummary = `Provedor respondeu ${resp.status}.`; }
+      }
+    } catch (err) {
+      status = 'FAILURE';
+      latencyMs = Date.now() - startedAt;
+      errorCode = err instanceof ApiException ? err.code : 'EXTERNAL_PROVIDER_ERROR';
+      errorSummary = sensitiveDataRedactor.redactError(err).message;
+    }
+
+    const checkedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.organizationConnection.updateMany({ where: { id, organizationId: orgId }, data: { lastTestedAt: checkedAt, lastTestStatus: status, lastErrorCode: errorCode, lastErrorSummary: errorSummary } });
+      await this.audit.record(tx, { organizationId: orgId, actorUserId: ctx.userId, action: 'connection.tested', resourceType: 'organization_connection', resourceId: id, outcome: status === 'SUCCESS' ? 'SUCCESS' : 'FAILURE', correlationId: ctx.correlationId, metadata: { status, latencyMs, errorCode } });
+    });
+
+    return { data: { status, checkedAt: checkedAt.toISOString(), latencyMs, credentialFingerprint: fingerprint, errorCode, errorSummary } };
   }
 
   async list(ctx: AuthenticatedRequestContext, filters: { connectorDefinitionId?: string; status?: ConnectionStatus; search?: string }, limit: number, cursor?: string): Promise<{ data: Connection[]; nextCursor: string | null }> {

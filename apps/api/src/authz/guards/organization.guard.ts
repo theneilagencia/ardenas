@@ -30,10 +30,13 @@ export class OrganizationGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest<FastifyRequest>();
     const params = (req.params ?? {}) as Record<string, string | undefined>;
-    const organizationId = params.organizationId;
+    // Tenant do PATH ou, para rotas system-managed sem :organizationId (ex.: catálogo),
+    // do header `X-Arden-Organization` (a org ATIVA da sessão; nunca digitada pelo user).
+    const headerOrg = (req.headers['x-arden-organization'] as string | undefined) || undefined;
+    const organizationId = params.organizationId ?? headerOrg;
     const requireOrg = this.reflector.getAllAndOverride<boolean>(REQUIRE_ORG_KEY, targets);
 
-    // Rota não organizacional: nada a resolver.
+    // Rota não organizacional e sem tenant informado: nada a resolver.
     if (!organizationId && !requireOrg) return true;
 
     const ctx = getContext(req);
