@@ -8,12 +8,9 @@ import { InMemoryModelProviderRegistry } from './model-provider-registry';
 import { InternalTestModelProvider } from './internal-test-model.provider';
 import { AgentOutputValidatorV1 } from './agent-output-validator';
 import { AgentEvaluatorV1 } from './agent-evaluator';
-import { AgentContextAssemblerV1 } from './agent-context-assembler';
 import { estimateTokens, estimateTokensFromString } from './token-estimator';
 import {
-  agentContextPolicy,
   agentEvaluationPolicy,
-  AGENT_CONTEXT_POLICY_SAFE_DEFAULT,
   AGENT_EVALUATION_POLICY_SAFE_DEFAULT,
 } from '@arden/contracts';
 
@@ -65,23 +62,6 @@ describe('AgentEvaluatorV1', () => {
     const r = e.evaluate({ policy: p, acceptedOutput: {}, outputSchemaValid: true, evidenceReferenceIds: [] });
     expect(r.passed).toBe(false);
     expect(r.reason).toMatch(/judge/i);
-  });
-});
-
-describe('AgentContextAssemblerV1', () => {
-  const a = new AgentContextAssemblerV1();
-  const policy = agentContextPolicy.parse(AGENT_CONTEXT_POLICY_SAFE_DEFAULT);
-  it('monta mensagens com objetivo + input redigido; sem tools', () => {
-    const r = a.assemble({ organizationId: 'o', contextPolicy: policy, objective: 'obj', systemInstructions: 'sys', executionInput: { lead: 'x', secret: 'S3CR3T' }, correlationId: 'c' });
-    expect(r.tools).toEqual([]);
-    expect(r.systemInstructions).toBe('sys');
-    expect(JSON.stringify(r.messages).includes('S3CR3T')).toBe(false); // redigido
-    expect(r.contextBytes).toBeGreaterThan(0);
-    expect(r.estimatedInputTokens).toBeGreaterThan(0);
-  });
-  it('marcador explícito de injeção → sinal CRITICAL blocked', () => {
-    const r = a.assemble({ organizationId: 'o', contextPolicy: policy, objective: 'obj', systemInstructions: 'sys', executionInput: { __ardenInjectionProbe: true }, correlationId: 'c' });
-    expect(r.securitySignals.some((s) => s.blocked && s.severity === 'CRITICAL')).toBe(true);
   });
 });
 

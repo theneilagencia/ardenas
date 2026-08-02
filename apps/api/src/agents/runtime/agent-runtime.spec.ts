@@ -20,10 +20,37 @@ import { AgentRuntimeService } from './agent-runtime';
 import { AgentRuntimeResolverService } from './agent-runtime-resolver';
 import { InMemoryModelProviderRegistry } from './model-provider-registry';
 import { InternalTestModelProvider } from './internal-test-model.provider';
-import { AgentContextAssemblerV1 } from './agent-context-assembler';
+import { AgentContextAssemblerV2 } from './context/agent-context-assembler-v2';
+import { AgentContextNormalizer } from './context/agent-context-normalizer';
+import { AgentContextTrustClassifier } from './context/agent-context-trust-classifier';
+import { PromptInjectionGuard } from './context/prompt-injection-guard';
+import { AgentContextBudgetAllocator } from './context/agent-context-budget-allocator';
+import type { AgentContextSourceResolver } from './context/agent-context-source-resolver';
 import { AgentOutputValidatorV1 } from './agent-output-validator';
 import { AgentEvaluatorV1 } from './agent-evaluator';
 import type { ResolvedAgentRuntime, AgentRuntimeExecutionInput } from './agent-runtime.types';
+
+/** Resolver de fontes FAKE (DB-free): espelha o canal EXECUTION_INPUT do resolver real. */
+function fakeSourceResolver(): AgentContextSourceResolver {
+  return {
+    async resolve(inp) {
+      const resolved = inp.contextPolicy.includeExecutionInput
+        ? [{ kind: 'EXECUTION_INPUT' as const, ref: 'input', label: 'execution.input', value: inp.executionInput ?? null }]
+        : [];
+      return { resolved, excluded: [] };
+    },
+  };
+}
+
+function makeAssembler(resolver: AgentContextSourceResolver = fakeSourceResolver()): AgentContextAssemblerV2 {
+  return new AgentContextAssemblerV2(
+    resolver,
+    new AgentContextNormalizer(),
+    new AgentContextTrustClassifier(),
+    new PromptInjectionGuard(),
+    new AgentContextBudgetAllocator(),
+  );
+}
 
 const OUT_SCHEMA = { type: 'object', properties: { grade: { type: 'string' } }, required: ['grade'] };
 
@@ -49,7 +76,7 @@ function makeRuntime(res: ResolvedAgentRuntime): AgentRuntimeService {
   return new AgentRuntimeService(
     fakeResolver,
     new InMemoryModelProviderRegistry(new InternalTestModelProvider()),
-    new AgentContextAssemblerV1(),
+    makeAssembler(),
     new AgentOutputValidatorV1(),
     new AgentEvaluatorV1(),
   );
