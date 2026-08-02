@@ -23,6 +23,7 @@ import {
   type PaginationMeta,
   type ActionKey,
   type ExecutorActionKey,
+  authorityProfile,
 } from '@arden/contracts';
 import { PrismaService } from '../database/prisma.service';
 import { IdempotencyService } from '../modules/idempotency/idempotency.service';
@@ -32,6 +33,7 @@ import {
   notFound, executionNotAllowed, actionDenied, authorizationRequired, authorizationAlreadyUsed,
   authorizationExpired, authorizationInvalidated, authorizationPayloadMismatch,
   executionNotPausable, executionNotResumable, executionNotCancellable, executionNotRetryable,
+  webhookTriggerDenied,
 } from '../common/errors/api-error';
 import { assertRevision } from '../common/concurrency/optimistic-concurrency';
 import { EnforcementService } from '../enforcement/enforcement.service';
@@ -228,6 +230,86 @@ export class ExecutionsService {
       },
     );
     return { statusCode: result.statusCode, body: result.response };
+  }
+
+  /**
+   * Criação de execução por GATILHO DE SISTEMA (ex.: webhook de entrada). Reutiliza o
+   * MESMO motor (repos/queue/recorder) — não duplica engine, fila nem idempotência.
+   * Tenant e configuração vêm de fontes CONFIÁVEIS (o endpoint persistido), nunca do
+   * payload. actorType=SYSTEM; requestedByUserId = usuário que configurou o gatilho.
+   * Respeita operação publicada + autoridade; se exigir aprovação, NEGA (não fabrica
+   * autorização). Idempotente por `triggerReference`.
+   */
+  async createFromSystemTrigger(input: {
+    organizationId: string;
+    operationId: string;
+    operationVersionId?: string;
+    payload: unknown;
+    correlationId: string;
+    requestedByUserId: string;
+    triggerReference: string;
+    triggerEvidence?: Record<string, unknown>;
+  }): Promise<{ run: ExecutionRun; created: boolean }> {
+    const orgId = input.organizationId;
+    const now = new Date();
+
+    // Idempotência: se já existe run para este gatilho, devolve-a (sem duplicar).
+    const existing = await this.prisma.executionRun.findFirst({ where: { organizationId: orgId, triggerReference: input.triggerReference } });
+    if (existing) return { run: toRunContract(existing), created: false };
+
+    const op = await this.prisma.operation.findFirst({ where: { id: input.operationId, organizationId: orgId } });
+    if (!op) throw notFound('Operação não encontrada.');
+    if (op.status !== 'active' || !op.publishedVersionId) throw webhookTriggerDenied('Operação sem versão publicada ativa.');
+    const versionId = input.operationVersionId ?? op.publishedVersionId;
+    if (input.operationVersionId && input.operationVersionId !== op.publishedVersionId) {
+      throw webhookTriggerDenied('Só a versão publicada corrente pode executar.');
+    }
+    const version = await this.prisma.operationVersion.findFirst({ where: { id: versionId, organizationId: orgId, operationId: input.operationId, status: 'published' } });
+    if (!version) throw webhookTriggerDenied('Versão publicada não encontrada.');
+    const definition = operationDefinition.parse(version.definition);
+
+    // actionKey do gatilho = ação primária autorizada da versão publicada.
+    const profile = authorityProfile.safeParse(version.authorityProfile);
+    const actionKey = profile.success && profile.data.allowedActions[0] ? (profile.data.allowedActions[0].key as ActionKey) : null;
+    if (!actionKey) throw webhookTriggerDenied('Operação não possui ação autorizada para gatilho de sistema.');
+
+    const sysCtx = { organizationId: orgId, userId: input.requestedByUserId, correlationId: input.correlationId } as unknown as AuthenticatedRequestContext;
+    const evaluation = await this.enforcement.evaluateCore(sysCtx, input.operationId, actionKey, input.payload, now);
+    // Gatilho de sistema NÃO fabrica autorização: só executa quando ALLOWED.
+    if (evaluation.decision !== 'ALLOWED') throw webhookTriggerDenied('Gatilho de sistema requer autorização explícita.');
+
+    const inputHash = hashActionPayload(actionKey, input.payload);
+    const run = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.executionRun.create({
+        data: {
+          organizationId: orgId, operationId: input.operationId, operationVersionId: versionId,
+          requestedByUserId: input.requestedByUserId, actionAuthorizationId: null, actionKey,
+          triggerType: 'SYSTEM', triggerReference: input.triggerReference, status: 'PENDING',
+          input: (input.payload ?? {}) as Prisma.InputJsonValue, inputHash,
+          maxAttempts: 1, timeoutAt: null, correlationId: input.correlationId,
+        },
+      });
+      const steps = [...definition.steps].sort((a, b) => a.order - b.order);
+      for (let i = 0; i < steps.length; i++) {
+        const s = steps[i];
+        if (s.tool) {
+          await this.assertExternalBinding(tx, orgId, input.operationId, versionId, s.tool.alias, s.tool.actionKey);
+          const stepInput = { $tool: { alias: s.tool.alias, actionKey: s.tool.actionKey }, $source: input.payload ?? {} } as Prisma.InputJsonValue;
+          await tx.executionStep.create({ data: { organizationId: orgId, executionRunId: created.id, definitionStepKey: s.id, sequence: i + 1, name: s.name, actionKey: s.tool.actionKey, status: 'PENDING', input: stepInput, inputHash: hashActionPayload(s.tool.actionKey, input.payload), maxAttempts: 1 } });
+          continue;
+        }
+        const executor = this.resolveExecutor(undefined, s.id, s.producesEvidence);
+        await tx.executionStep.create({ data: { organizationId: orgId, executionRunId: created.id, definitionStepKey: s.id, sequence: i + 1, name: s.name, actionKey: executor, status: 'PENDING', input: (input.payload ?? {}) as Prisma.InputJsonValue, inputHash: hashActionPayload(executor, input.payload), maxAttempts: 1 } });
+      }
+
+      await this.recorder.recordEvent(tx, { organizationId: orgId, executionRunId: created.id, eventType: 'execution.created', actorType: 'SYSTEM', correlationId: input.correlationId, payload: { operationId: input.operationId, actionKey, trigger: 'webhook' } });
+      await this.recorder.recordEvidence(tx, { organizationId: orgId, executionRunId: created.id, evidenceType: 'INPUT', content: { inputHash, ...(input.triggerEvidence ?? {}) }, createdByType: 'SYSTEM', correlationId: input.correlationId });
+
+      await this.transitionRun(tx, created, 'QUEUED', { actorType: 'SYSTEM', actorId: input.requestedByUserId, correlationId: input.correlationId });
+      await this.queue.enqueue(tx, { organizationId: orgId, executionRunId: created.id, deduplicationKey: `run:${created.id}`, payload: { executionRunId: created.id } });
+      return (await this.repo.findRun(orgId, created.id, tx))!;
+    });
+    return { run: toRunContract(run), created: true };
   }
 
   /** Fail-fast na criação: o alias externo deve ter binding habilitado com a ação permitida. */

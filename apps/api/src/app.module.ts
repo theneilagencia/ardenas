@@ -24,6 +24,7 @@ import { EnforcementModule } from './enforcement/enforcement.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { ExecutionsModule } from './executions/executions.module';
 import { ConnectorsModule } from './connectors/connectors.module';
+import { WebhooksInboundModule } from './connectors/webhooks/webhooks-inbound.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -53,6 +54,7 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     ExecutionsModule,
     // Conectores, credenciais, ferramentas e webhooks — persistência (ARDEN-BE-006.3).
     ConnectorsModule,
+    WebhooksInboundModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })

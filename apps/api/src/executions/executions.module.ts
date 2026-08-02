@@ -29,6 +29,6 @@ import { StepExecutorRegistry } from './step-executor-registry';
     ExecutionsService, ExecutionsRepository, ExecutionRecorder, ExecutionQueue, ExecutionProcessor, ExecutionWorker,
     ExternalToolStepExecutor, StepExecutorRegistry,
   ],
-  exports: [ExecutionWorker, ExecutionQueue, ExecutionsRepository],
+  exports: [ExecutionWorker, ExecutionQueue, ExecutionsRepository, ExecutionsService],
 })
 export class ExecutionsModule {}

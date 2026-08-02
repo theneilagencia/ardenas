@@ -8,13 +8,14 @@
  * persistência: a deduplicação por external_delivery_id é garantida por constraint.
  */
 
-import { Injectable } from '@nestjs/common';
-import { randomBytes, createHash } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import {
   type CreateWebhookEndpointRequest, type UpdateWebhookEndpointRequest,
   type WebhookEndpoint, type WebhookEndpointSecret, type WebhookDelivery,
   type WebhookEndpointStatus, type WebhookDeliveryStatus,
+  type ListWebhookEndpointsQuery, type PaginationMeta,
 } from '@arden/contracts';
 import { PrismaService } from '../../database/prisma.service';
 import { IdempotencyService } from '../../modules/idempotency/idempotency.service';
@@ -22,9 +23,14 @@ import { AuditRecorder } from '../../audit/audit.recorder';
 import { runIdempotentCommand } from '../../operations/command.helpers';
 import { assertRevision } from '../../common/concurrency/optimistic-concurrency';
 import type { AuthenticatedRequestContext } from '../../identity/request-context';
-import { notFound, connectionRevoked, invalidStateTransition, webhookEndpointRevoked, versionConflict, resourceConflict } from '../../common/errors/api-error';
-import { OrganizationConnectionsRepository } from '../connections/connections.repository';
+import { AppConfig } from '../../config/env.schema';
+import { APP_CONFIG } from '../../config/config.module';
+import { notFound, connectionRevoked, invalidStateTransition, webhookEndpointRevoked, versionConflict, resourceConflict, validationError } from '../../common/errors/api-error';
+import { OrganizationConnectionsRepository, ConnectionCredentialVersionsRepository } from '../connections/connections.repository';
+import { ConnectorKeyProvider } from '../vault/connector-key-provider';
+import { SECRET_VAULT, type SecretVault } from '../vault/secret-vault';
 import { WebhookEndpointsRepository, WebhookDeliveriesRepository } from './webhooks.repository';
+import { generateEndpointToken, hashEndpointToken } from './webhook-token';
 import { canTransitionWebhookEndpoint, canTransitionWebhookDelivery } from '../connector.state-machines';
 import { toWebhookEndpointContract, toWebhookDeliveryContract } from '../connectors.serializers';
 
@@ -48,28 +54,54 @@ export class WebhooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly connections: OrganizationConnectionsRepository,
+    private readonly credentials: ConnectionCredentialVersionsRepository,
     private readonly endpoints: WebhookEndpointsRepository,
     private readonly deliveries: WebhookDeliveriesRepository,
     private readonly idem: IdempotencyService,
     private readonly audit: AuditRecorder,
+    private readonly keys: ConnectorKeyProvider,
+    @Inject(SECRET_VAULT) private readonly vault: SecretVault,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   private orgId(ctx: AuthenticatedRequestContext): string {
     return ctx.organizationId as string;
   }
 
-  private hashToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
+  // ── Leitura ─────────────────────────────────────────────────────────────────────
+  async listEndpoints(ctx: AuthenticatedRequestContext, query: ListWebhookEndpointsQuery): Promise<{ data: WebhookEndpoint[]; pagination: PaginationMeta }> {
+    const orgId = this.orgId(ctx);
+    const rows = await this.endpoints.list(orgId, { status: query.status, connectionId: query.connectionId, operationId: query.operationId }, query.limit + 1, query.cursor);
+    const hasNextPage = rows.length > query.limit;
+    const page = hasNextPage ? rows.slice(0, query.limit) : rows;
+    const last = page[page.length - 1];
+    return { data: page.map(toWebhookEndpointContract), pagination: { cursor: query.cursor ?? null, nextCursor: hasNextPage && last ? last.createdAt.toISOString() : null, hasNextPage, limit: query.limit } };
+  }
+
+  async getEndpoint(ctx: AuthenticatedRequestContext, id: string): Promise<{ data: WebhookEndpoint }> {
+    const orgId = this.orgId(ctx);
+    const row = await this.endpoints.findById(orgId, id);
+    if (!row) throw notFound('Endpoint não encontrado.');
+    return { data: toWebhookEndpointContract(row) };
   }
 
   // ── Endpoints ─────────────────────────────────────────────────────────────────
   async createEndpoint(ctx: AuthenticatedRequestContext, body: CreateWebhookEndpointRequest, idempotencyKey: string): Promise<{ statusCode: number; body: { data: WebhookEndpointSecret } }> {
     const orgId = this.orgId(ctx);
-    // Token: gerado aqui, guardado SÓ como hash; devolvido uma única vez.
-    const token = randomBytes(32).toString('base64url');
-    const pathTokenHash = this.hashToken(token);
+    // NONE só fora de produção e com reconhecimento explícito (nunca default).
+    if (body.signatureScheme === 'NONE' && this.config.NODE_ENV === 'production') {
+      throw validationError([{ field: 'signatureScheme', code: 'forbidden', message: 'signatureScheme=NONE é proibido em produção.' }]);
+    }
+    const requiresSecret = body.signatureScheme !== 'NONE';
+    // Token opaco e (quando aplicável) segredo de assinatura: gerados aqui, exibidos
+    // UMA vez; token guardado só como hash; segredo cifrado no cofre. NUNCA persistidos
+    // em idempotency_records (a resposta armazenada é SANITIZADA, sem token/segredo).
+    const token = generateEndpointToken();
+    const pathTokenHash = hashEndpointToken(token);
+    const signingSecret = requiresSecret ? (body.signingSecret ?? randomBytes(32).toString('base64url')) : null;
+    const keyVersion = requiresSecret ? this.keys.getCurrentKey().version : null;
 
-    const result = await runIdempotentCommand<{ data: WebhookEndpointSecret }>(
+    const result = await runIdempotentCommand<{ data: WebhookEndpoint }>(
       { idem: this.idem, prisma: this.prisma },
       { method: 'POST', path: `/organizations/${orgId}/webhook-endpoints`, idempotencyKey, userId: ctx.userId, organizationId: orgId },
       body, 201,
@@ -85,19 +117,40 @@ export class WebhooksService {
             if (!ver) throw notFound('Versão não pertence à operação.');
           }
         }
+
+        // Segredo de assinatura → versão de credencial cifrada no cofre (mesma tx).
+        let secretCredentialVersionId: string | null = null;
+        if (requiresSecret && signingSecret && keyVersion) {
+          const versionNumber = await this.credentials.nextVersionNumber(body.connectionId, tx);
+          const pending = await this.credentials.createPending({ organizationId: orgId, connectionId: body.connectionId, versionNumber, createdByUserId: ctx.userId }, tx);
+          await this.vault.storeSecret({ organizationId: orgId, connectionId: body.connectionId, credentialVersionId: pending.id, keyVersion, secret: { signingSecret } }, tx);
+          const prior = await this.credentials.findActive(orgId, body.connectionId, tx);
+          if (prior && prior.id !== pending.id) await this.credentials.supersede(orgId, prior.id, new Date(), tx);
+          await this.credentials.activate(orgId, pending.id, new Date(), tx);
+          await this.connections.setCurrentCredential(orgId, body.connectionId, pending.id, tx);
+          secretCredentialVersionId = pending.id;
+        }
+
         const created = await this.endpoints.create({
           organizationId: orgId, connectionId: body.connectionId, key: body.key, status: 'ACTIVE',
-          pathTokenHash, signatureScheme: body.signatureScheme,
+          pathTokenHash, signatureScheme: body.signatureScheme, secretCredentialVersionId,
           replayWindowSeconds: body.replayWindowSeconds, allowedEventTypes: (body.allowedEventTypes ?? []) as Prisma.InputJsonValue,
           operationId: body.operationId ?? null, operationVersionId: body.operationVersionId ?? null,
           createdByUserId: ctx.userId, revision: 1,
         }, tx);
         await this.audit.record(tx, { organizationId: orgId, actorUserId: ctx.userId, action: 'webhook_endpoint.created', resourceType: 'webhook_endpoint', resourceId: created.id, correlationId: ctx.correlationId, after: { key: created.key, signatureScheme: created.signatureScheme }, metadata: {} });
-        // signingSecret fica para 006.4/006.7 (cofre); não persistimos segredo aqui.
-        return { data: { endpoint: toWebhookEndpointContract(created), endpointToken: token, signingSecret: null } };
+        // Resposta ARMAZENADA na idempotência = SANITIZADA (sem token/segredo).
+        return { data: toWebhookEndpointContract(created) };
       },
     );
-    return { statusCode: result.statusCode, body: result.response };
+
+    // Token/segredo só na PRIMEIRA execução (nunca em replay; nunca persistidos em claro).
+    const endpoint = result.response.data;
+    const publicUrl = `${this.config.API_PREFIX}/webhooks/${token}`;
+    const secret: WebhookEndpointSecret = result.replayed
+      ? { endpoint, endpointUrl: '', endpointToken: null, signingSecret: null }
+      : { endpoint, endpointUrl: publicUrl, endpointToken: token, signingSecret: body.signatureScheme === 'NONE' ? null : signingSecret };
+    return { statusCode: result.statusCode, body: { data: secret } };
   }
 
   async updateEndpoint(ctx: AuthenticatedRequestContext, id: string, body: UpdateWebhookEndpointRequest): Promise<{ data: WebhookEndpoint }> {

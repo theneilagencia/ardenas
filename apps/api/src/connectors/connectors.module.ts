@@ -27,6 +27,8 @@ import { OrganizationToolBindingsRepository, OperationToolBindingsRepository } f
 import { ToolBindingsService } from './tool-bindings/tool-bindings.service';
 import { WebhookEndpointsRepository, WebhookDeliveriesRepository } from './webhooks/webhooks.repository';
 import { WebhooksService } from './webhooks/webhooks.service';
+import { WebhooksController } from './webhooks/webhooks.controller';
+import { WebhookRateLimiter } from './webhooks/webhook-rate-limiter';
 import { NodeSecureHttpClient } from './http/secure-http-client';
 import { SECURE_HTTP_CLIENT } from './http/secure-http.types';
 import { ToolBindingResolver } from './tools/tool-binding-resolver';
@@ -36,7 +38,7 @@ import { ToolBindingsController } from './tool-bindings/tool-bindings.controller
 
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule],
-  controllers: [CredentialsController, ToolBindingsController],
+  controllers: [CredentialsController, ToolBindingsController, WebhooksController],
   providers: [
     ConnectorDefinitionsRepository,
     ConnectorToolDefinitionsRepository,
@@ -51,6 +53,7 @@ import { ToolBindingsController } from './tool-bindings/tool-bindings.controller
     WebhookEndpointsRepository,
     WebhookDeliveriesRepository,
     WebhooksService,
+    WebhookRateLimiter,
     // Cofre de credenciais (ARDEN-BE-006.4).
     ConnectorKeyProvider,
     CredentialResolver,
@@ -89,6 +92,7 @@ import { ToolBindingsController } from './tool-bindings/tool-bindings.controller
     OperationToolBindingsRepository,
     WebhookEndpointsRepository,
     WebhookDeliveriesRepository,
+    WebhookRateLimiter,
     CredentialResolver,
     SECRET_VAULT,
     SECURE_HTTP_CLIENT,
