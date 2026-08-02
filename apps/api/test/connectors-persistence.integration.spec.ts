@@ -183,11 +183,14 @@ describe('webhooks — endpoint (token só hash) e delivery (dedup)', () => {
     const { ctx } = await makeOrgActor('wh1');
     const conn = await newConnection(ctx);
     const created = (await webhooks.createEndpoint(ctx, { connectionId: conn.id, key: 'inbound', signatureScheme: 'HMAC_SHA256', replayWindowSeconds: 300 }, idemKey('wh'))).body.data;
-    expect(created.endpointToken.length).toBeGreaterThan(20);
-    expect(created.signingSecret).toBeNull();
+    // Token opaco retornado UMA vez (whk_...); HMAC gera segredo de assinatura 1×.
+    expect(created.endpointToken).toBeTruthy();
+    expect(created.endpointToken!.length).toBeGreaterThan(20);
+    expect(typeof created.signingSecret).toBe('string');
     expect(Object.keys(created.endpoint)).not.toContain('pathTokenHash');
     const row = await prisma.webhookEndpoint.findFirst({ where: { id: created.endpoint.id } });
     expect(row!.pathTokenHash).not.toBe(created.endpointToken); // guardado só como hash
+    expect(row!.secretCredentialVersionId).toBeTruthy(); // segredo cifrado no cofre
   });
 
   it('endpoint REVOKED não reativa; delivery dedup por externalDeliveryId', async () => {
