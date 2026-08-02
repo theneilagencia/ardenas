@@ -27,6 +27,8 @@ import { SnapshotApprovalsRepository } from './repositories/approvals-snapshot';
 import { ApiApprovalsRepository } from './repositories/approvals-api';
 import { SnapshotFilesRepository } from './repositories/files-snapshot';
 import { ApiFilesRepository } from './repositories/files-api';
+import { createApiV1ConnectorsRepository } from './api/v1-connectors-repository';
+import { createUnavailableConnectorsRepository } from './repositories/connectors-unavailable';
 
 export type ProviderKind = 'mock' | 'indexeddb' | 'api';
 
@@ -89,6 +91,8 @@ export function getServices(): ArdenServices {
       // Aprovações e arquivos permanecem fora do escopo do v1 nesta issue.
       approvals: new ApiApprovalsRepository(client),
       files: new ApiFilesRepository(client),
+      // Conectores/conexões/credenciais/vínculos/webhooks (ARDEN-BE-006.8).
+      connectors: createApiV1ConnectorsRepository(v1),
     };
   } else {
     const store = getSnapshotStore();
@@ -97,6 +101,8 @@ export function getServices(): ArdenServices {
       audit: new SnapshotAuditRepository(store),
       approvals: new SnapshotApprovalsRepository(store),
       files: new SnapshotFilesRepository(store),
+      // Integrações são API-only: sem fallback local, mas sem quebrar o app.
+      connectors: createUnavailableConnectorsRepository(),
     };
   }
   return services;

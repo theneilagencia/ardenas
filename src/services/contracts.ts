@@ -34,6 +34,33 @@ import type {
   WorkUnitLedger,
   WorkUnitRequest,
 } from '@/domain/types';
+import type {
+  ConnectorDefinition,
+  ConnectorToolDefinition,
+  Connection,
+  ConnectorKey,
+  ConnectionStatus,
+  CreateConnectionRequest,
+  UpdateConnectionRequest,
+  TestConnectionRequest,
+  TestConnectionResult,
+  ConnectionCommandRequest,
+  CredentialMetadata,
+  CreateConnectionCredentialRequest,
+  RotateConnectionCredentialRequest,
+  OrganizationToolBinding,
+  CreateOrganizationToolBindingRequest,
+  UpdateOrganizationToolBindingRequest,
+  OperationToolBinding,
+  CreateOperationToolBindingRequest,
+  UpdateOperationToolBindingRequest,
+  WebhookEndpoint,
+  WebhookEndpointSecret,
+  WebhookEndpointStatus,
+  CreateWebhookEndpointRequest,
+  UpdateWebhookEndpointRequest,
+  WebhookCommandRequest,
+} from '@/contracts';
 
 export interface ApiResponse<T> {
   data: T;
@@ -114,6 +141,7 @@ export interface ArdenServices {
   audit: AuditRepository;
   approvals: ApprovalsRepository;
   files: FilesRepository;
+  connectors: ConnectorsRepository;
 }
 
 /**
@@ -162,6 +190,101 @@ export interface ApprovalsRepository {
   reject(id: string, justification?: string): Promise<Approval>;
   requestChanges(id: string, justification?: string): Promise<Approval>;
   delegate(id: string, toPersonId: string): Promise<Approval>;
+}
+
+/** Página por CURSOR — usada pelos recursos de conectores (ARDEN-BE-006.8). */
+export interface CursorPage<T> {
+  items: T[];
+  cursor: string | null;
+  hasNextPage: boolean;
+}
+
+export interface ListConnectionsInput {
+  connectorKey?: ConnectorKey;
+  status?: ConnectionStatus;
+  search?: string;
+  cursor?: string;
+  limit?: number;
+  signal?: AbortSignal;
+}
+
+export interface ListToolBindingsInput {
+  connectionId?: string;
+  enabled?: boolean;
+  connectorKey?: ConnectorKey;
+  toolKey?: string;
+  cursor?: string;
+  limit?: number;
+  signal?: AbortSignal;
+}
+
+export interface ListWebhookEndpointsInput {
+  status?: WebhookEndpointStatus;
+  connectionId?: string;
+  operationId?: string;
+  cursor?: string;
+  limit?: number;
+  signal?: AbortSignal;
+}
+
+/**
+ * Fronteira única de conectores/conexões/credenciais/vínculos/webhooks
+ * (ARDEN-BE-006.8). O tenant NUNCA vem de parâmetro — é sempre derivado da sessão
+ * ativa pela implementação concreta (ver `requireOrg()` em `v1-connectors-repository`).
+ * Segredos (credencial, token de webhook) só trafegam nos requests de escrita —
+ * nunca aparecem no retorno de leitura.
+ */
+export interface ConnectorsRepository {
+  // Catálogo (público, somente leitura).
+  listConnectors(signal?: AbortSignal): Promise<ConnectorDefinition[]>;
+  getConnector(connectorKey: string, signal?: AbortSignal): Promise<ConnectorDefinition>;
+  listConnectorTools(connectorKey: string, signal?: AbortSignal): Promise<ConnectorToolDefinition[]>;
+
+  // Conexões.
+  listConnections(input?: ListConnectionsInput): Promise<CursorPage<Connection>>;
+  createConnection(body: CreateConnectionRequest): Promise<Connection>;
+  getConnection(connectionId: string, signal?: AbortSignal): Promise<Connection>;
+  updateConnection(connectionId: string, body: UpdateConnectionRequest): Promise<Connection>;
+  testConnection(connectionId: string, body?: TestConnectionRequest): Promise<TestConnectionResult>;
+  activateConnection(connectionId: string, body: ConnectionCommandRequest): Promise<Connection>;
+  suspendConnection(connectionId: string, body: ConnectionCommandRequest): Promise<Connection>;
+  reactivateConnection(connectionId: string, body: ConnectionCommandRequest): Promise<Connection>;
+  revokeConnection(connectionId: string, body: ConnectionCommandRequest): Promise<Connection>;
+
+  // Credenciais (request sensível; resposta só metadados).
+  listCredentials(connectionId: string, signal?: AbortSignal): Promise<CredentialMetadata[]>;
+  createCredential(connectionId: string, body: CreateConnectionCredentialRequest): Promise<CredentialMetadata>;
+  rotateCredential(connectionId: string, body: RotateConnectionCredentialRequest): Promise<CredentialMetadata>;
+  revokeCredential(connectionId: string, credentialVersionId: string): Promise<CredentialMetadata>;
+
+  // Vínculos de ferramenta (organização).
+  listToolBindings(input?: ListToolBindingsInput): Promise<CursorPage<OrganizationToolBinding>>;
+  createToolBinding(body: CreateOrganizationToolBindingRequest): Promise<OrganizationToolBinding>;
+  getToolBinding(bindingId: string, signal?: AbortSignal): Promise<OrganizationToolBinding>;
+  updateToolBinding(bindingId: string, body: UpdateOrganizationToolBindingRequest): Promise<OrganizationToolBinding>;
+  disableToolBinding(bindingId: string, body: ConnectionCommandRequest): Promise<OrganizationToolBinding>;
+
+  // Vínculos de ferramenta (operação).
+  listOperationToolBindings(operationId: string, signal?: AbortSignal): Promise<OperationToolBinding[]>;
+  createOperationToolBinding(
+    operationId: string,
+    body: CreateOperationToolBindingRequest,
+  ): Promise<OperationToolBinding>;
+  updateOperationToolBinding(
+    operationId: string,
+    bindingId: string,
+    body: UpdateOperationToolBindingRequest,
+  ): Promise<OperationToolBinding>;
+  removeOperationToolBinding(operationId: string, bindingId: string): Promise<OperationToolBinding>;
+
+  // Webhooks.
+  listWebhookEndpoints(input?: ListWebhookEndpointsInput): Promise<CursorPage<WebhookEndpoint>>;
+  createWebhookEndpoint(body: CreateWebhookEndpointRequest): Promise<WebhookEndpointSecret>;
+  getWebhookEndpoint(webhookEndpointId: string, signal?: AbortSignal): Promise<WebhookEndpoint>;
+  updateWebhookEndpoint(webhookEndpointId: string, body: UpdateWebhookEndpointRequest): Promise<WebhookEndpoint>;
+  suspendWebhookEndpoint(webhookEndpointId: string, body: WebhookCommandRequest): Promise<WebhookEndpoint>;
+  reactivateWebhookEndpoint(webhookEndpointId: string, body: WebhookCommandRequest): Promise<WebhookEndpoint>;
+  revokeWebhookEndpoint(webhookEndpointId: string, body: WebhookCommandRequest): Promise<WebhookEndpoint>;
 }
 
 export interface FilesRepository {
