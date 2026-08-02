@@ -1198,3 +1198,147 @@ model WebhookDelivery {
   @@index([organizationId, payloadHash])
   @@map("webhook_deliveries")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────────
+// Runtime de agentes e modelos (ARDEN-BE-007.2). Persistência e lifecycle
+// administrativo. NENHUM runtime de LLM, SDK, segredo de provider ou execução aqui.
+// ─────────────────────────────────────────────────────────────────────────────────
+
+enum ModelProviderStatus {
+  ACTIVE
+  DEPRECATED
+  DISABLED
+}
+
+enum ModelConfigurationStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum AgentStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum AgentVersionStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+/// Catálogo VERSIONADO de providers de modelo (system-managed). `catalogHash`
+/// identifica a projeção da definição canônica (código → banco). Sem tenant, sem
+/// credencial, sem SDK, sem segredo. CRUD tenant não altera.
+model ModelProviderDefinition {
+  id                String              @id @default(uuid()) @db.Uuid
+  key               String
+  version           String
+  name              String
+  description       String?
+  status            ModelProviderStatus @default(ACTIVE)
+  capabilities      Json                @default("[]")
+  productionAllowed Boolean             @default(false) @map("production_allowed")
+  systemManaged     Boolean             @default(true) @map("system_managed")
+  catalogHash       String              @map("catalog_hash")
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  modelConfigurations ModelConfiguration[]
+
+  @@unique([key, version], name: "uniq_model_provider_key_version")
+  @@index([status, productionAllowed])
+  @@map("model_provider_definitions")
+}
+
+/// Configuração organizacional de um modelo (tenant-scoped). Fixa provider + modelId
+/// + (opcional) referência à conexão que guarda a credencial no cofre. NUNCA guarda
+/// segredo. `revision` começa em 1. `REVOKED` é terminal.
+model ModelConfiguration {
+  id                     String                   @id @default(uuid()) @db.Uuid
+  organizationId         String                   @map("organization_id") @db.Uuid
+  providerDefinitionId   String                   @map("provider_definition_id") @db.Uuid
+  name                   String
+  description            String?
+  modelId                String                   @map("model_id")
+  credentialConnectionId String?                  @map("credential_connection_id") @db.Uuid
+  parameters             Json                     @default("{}")
+  status                 ModelConfigurationStatus @default(DRAFT)
+  createdByUserId        String                   @map("created_by_user_id") @db.Uuid
+  revision               Int                      @default(1)
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  provider      ModelProviderDefinition @relation(fields: [providerDefinitionId], references: [id], onDelete: Restrict)
+  agentVersions AgentVersion[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, providerDefinitionId])
+  @@index([organizationId, modelId])
+  @@index([organizationId, updatedAt])
+  @@map("model_configurations")
+}
+
+/// Definição de agente (tenant-scoped, versionável e reutilizável). `status` com state
+/// machine; `REVOKED` terminal. Não guarda prompt, modelId, provider nem segredo. O
+/// ponteiro `currentPublishedVersionId` é validado no service (mesmo agente/tenant).
+model AgentDefinition {
+  id                        String      @id @default(uuid()) @db.Uuid
+  organizationId            String      @map("organization_id") @db.Uuid
+  key                       String
+  name                      String
+  description               String?
+  status                    AgentStatus @default(DRAFT)
+  currentPublishedVersionId String?     @map("current_published_version_id") @db.Uuid
+  createdByUserId           String      @map("created_by_user_id") @db.Uuid
+  revision                  Int         @default(1)
+  createdAt                 DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  versions AgentVersion[]
+
+  @@unique([organizationId, key], name: "uniq_agent_key_per_org")
+  @@index([organizationId, status])
+  @@index([organizationId, updatedAt])
+  @@map("agent_definitions")
+}
+
+/// Versão de agente (tenant-scoped). DRAFT→PUBLISHED→RETIRED. Publicada/retirada são
+/// imutáveis. Objetivo, instruções e TODAS as políticas pertencem à versão.
+/// `contentHash` é determinístico sobre o conteúdo funcional (SHA-256).
+model AgentVersion {
+  id                   String             @id @default(uuid()) @db.Uuid
+  organizationId       String             @map("organization_id") @db.Uuid
+  agentDefinitionId    String             @map("agent_definition_id") @db.Uuid
+  versionNumber        Int                @map("version_number")
+  status               AgentVersionStatus @default(DRAFT)
+  objective            String
+  systemInstructions   String             @map("system_instructions")
+  modelConfigurationId String             @map("model_configuration_id") @db.Uuid
+  inputSchema          Json               @default("{}") @map("input_schema")
+  outputSchema         Json               @default("{}") @map("output_schema")
+  contextPolicy        Json               @default("{}") @map("context_policy")
+  executionPolicy      Json               @default("{}") @map("execution_policy")
+  toolPolicy           Json               @default("{}") @map("tool_policy")
+  evaluationPolicy     Json               @default("{}") @map("evaluation_policy")
+  costPolicy           Json               @default("{}") @map("cost_policy")
+  contentHash          String             @map("content_hash")
+  createdByUserId      String             @map("created_by_user_id") @db.Uuid
+  revision             Int                @default(1)
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  publishedAt          DateTime?          @map("published_at") @db.Timestamptz(6)
+  retiredAt            DateTime?          @map("retired_at") @db.Timestamptz(6)
+
+  agent              AgentDefinition    @relation(fields: [agentDefinitionId], references: [id], onDelete: Restrict)
+  modelConfiguration ModelConfiguration @relation(fields: [modelConfigurationId], references: [id], onDelete: Restrict)
+
+  @@unique([agentDefinitionId, versionNumber], name: "uniq_agent_version_number")
+  @@index([organizationId, status])
+  @@index([modelConfigurationId])
+  @@index([agentDefinitionId, status])
+  @@map("agent_versions")
+}
