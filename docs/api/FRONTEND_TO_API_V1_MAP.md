@@ -75,3 +75,19 @@ final é do servidor.
 
 Em modo `api`, os módulos de Execuções/Evidências consomem os recursos v1 sem fallback e
 sem simulação local (sem `setTimeout`/mudança de status local); acompanhamento por polling.
+
+## ARDEN-BE-006 — Connectors and External Tools (contratado)
+
+O cliente v1 (`src/services/api/generated/api-v1-client.ts` +
+`src/services/api/v1-http-client.ts`) ganhou os métodos de catálogo, conexões,
+credenciais, tool bindings, operation bindings e webhooks — cobertos por
+`connector-client-compat.test.ts`. **Nenhuma superfície funcional de frontend é
+migrada nesta fase** (006.2 é só contrato). Regras já refletidas nos tipos:
+
+- Requests de credencial carregam `secret` (write-only); as responses trazem **apenas
+  metadados** (`CredentialMetadata`: status, `fingerprint`, `keyVersion`, versão, datas).
+- `createWebhookEndpoint` retorna `WebhookEndpointSecret` (token + `signingSecret`)
+  **uma única vez**; consultas posteriores retornam `WebhookEndpoint` sem segredo.
+- Catálogo (`listConnectors/getConnector/listConnectorTools`) é público, sem `organizationId`.
+- A futura UI (fase 006.8) NUNCA persistirá segredo em Zustand/IndexedDB, URL, analytics
+  ou erro serializado — exibindo apenas `configurada + fingerprint parcial + versão + estado`.

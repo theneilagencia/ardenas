@@ -105,3 +105,46 @@ detalhes que revelem existência. Testes de contrato garantem variedade de statu
 | `AUTHORIZATION_ALREADY_USED` | 409 | autorização de uso único já consumida |
 | `JOB_LEASE_CONFLICT` | 409 | conflito de lease de job |
 | `JOB_NOT_RECOVERABLE` | 409 | job não recuperável |
+
+## Códigos de conectores e ferramentas externas (ARDEN-BE-006)
+
+> **Contratados** nesta fase (006.2). A aplicação funcional (persistência, cofre,
+> cliente HTTP seguro, webhooks) chega nas fases seguintes. Erros públicos de webhook
+> são **mínimos** (não revelam host interno, segredo ou política). Erros internos
+> sempre carregam `correlationId`.
+
+| Código | HTTP | Público? | Retryable | Quando |
+|---|---|---|---|---|
+| `CONNECTOR_NOT_AVAILABLE` | 404 | sim | não | conector inexistente/DISABLED |
+| `CONNECTOR_DEPRECATED` | 409 | sim | não | uso de conector DEPRECATED |
+| `CONNECTION_NOT_ACTIVE` | 409 | sim | não | conexão não ACTIVE |
+| `CONNECTION_SUSPENDED` | 409 | sim | não | conexão SUSPENDED |
+| `CONNECTION_REVOKED` | 409 | sim | não | conexão REVOKED (terminal) |
+| `CONNECTION_TEST_FAILED` | 502 | sim (sanitizado) | condicional | teste de conexão falhou |
+| `CREDENTIAL_REQUIRED` | 409 | sim | não | conexão sem credencial ACTIVE |
+| `CREDENTIAL_INVALID` | 422 | sim | não | segredo não casa com `credentialSchema` |
+| `CREDENTIAL_REVOKED` | 409 | sim | não | resolução de credencial revogada |
+| `CREDENTIAL_RESOLUTION_FAILED` | 500 | interno | não | falha ao decifrar (correlationId) |
+| `CREDENTIAL_ROTATION_CONFLICT` | 409 | sim | não | rotação concorrente perdeu |
+| `TOOL_NOT_AVAILABLE` | 404 | sim | não | ferramenta inexistente/inativa |
+| `TOOL_BINDING_NOT_FOUND` | 404 | sim | não | binding inexistente |
+| `TOOL_INPUT_INVALID` | 422 | sim | não | input não casa com `inputSchema` |
+| `TOOL_OUTPUT_INVALID` | 502 | sim (sanitizado) | não | output externo inválido |
+| `TOOL_EXECUTION_DENIED` | 403 | sim | não | risco/autoridade incompatível |
+| `NETWORK_POLICY_DENIED` | 403 | sim | não | violação de política de rede |
+| `HOST_NOT_ALLOWED` | 403 | sim | não | host fora da allowlist |
+| `PROTOCOL_NOT_ALLOWED` | 403 | sim | não | protocolo ≠ https / porta negada |
+| `PRIVATE_NETWORK_DENIED` | 403 | sim | não | destino em rede privada |
+| `SSRF_BLOCKED` | 403 | sim (genérico) | não | bloqueio SSRF |
+| `REDIRECT_DENIED` | 403 | sim | não | redirect para destino proibido |
+| `REQUEST_TOO_LARGE` | 413 | sim | não | payload de request excede limite |
+| `RESPONSE_TOO_LARGE` | 502 | sim | não | resposta externa excede limite |
+| `EXTERNAL_TIMEOUT` | 504 | sim | condicional | timeout da chamada externa |
+| `EXTERNAL_RATE_LIMITED` | 429 | sim | condicional (Retry-After) | 429 do provedor |
+| `EXTERNAL_PROVIDER_ERROR` | 502 | sim (sanitizado) | condicional | 5xx do provedor |
+| `EXTERNAL_RESULT_UNKNOWN` | 502 | sim | **não auto** | efeito externo possivelmente aplicado |
+| `WEBHOOK_SIGNATURE_INVALID` | 401 | mínimo | não | assinatura inválida |
+| `WEBHOOK_TIMESTAMP_INVALID` | 401 | mínimo | não | timestamp fora da janela |
+| `WEBHOOK_REPLAYED` | 409 | mínimo | não | replay detectado |
+| `WEBHOOK_EVENT_NOT_ALLOWED` | 422 | mínimo | não | event type não permitido |
+| `WEBHOOK_ENDPOINT_REVOKED` | 404 | mínimo | não | endpoint suspenso/revogado |

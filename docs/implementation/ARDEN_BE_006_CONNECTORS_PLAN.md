@@ -180,6 +180,15 @@ Cada conector/ferramenta declara, na fonte canônica:
 Seeds idempotentes vivem em `apps/api/prisma/seed.ts` (ou módulo dedicado
 `prisma/seed-connectors.ts` chamado por ele), executáveis 2× sem efeito colateral.
 
+> **Esclarecimento (006.2).** Os DTOs de request/response da API são schemas **Zod**
+> compartilhados. Já os schemas POR CONECTOR (`configurationSchema`,
+> `credentialSchema`, `inputSchema`, `outputSchema`) são armazenados no catálogo como
+> **documentos JSON Schema serializáveis** (`JsonSchemaContract`) — a forma correta
+> para as colunas `Json` do banco e para a resposta pública do catálogo, sem acoplar o
+> runtime a `zod-to-json-schema`. A validação em runtime dos VALORES contra esses
+> schemas é uma fase futura (006.6). Isso não contradiz a decisão de "Zod
+> compartilhado": os contratos HTTP continuam Zod; os schemas de conector são dados.
+
 ---
 
 ## 5. Cofre de credenciais — resumo (detalhe em documento próprio)
