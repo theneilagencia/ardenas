@@ -9,7 +9,16 @@ import { Module } from '@nestjs/common';
 import { AuthzModule } from '../authz/authz.module';
 import { AuditModule } from '../audit/audit.module';
 import { IdempotencyModule } from '../modules/idempotency/idempotency.module';
+import { PrismaService } from '../database/prisma.service';
+import { APP_CONFIG } from '../config/config.module';
+import type { AppConfig } from '../config/env.schema';
 import { ConnectorDefinitionsRepository, ConnectorToolDefinitionsRepository } from './catalog/catalog.repository';
+import { ConnectorKeyProvider } from './vault/connector-key-provider';
+import { AppAesGcmVault } from './vault/app-aes-gcm.vault';
+import { FakeVault } from './vault/fake.vault';
+import { CredentialResolver } from './vault/credential-resolver';
+import { SECRET_VAULT, type SecretVault } from './vault/secret-vault';
+import { CredentialsController } from './connections/credentials.controller';
 import { ConnectorCatalogProjector } from './catalog/connector-catalog.projector';
 import { OrganizationConnectionsRepository, ConnectionCredentialVersionsRepository } from './connections/connections.repository';
 import { ConnectionsService } from './connections/connections.service';
@@ -21,6 +30,7 @@ import { WebhooksService } from './webhooks/webhooks.service';
 
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule],
+  controllers: [CredentialsController],
   providers: [
     ConnectorDefinitionsRepository,
     ConnectorToolDefinitionsRepository,
@@ -35,6 +45,23 @@ import { WebhooksService } from './webhooks/webhooks.service';
     WebhookEndpointsRepository,
     WebhookDeliveriesRepository,
     WebhooksService,
+    // Cofre de credenciais (ARDEN-BE-006.4).
+    ConnectorKeyProvider,
+    CredentialResolver,
+    {
+      provide: SECRET_VAULT,
+      inject: [APP_CONFIG, ConnectorKeyProvider, PrismaService],
+      useFactory: (config: AppConfig, keys: ConnectorKeyProvider, prisma: PrismaService): SecretVault => {
+        if (config.CONNECTOR_VAULT_PROVIDER === 'fake') {
+          if (config.NODE_ENV === 'production') {
+            throw new Error('CONNECTOR_VAULT_PROVIDER=fake é proibido em production.');
+          }
+          return new FakeVault();
+        }
+        // Sem fallback silencioso: qualquer valor != 'fake' é o provider real.
+        return new AppAesGcmVault(prisma, keys);
+      },
+    },
   ],
   exports: [
     ConnectorCatalogProjector,
@@ -50,6 +77,8 @@ import { WebhooksService } from './webhooks/webhooks.service';
     OperationToolBindingsRepository,
     WebhookEndpointsRepository,
     WebhookDeliveriesRepository,
+    CredentialResolver,
+    SECRET_VAULT,
   ],
 })
 export class ConnectorsModule {}

@@ -7077,12 +7077,6 @@ paths:
           schema:
             type: string
             minLength: 8
-        - name: If-Match
-          in: header
-          required: false
-          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
-          schema:
-            type: string
       responses:
         '201':
           description: Sucesso.
@@ -7136,7 +7130,10 @@ paths:
         - bearerAuth: []
       x-permission: connection.rotate_credentials
       x-idempotent: true
-      x-optimistic-concurrency: true
+      x-optimistic-concurrency: false
+      description: >-
+        Cria uma nova versão cifrada e a ativa (supersede a anterior). Concorrência garantida pelo índice de credencial
+        ativa única; o segredo é write-only e nunca retornado.
       requestBody:
         required: true
         content:
