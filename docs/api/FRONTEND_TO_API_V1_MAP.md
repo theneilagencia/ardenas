@@ -91,3 +91,23 @@ migrada nesta fase** (006.2 é só contrato). Regras já refletidas nos tipos:
 - Catálogo (`listConnectors/getConnector/listConnectorTools`) é público, sem `organizationId`.
 - A futura UI (fase 006.8) NUNCA persistirá segredo em Zustand/IndexedDB, URL, analytics
   ou erro serializado — exibindo apenas `configurada + fingerprint parcial + versão + estado`.
+
+## Integrações / conectores (ARDEN-BE-006)
+
+No modo `api` (`VITE_DATA_PROVIDER=api`), a página de Integrações usa exclusivamente a
+API v1 via `ApiV1HttpClient` → repositório `connectors` (`src/services/api/
+v1-connectors-repository.ts`) → use-cases (`src/application/connectors/*`) → hooks
+(`src/hooks/use-connectors.ts`).
+
+| UI | Cliente gerado | Endpoint |
+| --- | --- | --- |
+| Catálogo | `listConnectors/getConnector/listConnectorTools` | `GET /connectors[...]` |
+| Conexões | `list/create/get/update/testConnection` + `activate/suspend/reactivate/revoke` | `.../connections[...]` |
+| Credenciais | `list/create/rotate/revokeCredential` | `.../connections/{id}/credentials[...]` |
+| Tool bindings | `list/create/get/update/disableToolBinding` + operation bindings | `.../tool-bindings[...]` |
+| Webhooks | `list/create/get/update` + `suspend/reactivate/revoke` | `.../webhook-endpoints[...]` |
+
+Segredos (credencial) e token/segredo one-time de webhook vivem SÓ no estado local do
+formulário; nunca em Zustand, React Query, IndexedDB, localStorage, sessionStorage ou
+URL. O token do endpoint é exibido uma única vez na criação (`endpointToken`); em replay
+idempotente vem `null` (mensagem segura na UI).
