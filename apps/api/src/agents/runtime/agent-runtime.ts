@@ -14,11 +14,13 @@ import { validateAgainstSchema } from '../../connectors/tools/json-schema-valida
 import { stableHash } from '../hashing/stable-hash';
 import { AgentRuntimeResolverService } from './agent-runtime-resolver';
 import { InMemoryModelProviderRegistry } from './model-provider-registry';
-import { AgentContextAssemblerV1 } from './agent-context-assembler';
+import { AgentContextAssemblerV2 } from './context/agent-context-assembler-v2';
+import type { AgentContextAssemblyResult } from './context/agent-context.types';
 import { AgentOutputValidatorV1 } from './agent-output-validator';
 import { AgentEvaluatorV1 } from './agent-evaluator';
 import { REPAIR_MARKER } from './internal-test-model.provider';
 import { ModelProviderInvocationError } from './model-provider.errors';
+import { ApiException } from '../../common/errors/api-error';
 import type { AgentRuntime, AgentRuntimeExecutionInput, AgentRuntimeOutcome, AgentLifecycleEvent, ResolvedAgentRuntime } from './agent-runtime.types';
 
 function addUsage(a: AgentUsage, b: ModelGenerationResult['usage']): AgentUsage {
@@ -38,7 +40,7 @@ export class AgentRuntimeService implements AgentRuntime {
   constructor(
     private readonly resolver: AgentRuntimeResolverService,
     private readonly registry: InMemoryModelProviderRegistry,
-    private readonly assembler: AgentContextAssemblerV1,
+    private readonly assembler: AgentContextAssemblerV2,
     private readonly validator: AgentOutputValidatorV1,
     private readonly evaluator: AgentEvaluatorV1,
   ) {}
@@ -78,7 +80,7 @@ export class AgentRuntimeService implements AgentRuntime {
     }
 
     let usage = zeroAgentUsage(resolved.providerKey, resolved.modelId);
-    const base = { resolved, events, push, input } as const;
+    const base: RuntimeBase = { resolved, events, push, input };
 
     // Tool calling não é suportado nesta fase (§11).
     if (resolved.executionPolicy.toolCallingAllowed || resolved.executionPolicy.maximumToolCalls > 0) {
@@ -91,25 +93,48 @@ export class AgentRuntimeService implements AgentRuntime {
       return this.fail(base, usage, 'FAILED', 'AGENT_INPUT_INVALID', 'Entrada não valida contra inputSchema.', false, [], null);
     }
 
-    // §12: contexto mínimo v1.
-    const context = this.assembler.assemble({
-      organizationId: input.organizationId,
-      contextPolicy: resolved.contextPolicy,
-      objective: resolved.objective,
-      systemInstructions: resolved.systemInstructions,
-      executionInput: input.input,
-      correlationId: input.correlationId,
-    });
-    push('agent.context_assembled', { contextBytes: context.contextBytes, estimatedInputTokens: context.estimatedInputTokens, signals: context.securitySignals.length });
-
-    // §31: bloqueio determinístico de sinais CRITICAL explícitos.
-    const blocked = context.securitySignals.find((s) => s.blocked);
-    if (blocked) {
-      return this.fail(base, usage, 'FAILED', 'AGENT_PROMPT_INJECTION_DETECTED', 'Sinal de injeção bloqueado.', false, context.securitySignals, null);
+    // §12-§17: montagem de contexto v2 (fontes tenant-scoped + guardrails + orçamento).
+    let context: AgentContextAssemblyResult;
+    try {
+      context = await this.assembler.assemble({
+        organizationId: input.organizationId,
+        operationId: input.operationId,
+        operationVersionId: input.operationVersionId,
+        executionRunId: input.executionRunId,
+        executionStepId: input.executionStepId,
+        contextPolicy: resolved.contextPolicy,
+        objective: resolved.objective,
+        systemInstructions: resolved.systemInstructions,
+        executionInput: input.input,
+        correlationId: input.correlationId,
+      });
+    } catch (err) {
+      // Violação dura de fonte (tenant/autorização) → resultado tipado sanitizado.
+      const code = err instanceof ApiException ? err.code : 'AGENT_CONTEXT_SOURCE_NOT_ALLOWED';
+      const message = err instanceof Error ? err.message : 'Fonte de contexto não autorizada.';
+      return this.fail(base, usage, 'FAILED', code, message, false, [], null);
     }
+    base.context = context;
+
+    // Trilha de contexto (por fonte, sinais, exclusões) — sanitizada.
+    this.emitContextEvents(push, context);
+
+    // §17/§31: desfechos terminais da montagem (isolamento não bloqueia; injeção crítica sim).
+    if (context.outcome === 'BLOCKED') {
+      push('agent.context_blocked', { signals: context.securitySignals.length });
+      return this.fail(base, usage, 'FAILED', 'AGENT_PROMPT_INJECTION_DETECTED', 'Sinal de injeção crítico bloqueado.', false, context.securitySignals, null);
+    }
+    if (context.outcome === 'BUDGET_EXCEEDED') {
+      push('agent.context_budget_exceeded', {});
+      return this.fail(base, usage, 'FAILED', 'AGENT_CONTEXT_BUDGET_EXCEEDED', 'Orçamento de contexto insuficiente.', false, context.securitySignals, null);
+    }
+    if (context.outcome === 'SOURCE_INVALID') {
+      return this.fail(base, usage, 'FAILED', 'AGENT_CONTEXT_SOURCE_INVALID', 'Fonte de contexto obrigatória inválida.', false, context.securitySignals, null);
+    }
+    push('agent.context_assembled', { totalBytes: context.totalBytes, estimatedInputTokens: context.estimatedInputTokens, includedSources: context.includedSources.length, excludedSources: context.excludedSources.length, truncated: context.truncated, signals: context.securitySignals.length, contextHash: context.contextHash });
 
     // §12/§20: limites de contexto e tokens.
-    if (context.contextBytes > resolved.contextPolicy.maximumContextBytes) {
+    if (context.totalBytes > resolved.contextPolicy.maximumContextBytes) {
       return this.fail(base, usage, 'FAILED', 'AGENT_CONTEXT_TOO_LARGE', 'Contexto excede maximumContextBytes.', false, context.securitySignals, null);
     }
     const inputTokenCeiling = Math.min(resolved.executionPolicy.maximumInputTokens, resolved.contextPolicy.maximumInputTokens);
@@ -194,6 +219,20 @@ export class AgentRuntimeService implements AgentRuntime {
         return this.fail(base, usage, 'FAILED', 'AGENT_OUTPUT_REPAIR_EXHAUSTED', 'Tentativas de correção esgotadas.', false, context.securitySignals, null, { repairAttemptCount, validationErrors: lastValidationErrors });
       }
       return this.fail(base, usage, 'FAILED', 'AGENT_OUTPUT_INVALID', 'Saída não valida contra outputSchema.', false, context.securitySignals, null, { repairAttemptCount, validationErrors: lastValidationErrors });
+    }
+  }
+
+  /** Emite eventos de trilha do contexto (por fonte, exclusão, truncamento, sinal). */
+  private emitContextEvents(push: RuntimeBase['push'], context: AgentContextAssemblyResult): void {
+    for (const s of context.includedSources) {
+      push('agent.context_source_resolved', { kind: s.kind, ref: s.ref, trust: s.trust, isolated: s.isolated, bytes: s.bytes, redactedHash: s.redactedHash });
+      if (s.truncated) push('agent.context_source_truncated', { kind: s.kind, ref: s.ref, bytes: s.bytes });
+    }
+    for (const e of context.excludedSources) {
+      push('agent.context_source_excluded', { kind: e.kind, ref: e.ref, reason: e.reason });
+    }
+    for (const sig of context.securitySignals) {
+      push('agent.context_security_signal_detected', { code: sig.code, severity: sig.severity, source: sig.source, blocked: sig.blocked });
     }
   }
 
@@ -294,6 +333,10 @@ export class AgentRuntimeService implements AgentRuntime {
       durationMs: safeResult.durationMs,
       securitySignals: signals,
       evaluationFailedChecks: evaluationFailed,
+      contextHash: base.context?.contextHash ?? null,
+      contextTruncated: base.context?.truncated ?? false,
+      includedSources: base.context?.includedSources ?? [],
+      excludedSources: base.context?.excludedSources ?? [],
       ...extra,
     };
 
@@ -321,4 +364,6 @@ interface RuntimeBase {
   events: AgentLifecycleEvent[];
   push: (eventType: string, payload?: Record<string, unknown>) => void;
   input: AgentRuntimeExecutionInput;
+  /** Contexto montado (metadados sanitizados) — enriquece a evidência final. */
+  context?: AgentContextAssemblyResult;
 }

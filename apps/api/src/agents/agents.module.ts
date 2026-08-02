@@ -31,11 +31,19 @@ import { AgentVersionsController } from './versions/agent-versions.controller';
 import { AGENT_RUNTIME } from '@arden/contracts';
 import { InternalTestModelProvider } from './runtime/internal-test-model.provider';
 import { InMemoryModelProviderRegistry } from './runtime/model-provider-registry';
-import { AgentContextAssemblerV1 } from './runtime/agent-context-assembler';
 import { AgentOutputValidatorV1 } from './runtime/agent-output-validator';
 import { AgentEvaluatorV1 } from './runtime/agent-evaluator';
 import { AgentRuntimeResolverService } from './runtime/agent-runtime-resolver';
 import { AgentRuntimeService } from './runtime/agent-runtime';
+
+// Pipeline de contexto v2 (ARDEN-BE-007.4): fontes tenant-scoped, guardrails, orçamento.
+import { AGENT_CONTEXT_SOURCE_RESOLVER } from './runtime/context/agent-context.types';
+import { AgentContextSourceResolverService } from './runtime/context/agent-context-source-resolver';
+import { AgentContextNormalizer } from './runtime/context/agent-context-normalizer';
+import { AgentContextTrustClassifier } from './runtime/context/agent-context-trust-classifier';
+import { PromptInjectionGuard } from './runtime/context/prompt-injection-guard';
+import { AgentContextBudgetAllocator } from './runtime/context/agent-context-budget-allocator';
+import { AgentContextAssemblerV2 } from './runtime/context/agent-context-assembler-v2';
 
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule],
@@ -58,10 +66,17 @@ import { AgentRuntimeService } from './runtime/agent-runtime';
     // Runtime determinístico + provider interno + registry + validador/avaliador/resolver.
     InternalTestModelProvider,
     InMemoryModelProviderRegistry,
-    AgentContextAssemblerV1,
     AgentOutputValidatorV1,
     AgentEvaluatorV1,
     AgentRuntimeResolverService,
+    // Pipeline de contexto v2 (007.4).
+    AgentContextNormalizer,
+    AgentContextTrustClassifier,
+    PromptInjectionGuard,
+    AgentContextBudgetAllocator,
+    AgentContextSourceResolverService,
+    { provide: AGENT_CONTEXT_SOURCE_RESOLVER, useExisting: AgentContextSourceResolverService },
+    AgentContextAssemblerV2,
     AgentRuntimeService,
     { provide: AGENT_RUNTIME, useExisting: AgentRuntimeService },
   ],
