@@ -111,3 +111,21 @@ Segredos (credencial) e token/segredo one-time de webhook vivem SÓ no estado lo
 formulário; nunca em Zustand, React Query, IndexedDB, localStorage, sessionStorage ou
 URL. O token do endpoint é exibido uma única vez na criação (`endpointToken`); em replay
 idempotente vem `null` (mensagem segura na UI).
+
+## ARDEN-BE-007 — Runtime de agentes
+
+**Nenhuma tela do frontend usa estas APIs ainda.** As telas API-backed de administração
+de agentes chegam na fase 007.7. As superfícies "de IA" atuais (`/assessment`,
+`/evaluator`, `AssistantPanel`) permanecem mock/determinísticas e NÃO consomem estes
+endpoints nesta fase.
+
+| UI (futura) | Cliente (futuro) | Endpoint contratado |
+| --- | --- | --- |
+| Agentes | `list/create/get/update/suspend/reactivate/revokeAgent` | `.../agents[...]` |
+| Versões de agente | `list/create/get/update/publish/retireAgentVersion` | `.../agents/{id}/versions[...]` |
+| Providers de modelo | `list/getModelProvider` | `/model-providers[...]` |
+| Configurações de modelo | `list/create/get/update/activate/suspend/revokeModelConfiguration` | `.../model-configurations[...]` |
+
+Credencial de provider vive no cofre (BE-006.4), referenciada por conexão; nunca em
+resposta, storage do browser, prompt, job, log ou URL. A execução de agente ocorre só via
+etapa `agent.execute` do motor de operações — sem endpoint direto de run/chat.

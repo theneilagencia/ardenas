@@ -101,3 +101,27 @@ chegam nas fases 006.3+.
 - **Política de rede** (`ConnectorNetworkPolicy`): defaults de produção restritivos
   (só `https`, sem redirects, sem redes privadas/loopback/link-local). Enforcement de
   SSRF é fase futura (só o contrato aqui).
+
+## ARDEN-BE-007 — Agents and Model Runtime
+
+Contratos compartilhados em `src/contracts/agents/*` (schemas Zod), registrados em
+`src/contracts/registry.ts` e projetados no OpenAPI (`docs/api/openapi-v1.yaml`, tag
+`Agents`). **Esta fase define contratos.** Persistência, runtime e frontend NÃO existem
+ainda; execução direta de agentes NÃO existe.
+
+- **Domínio canônico:** `AgentDefinition` (tenant-scoped, `status`+revision, `REVOKED`
+  terminal) e `AgentVersion` (DRAFT→PUBLISHED→RETIRED, imutável após publicação). Objetivo,
+  `systemInstructions` e TODAS as políticas pertencem à VERSÃO — nunca ao request de execução.
+- **Provider substituível:** `ModelProviderDefinition` (catálogo inicial: apenas
+  `internal.test-model`, `productionAllowed=false`). `ModelConfiguration` fixa provider +
+  `modelId` + credencial (referência ao cofre) — resposta nunca inclui segredo.
+- **Políticas versionadas:** contexto (allowlist fechada), execução (limites; sem loop
+  infinito), ferramentas (aliases allowlistados; destrutivo/financeiro/crítico `false` por
+  default), avaliação (determinística obrigatória; judge advisory), custo (enforcement futuro).
+- **Structured output obrigatório:** `AGENT_OUTPUT_INVALID` nunca vira sucesso silencioso.
+- **Tipos internos sem SDK:** `ModelGenerationRequest/Result`, mensagens, tool defs/calls —
+  nenhum import de Anthropic/OpenAI/Bedrock/Vertex. Interfaces arquiteturais
+  (`ModelProvider`, `ModelProviderRegistry`, `AgentContextAssembler`, `AgentOutputValidator`,
+  `AgentEvaluator`, `AgentRuntime`) + tokens de DI, sem implementação.
+- **Action key:** `agent.execute` (única) no `executorActionKey` do BE-005; `operationStep.agent`
+  espelha `operationStep.tool`. Sem `model.generate`/`chat`/`agent.run`.

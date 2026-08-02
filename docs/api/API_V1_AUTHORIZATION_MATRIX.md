@@ -125,3 +125,32 @@ nunca aceita o tenant vindo do payload sem validação.
 | webhooks.receive | POST | `/webhooks/{endpointToken}` | **público (assinatura)** | replay-idempotente | não |
 
 Permissão adicional `integration.execute` valida o uso de ferramenta externa na criação de execução (BE-005), além de `execution.create`. Papéis iniciais: `corporate_admin` (todas), `security_admin` (gestão completa de conexões/credenciais/webhooks), `operation_owner` (view + `tool.bind` + `integration.execute`), `supervisor` (view + `connection.test` + `integration.execute`), `auditor` (somente leitura).
+
+## ARDEN-BE-007 — Runtime de agentes (contratado)
+
+| Endpoint | Método | Path | Permissão | Idempotência | Concorrência |
+| --- | --- | --- | --- | --- | --- |
+| agents.list / get | GET | `.../agents...` | `agent.view` | não | não |
+| agents.create | POST | `.../agents` | `agent.create` | sim | não |
+| agents.update | PATCH | `.../agents/{id}` | `agent.edit` | não | sim |
+| agents.suspend / reactivate | POST | `.../agents/{id}/...` | `agent.suspend` | sim | sim |
+| agents.revoke | POST | `.../agents/{id}/revoke` | `agent.revoke` | sim | sim |
+| agentVersions.list / get | GET | `.../agents/{id}/versions...` | `agent.view` | não | não |
+| agentVersions.create / update | POST/PATCH | `.../versions...` | `agent.edit` | create: sim | update: sim |
+| agentVersions.publish / retire | POST | `.../versions/{id}/...` | `agent.publish` | sim | sim |
+| modelProviders.list / get | GET | `/model-providers...` | `model_provider.view` | não | não |
+| modelConfigurations.list / get | GET | `.../model-configurations...` | `model_configuration.view` | não | não |
+| modelConfigurations.create | POST | `.../model-configurations` | `model_configuration.create` | sim | não |
+| modelConfigurations.update | PATCH | `.../model-configurations/{id}` | `model_configuration.edit` | não | sim |
+| modelConfigurations.activate/suspend | POST | `.../model-configurations/{id}/...` | `model_configuration.edit` | sim | sim |
+| modelConfigurations.revoke | POST | `.../model-configurations/{id}/revoke` | `model_configuration.revoke` | sim | sim |
+
+**Não há endpoint de execução direta** (`/agents/{id}/run`, `/chat`, `/models/generate`).
+A execução de agente ocorre EXCLUSIVAMENTE pelo motor de operações, via a etapa com
+action key `agent.execute` — enforcement de autoridade/aprovação permanece no BE-004/005.
+
+Papéis iniciais: `corporate_admin` (todas); `security_admin` (providers + configurações
+de modelo completos, `agent.view/suspend/revoke`); `operation_owner` (agentes
+view/create/edit/publish, `agent.execute`, `model_configuration.view`); `supervisor`
+(`agent.view/execute`, `agent.cost.view`); `auditor` (view de agente/config + `agent.cost.view`,
+sem execução).
