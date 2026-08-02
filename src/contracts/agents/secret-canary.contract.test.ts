@@ -46,7 +46,7 @@ describe('canário de segredo — contratos de saída do runtime de agentes', ()
   it('a configuração de modelo descarta qualquer credencial injetada', () => {
     const parsed = modelConfiguration.parse({
       id: 'cfg_1', organizationId: 'org_1', providerKey: 'internal.test-model', providerVersion: '1',
-      name: 'X', modelId: 'test', credentialConnectionId: null,
+      name: 'X', description: null, modelId: 'test', credentialConnectionId: null,
       parameters: { maximumOutputTokens: 256 }, status: 'DRAFT', createdByUserId: 'user_1', revision: 0,
       createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z',
       apiKey: CANARY, secret: CANARY, credential: CANARY,
