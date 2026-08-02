@@ -73,7 +73,9 @@ export type ConnectionStatus = z.infer<typeof connectionStatus>;
 export const connectionTestStatus = z.enum(['SUCCESS', 'FAILURE', 'NOT_TESTED']);
 export type ConnectionTestStatus = z.infer<typeof connectionTestStatus>;
 
-export const credentialStatus = z.enum(['ACTIVE', 'SUPERSEDED', 'REVOKED']);
+// `PENDING` (ARDEN-BE-006.3): a versão de credencial existe estruturalmente antes de
+// o cofre (006.4) cifrar/ativar o segredo. Nenhum segredo é persistido em PENDING.
+export const credentialStatus = z.enum(['PENDING', 'ACTIVE', 'SUPERSEDED', 'REVOKED']);
 export type CredentialStatus = z.infer<typeof credentialStatus>;
 
 export const webhookEndpointStatus = z.enum(['ACTIVE', 'SUSPENDED', 'REVOKED']);

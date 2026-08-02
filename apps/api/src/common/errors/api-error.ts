@@ -155,3 +155,33 @@ export const authorizationAlreadyUsed = (message = 'Autorização de ação já 
   new ApiException('AUTHORIZATION_ALREADY_USED', { message });
 export const jobLeaseConflict = (message = 'Conflito de lease de job.') =>
   new ApiException('JOB_LEASE_CONFLICT', { message });
+
+// ── Conectores, credenciais, ferramentas e webhooks (ARDEN-BE-006) ──────────────
+export const connectorNotAvailable = (message = 'Conector indisponível.') =>
+  new ApiException('CONNECTOR_NOT_AVAILABLE', { message });
+export const connectorDeprecated = (message = 'Conector descontinuado.') =>
+  new ApiException('CONNECTOR_DEPRECATED', { message });
+export const connectionNotActive = (message = 'Conexão não está ativa.') =>
+  new ApiException('CONNECTION_NOT_ACTIVE', { message });
+export const connectionSuspended = (message = 'Conexão suspensa.') =>
+  new ApiException('CONNECTION_SUSPENDED', { message });
+export const connectionRevoked = (message = 'Conexão revogada (terminal).') =>
+  new ApiException('CONNECTION_REVOKED', { message });
+export const credentialRequired = (message = 'Conexão sem credencial ativa.') =>
+  new ApiException('CREDENTIAL_REQUIRED', { message });
+export const credentialInvalid = (fieldErrors: FieldError[], message = 'Credencial inválida.') =>
+  new ApiException('CREDENTIAL_INVALID', { message, fieldErrors });
+export const credentialRevoked = (message = 'Credencial revogada.') =>
+  new ApiException('CREDENTIAL_REVOKED', { message });
+export const credentialRotationConflict = (message = 'Rotação de credencial concorrente.') =>
+  new ApiException('CREDENTIAL_ROTATION_CONFLICT', { message });
+export const toolNotAvailable = (message = 'Ferramenta indisponível.') =>
+  new ApiException('TOOL_NOT_AVAILABLE', { message });
+export const toolBindingNotFound = (message = 'Vínculo de ferramenta não encontrado.') =>
+  new ApiException('TOOL_BINDING_NOT_FOUND', { message });
+export const toolInputInvalid = (fieldErrors: FieldError[], message = 'Entrada de ferramenta inválida.') =>
+  new ApiException('TOOL_INPUT_INVALID', { message, fieldErrors });
+export const toolExecutionDenied = (message = 'Execução de ferramenta negada.') =>
+  new ApiException('TOOL_EXECUTION_DENIED', { message });
+export const webhookEndpointRevoked = (message = 'Endpoint de webhook revogado.') =>
+  new ApiException('WEBHOOK_ENDPOINT_REVOKED', { message });
