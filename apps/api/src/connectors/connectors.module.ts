@@ -29,10 +29,14 @@ import { WebhookEndpointsRepository, WebhookDeliveriesRepository } from './webho
 import { WebhooksService } from './webhooks/webhooks.service';
 import { NodeSecureHttpClient } from './http/secure-http-client';
 import { SECURE_HTTP_CLIENT } from './http/secure-http.types';
+import { ToolBindingResolver } from './tools/tool-binding-resolver';
+import { ConnectionResolver } from './tools/connection-resolver';
+import { ExternalToolExecutor } from './tools/external-tool-executor';
+import { ToolBindingsController } from './tool-bindings/tool-bindings.controller';
 
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule],
-  controllers: [CredentialsController],
+  controllers: [CredentialsController, ToolBindingsController],
   providers: [
     ConnectorDefinitionsRepository,
     ConnectorToolDefinitionsRepository,
@@ -52,6 +56,10 @@ import { SECURE_HTTP_CLIENT } from './http/secure-http.types';
     CredentialResolver,
     // Cliente HTTP seguro / prevenção SSRF (ARDEN-BE-006.5).
     { provide: SECURE_HTTP_CLIENT, useClass: NodeSecureHttpClient },
+    // Execução de ferramenta externa (ARDEN-BE-006.6).
+    ToolBindingResolver,
+    ConnectionResolver,
+    ExternalToolExecutor,
     {
       provide: SECRET_VAULT,
       inject: [APP_CONFIG, ConnectorKeyProvider, PrismaService],
@@ -84,6 +92,10 @@ import { SECURE_HTTP_CLIENT } from './http/secure-http.types';
     CredentialResolver,
     SECRET_VAULT,
     SECURE_HTTP_CLIENT,
+    ToolBindingResolver,
+    ConnectionResolver,
+    ExternalToolExecutor,
+    ToolBindingsService,
   ],
 })
 export class ConnectorsModule {}

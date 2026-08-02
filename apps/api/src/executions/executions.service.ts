@@ -36,6 +36,8 @@ import {
 import { assertRevision } from '../common/concurrency/optimistic-concurrency';
 import { EnforcementService } from '../enforcement/enforcement.service';
 import { hashActionPayload } from '../enforcement/action-payload';
+import { AuthorizationService } from '../authz/authorization.service';
+import { OperationToolBindingsRepository } from '../connectors/tool-bindings/tool-bindings.repository';
 import { ExecutionsRepository } from './executions.repository';
 import { ExecutionRecorder } from './execution.recorder';
 import { ExecutionQueue } from './execution.queue';
@@ -52,6 +54,8 @@ export class ExecutionsService {
     private readonly enforcement: EnforcementService,
     private readonly recorder: ExecutionRecorder,
     private readonly queue: ExecutionQueue,
+    private readonly authz: AuthorizationService,
+    private readonly opToolBindings: OperationToolBindingsRepository,
   ) {}
 
   private orgId(ctx: AuthenticatedRequestContext): string {
@@ -172,8 +176,26 @@ export class ExecutionsService {
 
         // Materializa etapas (snapshot da definição publicada).
         const steps = [...definition.steps].sort((a, b) => a.order - b.order);
+        let hasExternalStep = false;
         for (let i = 0; i < steps.length; i++) {
           const s = steps[i];
+          if (s.tool) {
+            // Etapa externa (ARDEN-BE-006.6): fail-fast do binding + snapshot seguro do
+            // alias/actionKey no input (SEM segredo, SEM URL). O worker RE-resolve tudo.
+            await this.assertExternalBinding(tx, orgId, operationId, op.publishedVersionId, s.tool.alias, s.tool.actionKey);
+            hasExternalStep = true;
+            const actionKey = s.tool.actionKey;
+            const stepInput = { $tool: { alias: s.tool.alias, actionKey }, $source: body.input ?? {} } as Prisma.InputJsonValue;
+            await tx.executionStep.create({
+              data: {
+                organizationId: orgId, executionRunId: run.id, definitionStepKey: s.id, sequence: i + 1,
+                name: s.name, actionKey, status: 'PENDING',
+                input: stepInput, inputHash: hashActionPayload(actionKey, body.input),
+                maxAttempts, timeoutAt,
+              },
+            });
+            continue;
+          }
           const executor = this.resolveExecutor(body.stepExecutors, s.id, s.producesEvidence);
           const stepInput = (body.input ?? {}) as Prisma.InputJsonValue;
           await tx.executionStep.create({
@@ -185,6 +207,9 @@ export class ExecutionsService {
             },
           });
         }
+
+        // Autorização server-side de execução externa (§12): além da autoridade BE-004.
+        if (hasExternalStep) this.authz.requirePermission(ctx, 'integration.execute');
 
         // Eventos + evidência inicial.
         await this.recorder.recordEvent(tx, { organizationId: orgId, executionRunId: run.id, eventType: 'execution.created', actorType: 'USER', actorId: ctx.userId, correlationId: ctx.correlationId, payload: { operationId, actionKey: body.actionKey } });
@@ -203,6 +228,26 @@ export class ExecutionsService {
       },
     );
     return { statusCode: result.statusCode, body: result.response };
+  }
+
+  /** Fail-fast na criação: o alias externo deve ter binding habilitado com a ação permitida. */
+  private async assertExternalBinding(
+    tx: Prisma.TransactionClient,
+    orgId: string,
+    operationId: string,
+    operationVersionId: string,
+    alias: string,
+    actionKey: string,
+  ): Promise<void> {
+    const binding = await this.opToolBindings.findByAlias(orgId, operationId, alias, tx);
+    if (!binding || binding.removedAt || !binding.enabled) {
+      throw executionNotAllowed(`Alias de ferramenta indisponível: ${alias}.`);
+    }
+    if (binding.operationVersionId && binding.operationVersionId !== operationVersionId) {
+      throw executionNotAllowed(`Alias vinculado a outra versão: ${alias}.`);
+    }
+    const allowed = Array.isArray(binding.allowedActionKeys) ? (binding.allowedActionKeys as unknown[]) : [];
+    if (!allowed.includes(actionKey)) throw executionNotAllowed(`Ação não permitida para o alias ${alias}.`);
   }
 
   private resolveExecutor(overrides: Record<string, ExecutorActionKey> | undefined, stepKey: string, producesEvidence: boolean): ExecutorActionKey {

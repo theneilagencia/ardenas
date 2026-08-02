@@ -13,7 +13,7 @@ import {
   externalActionKey,
   type CreateOrganizationToolBindingRequest, type UpdateOrganizationToolBindingRequest,
   type CreateOperationToolBindingRequest, type UpdateOperationToolBindingRequest,
-  type OrganizationToolBinding, type OperationToolBinding,
+  type OrganizationToolBinding, type OperationToolBinding, type ListToolBindingsQuery, type PaginationMeta,
 } from '@arden/contracts';
 import { PrismaService } from '../../database/prisma.service';
 import { IdempotencyService } from '../../modules/idempotency/idempotency.service';
@@ -48,6 +48,32 @@ export class ToolBindingsService {
   }
 
   // ── Organization tool binding ─────────────────────────────────────────────────
+  private async toolKeyVersion(tx: Prisma.TransactionClient | PrismaService, connectorToolDefinitionId: string): Promise<{ key: string; version: string }> {
+    const tool = await tx.connectorToolDefinition.findUnique({ where: { id: connectorToolDefinitionId }, select: { key: true, version: true } });
+    return { key: tool?.key ?? '', version: tool?.version ?? '' };
+  }
+
+  async listOrgBindings(ctx: AuthenticatedRequestContext, query: ListToolBindingsQuery): Promise<{ data: OrganizationToolBinding[]; pagination: PaginationMeta }> {
+    const orgId = this.orgId(ctx);
+    const rows = await this.orgBindings.list(orgId, { connectionId: query.connectionId, enabled: query.enabled }, query.limit + 1, query.cursor);
+    const hasNextPage = rows.length > query.limit;
+    const page = hasNextPage ? rows.slice(0, query.limit) : rows;
+    const last = page[page.length - 1];
+    const data = await Promise.all(page.map(async (row) => {
+      const t = await this.toolKeyVersion(this.prisma, row.connectorToolDefinitionId);
+      return toOrgToolBindingContract(row, t.key, t.version);
+    }));
+    return { data, pagination: { cursor: query.cursor ?? null, nextCursor: hasNextPage && last ? last.createdAt.toISOString() : null, hasNextPage, limit: query.limit } };
+  }
+
+  async getOrgBinding(ctx: AuthenticatedRequestContext, id: string): Promise<{ data: OrganizationToolBinding }> {
+    const orgId = this.orgId(ctx);
+    const row = await this.orgBindings.findById(orgId, id);
+    if (!row) throw toolBindingNotFound();
+    const t = await this.toolKeyVersion(this.prisma, row.connectorToolDefinitionId);
+    return { data: toOrgToolBindingContract(row, t.key, t.version) };
+  }
+
   async createOrgBinding(ctx: AuthenticatedRequestContext, body: CreateOrganizationToolBindingRequest, idempotencyKey: string): Promise<{ statusCode: number; body: { data: OrganizationToolBinding } }> {
     const orgId = this.orgId(ctx);
     const result = await runIdempotentCommand<{ data: OrganizationToolBinding }>(
