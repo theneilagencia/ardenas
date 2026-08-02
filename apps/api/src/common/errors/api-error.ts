@@ -233,3 +233,29 @@ export const externalProviderError = (message = 'Erro do provedor externo.') =>
   new ApiException('EXTERNAL_PROVIDER_ERROR', { message });
 export const externalResultUnknown = (message = 'Resultado da operação externa é incerto.') =>
   new ApiException('EXTERNAL_RESULT_UNKNOWN', { message });
+
+// ── Runtime de agentes e modelos (ARDEN-BE-007) ─────────────────────────────────
+export const agentNotFound = (message = 'Agente não encontrado.') =>
+  new ApiException('AGENT_NOT_FOUND', { message });
+export const agentNotActive = (message = 'Agente não está em estado utilizável.') =>
+  new ApiException('AGENT_NOT_ACTIVE', { message });
+export const agentSuspended = (message = 'Agente suspenso.') =>
+  new ApiException('AGENT_SUSPENDED', { message });
+export const agentRevoked = (message = 'Agente revogado (terminal).') =>
+  new ApiException('AGENT_REVOKED', { message });
+export const agentVersionNotFound = (message = 'Versão de agente não encontrada.') =>
+  new ApiException('AGENT_VERSION_NOT_FOUND', { message });
+export const agentVersionNotPublished = (message = 'Versão de agente não está publicada.') =>
+  new ApiException('AGENT_VERSION_NOT_PUBLISHED', { message });
+export const agentVersionRetired = (message = 'Versão de agente retirada (terminal).') =>
+  new ApiException('AGENT_VERSION_RETIRED', { message });
+export const modelProviderNotAvailable = (message = 'Provider de modelo indisponível.') =>
+  new ApiException('MODEL_PROVIDER_NOT_AVAILABLE', { message });
+export const modelProviderDisabled = (message = 'Provider de modelo desabilitado ou proibido no ambiente.') =>
+  new ApiException('MODEL_PROVIDER_DISABLED', { message });
+export const modelConfigurationNotFound = (message = 'Configuração de modelo não encontrada.') =>
+  new ApiException('MODEL_CONFIGURATION_NOT_FOUND', { message });
+export const modelConfigurationNotActive = (message = 'Configuração de modelo não está ativa.') =>
+  new ApiException('MODEL_CONFIGURATION_NOT_ACTIVE', { message });
+export const agentInputInvalid = (fieldErrors: FieldError[], message = 'Entrada de agente inválida.') =>
+  new ApiException('AGENT_INPUT_INVALID', { message, fieldErrors });

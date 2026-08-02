@@ -38,6 +38,7 @@ export const modelConfiguration = z.object({
   providerKey: modelProviderKey,
   providerVersion: modelProviderVersion,
   name: z.string().min(1).max(120),
+  description: z.string().max(500).nullable(),
   modelId,
   /** Referência à conexão que guarda a credencial no cofre (BE-006.4). Nunca o segredo. */
   credentialConnectionId: connectionId.nullable(),
@@ -55,6 +56,7 @@ export const createModelConfigurationRequest = z.object({
   providerKey: modelProviderKey,
   providerVersion: modelProviderVersion,
   name: z.string().min(1).max(120),
+  description: z.string().max(500).optional(),
   modelId,
   credentialConnectionId: connectionId.optional(),
   parameters: modelParameters,
@@ -64,6 +66,7 @@ export type CreateModelConfigurationRequest = z.infer<typeof createModelConfigur
 /** PATCH só edita metadados/parâmetros/credencial — NUNCA status (status via comando). */
 export const updateModelConfigurationRequest = z.object({
   name: z.string().min(1).max(120).optional(),
+  description: z.string().max(500).nullable().optional(),
   modelId: modelId.optional(),
   credentialConnectionId: connectionId.nullable().optional(),
   parameters: modelParameters.optional(),

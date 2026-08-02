@@ -25590,6 +25590,10 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
         modelId:
           type: string
           minLength: 1
@@ -25653,6 +25657,7 @@ components:
         - providerKey
         - providerVersion
         - name
+        - description
         - modelId
         - credentialConnectionId
         - parameters
@@ -25689,6 +25694,10 @@ components:
               type: string
               minLength: 1
               maxLength: 120
+            description:
+              type: string
+              maxLength: 500
+              nullable: true
             modelId:
               type: string
               minLength: 1
@@ -25752,6 +25761,7 @@ components:
             - providerKey
             - providerVersion
             - name
+            - description
             - modelId
             - credentialConnectionId
             - parameters
@@ -25796,6 +25806,10 @@ components:
                 type: string
                 minLength: 1
                 maxLength: 120
+              description:
+                type: string
+                maxLength: 500
+                nullable: true
               modelId:
                 type: string
                 minLength: 1
@@ -25859,6 +25873,7 @@ components:
               - providerKey
               - providerVersion
               - name
+              - description
               - modelId
               - credentialConnectionId
               - parameters
@@ -25908,6 +25923,9 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+        description:
+          type: string
+          maxLength: 500
         modelId:
           type: string
           minLength: 1
@@ -25956,6 +25974,10 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
         modelId:
           type: string
           minLength: 1
