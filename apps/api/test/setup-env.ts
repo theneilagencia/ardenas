@@ -15,3 +15,8 @@ process.env.API_PREFIX ??= '/api/v1';
 process.env.ENABLE_SWAGGER ??= 'true';
 // Testes usam o provider de identidade FAKE (injetável), nunca Supabase real.
 process.env.AUTH_PROVIDER ??= 'fake';
+// Cofre de credenciais (ARDEN-BE-006.4): provider real AES-GCM com master key de
+// FIXTURE (32 bytes) — chave de teste, jamais usada em produção.
+process.env.CONNECTOR_VAULT_PROVIDER ??= 'app-aes-gcm';
+process.env.CONNECTOR_MASTER_KEY ??= Buffer.alloc(32, 7).toString('base64');
+process.env.CONNECTOR_KEY_VERSION ??= 'test-v1';
