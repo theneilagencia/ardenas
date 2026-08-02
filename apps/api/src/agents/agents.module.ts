@@ -27,6 +27,16 @@ import { AgentVersionsRepository } from './versions/agent-versions.repository';
 import { AgentVersionsService } from './versions/agent-versions.service';
 import { AgentVersionsController } from './versions/agent-versions.controller';
 
+// Runtime determinístico (ARDEN-BE-007.3): sem SDK, sem internet, sem execução direta.
+import { AGENT_RUNTIME } from '@arden/contracts';
+import { InternalTestModelProvider } from './runtime/internal-test-model.provider';
+import { InMemoryModelProviderRegistry } from './runtime/model-provider-registry';
+import { AgentContextAssemblerV1 } from './runtime/agent-context-assembler';
+import { AgentOutputValidatorV1 } from './runtime/agent-output-validator';
+import { AgentEvaluatorV1 } from './runtime/agent-evaluator';
+import { AgentRuntimeResolverService } from './runtime/agent-runtime-resolver';
+import { AgentRuntimeService } from './runtime/agent-runtime';
+
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule],
   controllers: [
@@ -45,7 +55,22 @@ import { AgentVersionsController } from './versions/agent-versions.controller';
     AgentsService,
     AgentVersionsRepository,
     AgentVersionsService,
+    // Runtime determinístico + provider interno + registry + validador/avaliador/resolver.
+    InternalTestModelProvider,
+    InMemoryModelProviderRegistry,
+    AgentContextAssemblerV1,
+    AgentOutputValidatorV1,
+    AgentEvaluatorV1,
+    AgentRuntimeResolverService,
+    AgentRuntimeService,
+    { provide: AGENT_RUNTIME, useExisting: AgentRuntimeService },
   ],
-  exports: [ModelProviderCatalogProjector],
+  exports: [
+    ModelProviderCatalogProjector,
+    // Expostos ao motor de execução (ExecutionsModule) — sem ciclo (AgentsModule não
+    // importa ExecutionsModule).
+    AGENT_RUNTIME,
+    AgentDefinitionsRepository,
+  ],
 })
 export class AgentsModule {}
