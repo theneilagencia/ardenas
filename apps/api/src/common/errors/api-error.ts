@@ -184,6 +184,8 @@ export const toolBindingNotFound = (message = 'Vínculo de ferramenta não encon
   new ApiException('TOOL_BINDING_NOT_FOUND', { message });
 export const toolInputInvalid = (fieldErrors: FieldError[], message = 'Entrada de ferramenta inválida.') =>
   new ApiException('TOOL_INPUT_INVALID', { message, fieldErrors });
+export const toolOutputInvalid = (fieldErrors: FieldError[], message = 'Saída de ferramenta inválida.') =>
+  new ApiException('TOOL_OUTPUT_INVALID', { message, fieldErrors });
 export const toolExecutionDenied = (message = 'Execução de ferramenta negada.') =>
   new ApiException('TOOL_EXECUTION_DENIED', { message });
 export const webhookEndpointRevoked = (message = 'Endpoint de webhook revogado.') =>

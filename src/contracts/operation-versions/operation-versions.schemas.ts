@@ -15,9 +15,21 @@ import { operationId, operationVersionId, organizationId, userId } from '../comm
 import { authoritySemanticLevel, authorityProfile } from '../authority/authority.schemas';
 import { auditEvent } from '../audit/audit.schemas';
 import { operation } from '../operations/operations.schemas';
+import { externalActionKey } from '../connectors/connector-keys';
 
 export const operationEnvironment = z.enum(['sandbox', 'staging', 'production']);
 export type OperationEnvironment = z.infer<typeof operationEnvironment>;
+
+/**
+ * Referência OPCIONAL a uma ferramenta externa vinculada por alias (ARDEN-BE-006.6).
+ * Declara que a etapa invoca a ferramenta `alias` com a `actionKey` externa. NÃO
+ * carrega segredo, URL nem classe — a resolução tenant-scoped ocorre na execução.
+ */
+export const operationStepTool = z.object({
+  alias: z.string().min(1).max(60),
+  actionKey: externalActionKey,
+});
+export type OperationStepTool = z.infer<typeof operationStepTool>;
 
 /** Passo da operação (espelha `OperationStep` do frontend). */
 export const operationStep = z.object({
@@ -29,6 +41,7 @@ export const operationStep = z.object({
   requiresApproval: z.boolean(),
   workUnitCost: z.number().int().min(0),
   producesEvidence: z.boolean(),
+  tool: operationStepTool.optional(),
 });
 export type OperationStep = z.infer<typeof operationStep>;
 

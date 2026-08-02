@@ -9703,6 +9703,25 @@ components:
                     minimum: 0
                   producesEvidence:
                     type: boolean
+                  tool:
+                    type: object
+                    properties:
+                      alias:
+                        type: string
+                        minLength: 1
+                        maxLength: 60
+                      actionKey:
+                        type: string
+                        enum:
+                          - external.http.request
+                          - external.webhook.send
+                          - connector.test.echo
+                          - connector.test.failure
+                          - connector.test.timeout
+                    required:
+                      - alias
+                      - actionKey
+                    additionalProperties: false
                 required:
                   - id
                   - order
@@ -9955,6 +9974,25 @@ components:
                     minimum: 0
                   producesEvidence:
                     type: boolean
+                  tool:
+                    type: object
+                    properties:
+                      alias:
+                        type: string
+                        minLength: 1
+                        maxLength: 60
+                      actionKey:
+                        type: string
+                        enum:
+                          - external.http.request
+                          - external.webhook.send
+                          - connector.test.echo
+                          - connector.test.failure
+                          - connector.test.timeout
+                    required:
+                      - alias
+                      - actionKey
+                    additionalProperties: false
                 required:
                   - id
                   - order
@@ -10123,6 +10161,25 @@ components:
                         minimum: 0
                       producesEvidence:
                         type: boolean
+                      tool:
+                        type: object
+                        properties:
+                          alias:
+                            type: string
+                            minLength: 1
+                            maxLength: 60
+                          actionKey:
+                            type: string
+                            enum:
+                              - external.http.request
+                              - external.webhook.send
+                              - connector.test.echo
+                              - connector.test.failure
+                              - connector.test.timeout
+                        required:
+                          - alias
+                          - actionKey
+                        additionalProperties: false
                     required:
                       - id
                       - order
@@ -10592,6 +10649,25 @@ components:
                         minimum: 0
                       producesEvidence:
                         type: boolean
+                      tool:
+                        type: object
+                        properties:
+                          alias:
+                            type: string
+                            minLength: 1
+                            maxLength: 60
+                          actionKey:
+                            type: string
+                            enum:
+                              - external.http.request
+                              - external.webhook.send
+                              - connector.test.echo
+                              - connector.test.failure
+                              - connector.test.timeout
+                        required:
+                          - alias
+                          - actionKey
+                        additionalProperties: false
                     required:
                       - id
                       - order
@@ -10867,6 +10943,25 @@ components:
                           minimum: 0
                         producesEvidence:
                           type: boolean
+                        tool:
+                          type: object
+                          properties:
+                            alias:
+                              type: string
+                              minLength: 1
+                              maxLength: 60
+                            actionKey:
+                              type: string
+                              enum:
+                                - external.http.request
+                                - external.webhook.send
+                                - connector.test.echo
+                                - connector.test.failure
+                                - connector.test.timeout
+                          required:
+                            - alias
+                            - actionKey
+                          additionalProperties: false
                       required:
                         - id
                         - order
@@ -11161,6 +11256,25 @@ components:
                             minimum: 0
                           producesEvidence:
                             type: boolean
+                          tool:
+                            type: object
+                            properties:
+                              alias:
+                                type: string
+                                minLength: 1
+                                maxLength: 60
+                              actionKey:
+                                type: string
+                                enum:
+                                  - external.http.request
+                                  - external.webhook.send
+                                  - connector.test.echo
+                                  - connector.test.failure
+                                  - connector.test.timeout
+                            required:
+                              - alias
+                              - actionKey
+                            additionalProperties: false
                         required:
                           - id
                           - order
@@ -16471,6 +16585,11 @@ components:
             - evidence.record
             - delay.simulated
             - failure.deterministic
+            - external.http.request
+            - external.webhook.send
+            - connector.test.echo
+            - connector.test.failure
+            - connector.test.timeout
         status:
           type: string
           enum:
@@ -17097,6 +17216,11 @@ components:
                 - evidence.record
                 - delay.simulated
                 - failure.deterministic
+                - external.http.request
+                - external.webhook.send
+                - connector.test.echo
+                - connector.test.failure
+                - connector.test.timeout
             status:
               type: string
               enum:
@@ -17228,6 +17352,11 @@ components:
                   - evidence.record
                   - delay.simulated
                   - failure.deterministic
+                  - external.http.request
+                  - external.webhook.send
+                  - connector.test.echo
+                  - connector.test.failure
+                  - connector.test.timeout
               status:
                 type: string
                 enum:
@@ -17672,6 +17801,11 @@ components:
               - evidence.record
               - delay.simulated
               - failure.deterministic
+              - external.http.request
+              - external.webhook.send
+              - connector.test.echo
+              - connector.test.failure
+              - connector.test.timeout
       required:
         - actionKey
       additionalProperties: false
