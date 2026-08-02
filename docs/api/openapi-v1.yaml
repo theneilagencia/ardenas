@@ -33,6 +33,8 @@ tags:
     description: Avaliação de ações e autorizações de ação.
   - name: Executions
     description: Execuções assíncronas, etapas, eventos e evidências.
+  - name: Connectors
+    description: Conectores, conexões, credenciais, ferramentas externas e webhooks (contratado — ARDEN-BE-006).
 paths:
   /session:
     get:
@@ -5811,6 +5813,2984 @@ paths:
       x-permission: evidence.view
       x-idempotent: false
       x-optimistic-concurrency: false
+  /connectors:
+    get:
+      operationId: connectors.list
+      summary: Lista o catálogo de conectores
+      tags:
+        - Connectors
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorCatalogListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connector.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /connectors/{connectorKey}:
+    get:
+      operationId: connectors.get
+      summary: Consulta um conector
+      tags:
+        - Connectors
+      parameters:
+        - name: connectorKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorDefinitionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connector.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /connectors/{connectorKey}/tools:
+    get:
+      operationId: connectors.listTools
+      summary: Lista ferramentas de um conector
+      tags:
+        - Connectors
+      parameters:
+        - name: connectorKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorToolListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connector.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/connections:
+    get:
+      operationId: connections.list
+      summary: Lista conexões
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectorKey
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - system.http
+                  - system.webhook
+                  - internal.test
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - DRAFT
+                  - ACTIVE
+                  - SUSPENDED
+                  - ERROR
+                  - REVOKED
+        - name: search
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                maxLength: 120
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: connections.create
+      summary: Cria uma conexão
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.create
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConnectionRequest'
+  /organizations/{organizationId}/connections/{connectionId}:
+    get:
+      operationId: connections.get
+      summary: Consulta uma conexão
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: connections.update
+      summary: Edita metadados/config/política da conexão
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.edit
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: PATCH não altera status (transição só por comando dedicado).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConnectionRequest'
+  /organizations/{organizationId}/connections/{connectionId}/test:
+    post:
+      operationId: connections.test
+      summary: Testa a conexão (sem revelar segredo)
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.test
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestConnectionRequest'
+  /organizations/{organizationId}/connections/{connectionId}/activate:
+    post:
+      operationId: connections.activate
+      summary: Ativa a conexão
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.edit
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionCommandRequest'
+  /organizations/{organizationId}/connections/{connectionId}/suspend:
+    post:
+      operationId: connections.suspend
+      summary: Suspende a conexão
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.edit
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionCommandRequest'
+  /organizations/{organizationId}/connections/{connectionId}/reactivate:
+    post:
+      operationId: connections.reactivate
+      summary: Reativa a conexão
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.edit
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionCommandRequest'
+  /organizations/{organizationId}/connections/{connectionId}/revoke:
+    post:
+      operationId: connections.revoke
+      summary: Revoga a conexão (terminal)
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.revoke
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionCommandRequest'
+  /organizations/{organizationId}/connections/{connectionId}/credentials:
+    get:
+      operationId: credentials.list
+      summary: Lista metadados de credenciais
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialMetadataListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+      description: 'Retorna apenas metadados: nunca o segredo.'
+    post:
+      operationId: credentials.create
+      summary: Cria uma credencial (segredo write-only)
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialMetadataResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.rotate_credentials
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      description: O segredo é cifrado e nunca retornado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConnectionCredentialRequest'
+  /organizations/{organizationId}/connections/{connectionId}/credentials/rotate:
+    post:
+      operationId: credentials.rotate
+      summary: Rotaciona a credencial
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialMetadataResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.rotate_credentials
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RotateConnectionCredentialRequest'
+  /organizations/{organizationId}/connections/{connectionId}/credentials/{credentialVersionId}/revoke:
+    post:
+      operationId: credentials.revoke
+      summary: Revoga uma versão de credencial
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: credentialVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialMetadataResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.revoke
+      x-idempotent: true
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/tool-bindings:
+    get:
+      operationId: toolBindings.list
+      summary: Lista vínculos de ferramenta
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                minLength: 1
+                maxLength: 128
+        - name: enabled
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: boolean
+        - name: connectorKey
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - system.http
+                  - system.webhook
+                  - internal.test
+        - name: toolKey
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                minLength: 1
+                maxLength: 64
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationToolBindingListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: toolBindings.create
+      summary: Cria um vínculo de ferramenta
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationToolBindingResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.bind
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationToolBindingRequest'
+  /organizations/{organizationId}/tool-bindings/{bindingId}:
+    get:
+      operationId: toolBindings.get
+      summary: Consulta um vínculo de ferramenta
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationToolBindingResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: toolBindings.update
+      summary: Edita um vínculo de ferramenta
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationToolBindingResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.bind
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationToolBindingRequest'
+  /organizations/{organizationId}/tool-bindings/{bindingId}/disable:
+    post:
+      operationId: toolBindings.disable
+      summary: Desabilita um vínculo de ferramenta
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationToolBindingResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.bind
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToolBindingCommandRequest'
+  /organizations/{organizationId}/operations/{operationId}/tool-bindings:
+    get:
+      operationId: operationToolBindings.list
+      summary: Lista ferramentas vinculadas à operação
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationToolBindingListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: operationToolBindings.create
+      summary: Vincula uma ferramenta à operação
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationToolBindingResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.bind
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOperationToolBindingRequest'
+  /organizations/{organizationId}/operations/{operationId}/tool-bindings/{bindingId}:
+    patch:
+      operationId: operationToolBindings.update
+      summary: Edita o vínculo com a operação
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationToolBindingResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.bind
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOperationToolBindingRequest'
+    delete:
+      operationId: operationToolBindings.remove
+      summary: Remove o vínculo (preserva histórico)
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationToolBindingResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: tool.bind
+      x-idempotent: false
+      x-optimistic-concurrency: true
+  /organizations/{organizationId}/webhook-endpoints:
+    get:
+      operationId: webhooks.listEndpoints
+      summary: Lista endpoints de webhook
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - ACTIVE
+                  - SUSPENDED
+                  - REVOKED
+        - name: connectionId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                minLength: 1
+                maxLength: 128
+        - name: operationId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                minLength: 1
+                maxLength: 128
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: webhook.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: webhooks.createEndpoint
+      summary: Cria um endpoint de webhook (token uma única vez)
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointSecretResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: webhook.manage
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      description: O token do endpoint e o segredo de assinatura são retornados UMA única vez.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookEndpointRequest'
+  /organizations/{organizationId}/webhook-endpoints/{webhookEndpointId}:
+    get:
+      operationId: webhooks.getEndpoint
+      summary: Consulta um endpoint de webhook
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: webhookEndpointId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: webhook.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: webhooks.updateEndpoint
+      summary: Edita um endpoint de webhook
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: webhookEndpointId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: webhook.manage
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookEndpointRequest'
+  /organizations/{organizationId}/webhook-endpoints/{webhookEndpointId}/suspend:
+    post:
+      operationId: webhooks.suspendEndpoint
+      summary: Suspende um endpoint de webhook
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: webhookEndpointId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: webhook.manage
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCommandRequest'
+  /organizations/{organizationId}/webhook-endpoints/{webhookEndpointId}/reactivate:
+    post:
+      operationId: webhooks.reactivateEndpoint
+      summary: Reativa um endpoint de webhook
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: webhookEndpointId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: webhook.manage
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCommandRequest'
+  /organizations/{organizationId}/webhook-endpoints/{webhookEndpointId}/revoke:
+    post:
+      operationId: webhooks.revokeEndpoint
+      summary: Revoga um endpoint de webhook (terminal)
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: webhookEndpointId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: webhook.manage
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCommandRequest'
+  /webhooks/{endpointToken}:
+    post:
+      operationId: webhooks.receive
+      summary: Recebe um webhook (autenticado por assinatura)
+      tags:
+        - Connectors
+      parameters:
+        - name: endpointToken
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboundWebhookAcceptedResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: null
+      x-idempotent: false
+      x-optimistic-concurrency: false
+      description: Endpoint público. Autenticação por assinatura + proteção de replay. Resposta pública mínima.
 components:
   securitySchemes:
     bearerAuth:
@@ -5873,6 +8853,39 @@ components:
                 - AUTHORIZATION_ALREADY_USED
                 - JOB_LEASE_CONFLICT
                 - JOB_NOT_RECOVERABLE
+                - CONNECTOR_NOT_AVAILABLE
+                - CONNECTOR_DEPRECATED
+                - CONNECTION_NOT_ACTIVE
+                - CONNECTION_SUSPENDED
+                - CONNECTION_REVOKED
+                - CONNECTION_TEST_FAILED
+                - CREDENTIAL_REQUIRED
+                - CREDENTIAL_INVALID
+                - CREDENTIAL_REVOKED
+                - CREDENTIAL_RESOLUTION_FAILED
+                - CREDENTIAL_ROTATION_CONFLICT
+                - TOOL_NOT_AVAILABLE
+                - TOOL_BINDING_NOT_FOUND
+                - TOOL_INPUT_INVALID
+                - TOOL_OUTPUT_INVALID
+                - TOOL_EXECUTION_DENIED
+                - NETWORK_POLICY_DENIED
+                - HOST_NOT_ALLOWED
+                - PROTOCOL_NOT_ALLOWED
+                - PRIVATE_NETWORK_DENIED
+                - SSRF_BLOCKED
+                - REDIRECT_DENIED
+                - REQUEST_TOO_LARGE
+                - RESPONSE_TOO_LARGE
+                - EXTERNAL_TIMEOUT
+                - EXTERNAL_RATE_LIMITED
+                - EXTERNAL_PROVIDER_ERROR
+                - EXTERNAL_RESULT_UNKNOWN
+                - WEBHOOK_SIGNATURE_INVALID
+                - WEBHOOK_TIMESTAMP_INVALID
+                - WEBHOOK_REPLAYED
+                - WEBHOOK_EVENT_NOT_ALLOWED
+                - WEBHOOK_ENDPOINT_REVOKED
                 - RATE_LIMITED
                 - DEPENDENCY_UNAVAILABLE
                 - INTERNAL_ERROR
@@ -14717,4 +17730,3152 @@ components:
           minimum: 1
           maximum: 500
           default: 100
+      additionalProperties: false
+    ConnectorDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        key:
+          type: string
+          enum:
+            - system.http
+            - system.webhook
+            - internal.test
+        version:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        category:
+          type: string
+          enum:
+            - HTTP
+            - WEBHOOK
+            - DATABASE
+            - MESSAGING
+            - BUSINESS_SYSTEM
+            - INTERNAL_TEST
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - DEPRECATED
+            - DISABLED
+        systemManaged:
+          type: boolean
+        productionAllowed:
+          type: boolean
+        configurationSchema:
+          type: object
+          additionalProperties: {}
+        credentialSchema:
+          type: object
+          additionalProperties: {}
+        networkPolicyTemplate:
+          type: object
+          properties:
+            allowedProtocols:
+              type: array
+              items:
+                type: string
+                enum:
+                  - https
+              minItems: 1
+            allowedHosts:
+              type: array
+              items:
+                type: string
+                minLength: 1
+              maxItems: 100
+            allowedPorts:
+              type: array
+              items:
+                type: integer
+                minimum: 1
+                maximum: 65535
+              maxItems: 20
+            allowedPathPrefixes:
+              type: array
+              items:
+                type: string
+              maxItems: 100
+            allowRedirects:
+              type: boolean
+            maximumRedirects:
+              type: integer
+              minimum: 0
+              maximum: 10
+            allowPrivateNetworks:
+              type: boolean
+            allowLoopback:
+              type: boolean
+            allowLinkLocal:
+              type: boolean
+            maximumRequestBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            maximumResponseBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            timeoutMs:
+              type: integer
+              minimum: 1
+              maximum: 600000
+          required:
+            - allowedProtocols
+            - allowedHosts
+            - allowedPorts
+            - allowRedirects
+            - maximumRedirects
+            - allowPrivateNetworks
+            - allowLoopback
+            - allowLinkLocal
+            - maximumRequestBytes
+            - maximumResponseBytes
+            - timeoutMs
+          additionalProperties: false
+        capabilityKeys:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+          maxItems: 50
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - key
+        - version
+        - name
+        - category
+        - status
+        - systemManaged
+        - productionAllowed
+        - configurationSchema
+        - credentialSchema
+        - networkPolicyTemplate
+        - capabilityKeys
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ConnectorToolDefinition:
+      type: object
+      properties:
+        connectorKey:
+          type: string
+          enum:
+            - system.http
+            - system.webhook
+            - internal.test
+        connectorVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+        version:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        actionKey:
+          type: string
+          enum:
+            - external.http.request
+            - external.webhook.send
+            - connector.test.echo
+            - connector.test.failure
+            - connector.test.timeout
+        inputSchema:
+          type: object
+          additionalProperties: {}
+        outputSchema:
+          type: object
+          additionalProperties: {}
+        riskLevel:
+          type: string
+          enum:
+            - READ
+            - WRITE
+            - DESTRUCTIVE
+            - FINANCIAL
+            - SECURITY_CRITICAL
+        idempotencyMode:
+          type: string
+          enum:
+            - NONE
+            - OPTIONAL
+            - REQUIRED
+            - PROVIDER_NATIVE
+        retryMode:
+          type: string
+          enum:
+            - NEVER
+            - SAFE
+            - CONDITIONAL
+        defaultTimeoutMs:
+          type: integer
+          exclusiveMinimum: true
+          minimum: 0
+          maximum: 600000
+        maximumTimeoutMs:
+          type: integer
+          exclusiveMinimum: true
+          minimum: 0
+          maximum: 600000
+        active:
+          type: boolean
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - connectorKey
+        - connectorVersion
+        - key
+        - version
+        - name
+        - actionKey
+        - inputSchema
+        - outputSchema
+        - riskLevel
+        - idempotencyMode
+        - retryMode
+        - defaultTimeoutMs
+        - maximumTimeoutMs
+        - active
+        - id
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ConnectorCatalogListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              key:
+                type: string
+                enum:
+                  - system.http
+                  - system.webhook
+                  - internal.test
+              version:
+                type: string
+                minLength: 1
+                maxLength: 32
+              name:
+                type: string
+                minLength: 1
+                maxLength: 120
+              description:
+                type: string
+                maxLength: 500
+                nullable: true
+              category:
+                type: string
+                enum:
+                  - HTTP
+                  - WEBHOOK
+                  - DATABASE
+                  - MESSAGING
+                  - BUSINESS_SYSTEM
+                  - INTERNAL_TEST
+              status:
+                type: string
+                enum:
+                  - ACTIVE
+                  - DEPRECATED
+                  - DISABLED
+              systemManaged:
+                type: boolean
+              productionAllowed:
+                type: boolean
+              configurationSchema:
+                type: object
+                additionalProperties: {}
+              credentialSchema:
+                type: object
+                additionalProperties: {}
+              networkPolicyTemplate:
+                type: object
+                properties:
+                  allowedProtocols:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - https
+                    minItems: 1
+                  allowedHosts:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                    maxItems: 100
+                  allowedPorts:
+                    type: array
+                    items:
+                      type: integer
+                      minimum: 1
+                      maximum: 65535
+                    maxItems: 20
+                  allowedPathPrefixes:
+                    type: array
+                    items:
+                      type: string
+                    maxItems: 100
+                  allowRedirects:
+                    type: boolean
+                  maximumRedirects:
+                    type: integer
+                    minimum: 0
+                    maximum: 10
+                  allowPrivateNetworks:
+                    type: boolean
+                  allowLoopback:
+                    type: boolean
+                  allowLinkLocal:
+                    type: boolean
+                  maximumRequestBytes:
+                    type: integer
+                    minimum: 0
+                    maximum: 52428800
+                  maximumResponseBytes:
+                    type: integer
+                    minimum: 0
+                    maximum: 52428800
+                  timeoutMs:
+                    type: integer
+                    minimum: 1
+                    maximum: 600000
+                required:
+                  - allowedProtocols
+                  - allowedHosts
+                  - allowedPorts
+                  - allowRedirects
+                  - maximumRedirects
+                  - allowPrivateNetworks
+                  - allowLoopback
+                  - allowLinkLocal
+                  - maximumRequestBytes
+                  - maximumResponseBytes
+                  - timeoutMs
+                additionalProperties: false
+              capabilityKeys:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                maxItems: 50
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - key
+              - version
+              - name
+              - category
+              - status
+              - systemManaged
+              - productionAllowed
+              - configurationSchema
+              - credentialSchema
+              - networkPolicyTemplate
+              - capabilityKeys
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ConnectorDefinitionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            key:
+              type: string
+              enum:
+                - system.http
+                - system.webhook
+                - internal.test
+            version:
+              type: string
+              minLength: 1
+              maxLength: 32
+            name:
+              type: string
+              minLength: 1
+              maxLength: 120
+            description:
+              type: string
+              maxLength: 500
+              nullable: true
+            category:
+              type: string
+              enum:
+                - HTTP
+                - WEBHOOK
+                - DATABASE
+                - MESSAGING
+                - BUSINESS_SYSTEM
+                - INTERNAL_TEST
+            status:
+              type: string
+              enum:
+                - ACTIVE
+                - DEPRECATED
+                - DISABLED
+            systemManaged:
+              type: boolean
+            productionAllowed:
+              type: boolean
+            configurationSchema:
+              type: object
+              additionalProperties: {}
+            credentialSchema:
+              type: object
+              additionalProperties: {}
+            networkPolicyTemplate:
+              type: object
+              properties:
+                allowedProtocols:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - https
+                  minItems: 1
+                allowedHosts:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                  maxItems: 100
+                allowedPorts:
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 1
+                    maximum: 65535
+                  maxItems: 20
+                allowedPathPrefixes:
+                  type: array
+                  items:
+                    type: string
+                  maxItems: 100
+                allowRedirects:
+                  type: boolean
+                maximumRedirects:
+                  type: integer
+                  minimum: 0
+                  maximum: 10
+                allowPrivateNetworks:
+                  type: boolean
+                allowLoopback:
+                  type: boolean
+                allowLinkLocal:
+                  type: boolean
+                maximumRequestBytes:
+                  type: integer
+                  minimum: 0
+                  maximum: 52428800
+                maximumResponseBytes:
+                  type: integer
+                  minimum: 0
+                  maximum: 52428800
+                timeoutMs:
+                  type: integer
+                  minimum: 1
+                  maximum: 600000
+              required:
+                - allowedProtocols
+                - allowedHosts
+                - allowedPorts
+                - allowRedirects
+                - maximumRedirects
+                - allowPrivateNetworks
+                - allowLoopback
+                - allowLinkLocal
+                - maximumRequestBytes
+                - maximumResponseBytes
+                - timeoutMs
+              additionalProperties: false
+            capabilityKeys:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 64
+              maxItems: 50
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - key
+            - version
+            - name
+            - category
+            - status
+            - systemManaged
+            - productionAllowed
+            - configurationSchema
+            - credentialSchema
+            - networkPolicyTemplate
+            - capabilityKeys
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ConnectorToolListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              connectorKey:
+                type: string
+                enum:
+                  - system.http
+                  - system.webhook
+                  - internal.test
+              connectorVersion:
+                type: string
+                minLength: 1
+                maxLength: 32
+              key:
+                type: string
+                minLength: 1
+                maxLength: 64
+              version:
+                type: string
+                minLength: 1
+                maxLength: 32
+              name:
+                type: string
+                minLength: 1
+                maxLength: 120
+              description:
+                type: string
+                maxLength: 500
+                nullable: true
+              actionKey:
+                type: string
+                enum:
+                  - external.http.request
+                  - external.webhook.send
+                  - connector.test.echo
+                  - connector.test.failure
+                  - connector.test.timeout
+              inputSchema:
+                type: object
+                additionalProperties: {}
+              outputSchema:
+                type: object
+                additionalProperties: {}
+              riskLevel:
+                type: string
+                enum:
+                  - READ
+                  - WRITE
+                  - DESTRUCTIVE
+                  - FINANCIAL
+                  - SECURITY_CRITICAL
+              idempotencyMode:
+                type: string
+                enum:
+                  - NONE
+                  - OPTIONAL
+                  - REQUIRED
+                  - PROVIDER_NATIVE
+              retryMode:
+                type: string
+                enum:
+                  - NEVER
+                  - SAFE
+                  - CONDITIONAL
+              defaultTimeoutMs:
+                type: integer
+                exclusiveMinimum: true
+                minimum: 0
+                maximum: 600000
+              maximumTimeoutMs:
+                type: integer
+                exclusiveMinimum: true
+                minimum: 0
+                maximum: 600000
+              active:
+                type: boolean
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - connectorKey
+              - connectorVersion
+              - key
+              - version
+              - name
+              - actionKey
+              - inputSchema
+              - outputSchema
+              - riskLevel
+              - idempotencyMode
+              - retryMode
+              - defaultTimeoutMs
+              - maximumTimeoutMs
+              - active
+              - id
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    Connection:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectorDefinitionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectorKey:
+          type: string
+          enum:
+            - system.http
+            - system.webhook
+            - internal.test
+        connectorVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - SUSPENDED
+            - ERROR
+            - REVOKED
+        configuration:
+          type: object
+          additionalProperties: {}
+        networkPolicy:
+          type: object
+          properties:
+            allowedProtocols:
+              type: array
+              items:
+                type: string
+                enum:
+                  - https
+              minItems: 1
+            allowedHosts:
+              type: array
+              items:
+                type: string
+                minLength: 1
+              maxItems: 100
+            allowedPorts:
+              type: array
+              items:
+                type: integer
+                minimum: 1
+                maximum: 65535
+              maxItems: 20
+            allowedPathPrefixes:
+              type: array
+              items:
+                type: string
+              maxItems: 100
+            allowRedirects:
+              type: boolean
+            maximumRedirects:
+              type: integer
+              minimum: 0
+              maximum: 10
+            allowPrivateNetworks:
+              type: boolean
+            allowLoopback:
+              type: boolean
+            allowLinkLocal:
+              type: boolean
+            maximumRequestBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            maximumResponseBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            timeoutMs:
+              type: integer
+              minimum: 1
+              maximum: 600000
+          required:
+            - allowedProtocols
+            - allowedHosts
+            - allowedPorts
+            - allowRedirects
+            - maximumRedirects
+            - allowPrivateNetworks
+            - allowLoopback
+            - allowLinkLocal
+            - maximumRequestBytes
+            - maximumResponseBytes
+            - timeoutMs
+          additionalProperties: false
+        currentCredentialVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        lastTestedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        lastTestStatus:
+          type: string
+          enum:
+            - SUCCESS
+            - FAILURE
+            - NOT_TESTED
+        lastErrorCode:
+          type: string
+          nullable: true
+        lastErrorSummary:
+          type: string
+          nullable: true
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - connectorDefinitionId
+        - connectorKey
+        - connectorVersion
+        - name
+        - description
+        - status
+        - configuration
+        - networkPolicy
+        - currentCredentialVersionId
+        - lastTestedAt
+        - lastTestStatus
+        - lastErrorCode
+        - lastErrorSummary
+        - createdByUserId
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ConnectionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectorDefinitionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectorKey:
+              type: string
+              enum:
+                - system.http
+                - system.webhook
+                - internal.test
+            connectorVersion:
+              type: string
+              minLength: 1
+              maxLength: 32
+            name:
+              type: string
+              minLength: 1
+              maxLength: 120
+            description:
+              type: string
+              maxLength: 500
+              nullable: true
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - ACTIVE
+                - SUSPENDED
+                - ERROR
+                - REVOKED
+            configuration:
+              type: object
+              additionalProperties: {}
+            networkPolicy:
+              type: object
+              properties:
+                allowedProtocols:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - https
+                  minItems: 1
+                allowedHosts:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                  maxItems: 100
+                allowedPorts:
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 1
+                    maximum: 65535
+                  maxItems: 20
+                allowedPathPrefixes:
+                  type: array
+                  items:
+                    type: string
+                  maxItems: 100
+                allowRedirects:
+                  type: boolean
+                maximumRedirects:
+                  type: integer
+                  minimum: 0
+                  maximum: 10
+                allowPrivateNetworks:
+                  type: boolean
+                allowLoopback:
+                  type: boolean
+                allowLinkLocal:
+                  type: boolean
+                maximumRequestBytes:
+                  type: integer
+                  minimum: 0
+                  maximum: 52428800
+                maximumResponseBytes:
+                  type: integer
+                  minimum: 0
+                  maximum: 52428800
+                timeoutMs:
+                  type: integer
+                  minimum: 1
+                  maximum: 600000
+              required:
+                - allowedProtocols
+                - allowedHosts
+                - allowedPorts
+                - allowRedirects
+                - maximumRedirects
+                - allowPrivateNetworks
+                - allowLoopback
+                - allowLinkLocal
+                - maximumRequestBytes
+                - maximumResponseBytes
+                - timeoutMs
+              additionalProperties: false
+            currentCredentialVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            lastTestedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            lastTestStatus:
+              type: string
+              enum:
+                - SUCCESS
+                - FAILURE
+                - NOT_TESTED
+            lastErrorCode:
+              type: string
+              nullable: true
+            lastErrorSummary:
+              type: string
+              nullable: true
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - connectorDefinitionId
+            - connectorKey
+            - connectorVersion
+            - name
+            - description
+            - status
+            - configuration
+            - networkPolicy
+            - currentCredentialVersionId
+            - lastTestedAt
+            - lastTestStatus
+            - lastErrorCode
+            - lastErrorSummary
+            - createdByUserId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ConnectionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              connectorDefinitionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              connectorKey:
+                type: string
+                enum:
+                  - system.http
+                  - system.webhook
+                  - internal.test
+              connectorVersion:
+                type: string
+                minLength: 1
+                maxLength: 32
+              name:
+                type: string
+                minLength: 1
+                maxLength: 120
+              description:
+                type: string
+                maxLength: 500
+                nullable: true
+              status:
+                type: string
+                enum:
+                  - DRAFT
+                  - ACTIVE
+                  - SUSPENDED
+                  - ERROR
+                  - REVOKED
+              configuration:
+                type: object
+                additionalProperties: {}
+              networkPolicy:
+                type: object
+                properties:
+                  allowedProtocols:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - https
+                    minItems: 1
+                  allowedHosts:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                    maxItems: 100
+                  allowedPorts:
+                    type: array
+                    items:
+                      type: integer
+                      minimum: 1
+                      maximum: 65535
+                    maxItems: 20
+                  allowedPathPrefixes:
+                    type: array
+                    items:
+                      type: string
+                    maxItems: 100
+                  allowRedirects:
+                    type: boolean
+                  maximumRedirects:
+                    type: integer
+                    minimum: 0
+                    maximum: 10
+                  allowPrivateNetworks:
+                    type: boolean
+                  allowLoopback:
+                    type: boolean
+                  allowLinkLocal:
+                    type: boolean
+                  maximumRequestBytes:
+                    type: integer
+                    minimum: 0
+                    maximum: 52428800
+                  maximumResponseBytes:
+                    type: integer
+                    minimum: 0
+                    maximum: 52428800
+                  timeoutMs:
+                    type: integer
+                    minimum: 1
+                    maximum: 600000
+                required:
+                  - allowedProtocols
+                  - allowedHosts
+                  - allowedPorts
+                  - allowRedirects
+                  - maximumRedirects
+                  - allowPrivateNetworks
+                  - allowLoopback
+                  - allowLinkLocal
+                  - maximumRequestBytes
+                  - maximumResponseBytes
+                  - timeoutMs
+                additionalProperties: false
+              currentCredentialVersionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              lastTestedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              lastTestStatus:
+                type: string
+                enum:
+                  - SUCCESS
+                  - FAILURE
+                  - NOT_TESTED
+              lastErrorCode:
+                type: string
+                nullable: true
+              lastErrorSummary:
+                type: string
+                nullable: true
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - connectorDefinitionId
+              - connectorKey
+              - connectorVersion
+              - name
+              - description
+              - status
+              - configuration
+              - networkPolicy
+              - currentCredentialVersionId
+              - lastTestedAt
+              - lastTestStatus
+              - lastErrorCode
+              - lastErrorSummary
+              - createdByUserId
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    CreateConnectionRequest:
+      type: object
+      properties:
+        connectorKey:
+          type: string
+          enum:
+            - system.http
+            - system.webhook
+            - internal.test
+        connectorVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+        configuration:
+          type: object
+          additionalProperties: {}
+        networkPolicy:
+          type: object
+          properties:
+            allowedProtocols:
+              type: array
+              items:
+                type: string
+                enum:
+                  - https
+              minItems: 1
+            allowedHosts:
+              type: array
+              items:
+                type: string
+                minLength: 1
+              maxItems: 100
+            allowedPorts:
+              type: array
+              items:
+                type: integer
+                minimum: 1
+                maximum: 65535
+              maxItems: 20
+            allowedPathPrefixes:
+              type: array
+              items:
+                type: string
+              maxItems: 100
+            allowRedirects:
+              type: boolean
+            maximumRedirects:
+              type: integer
+              minimum: 0
+              maximum: 10
+            allowPrivateNetworks:
+              type: boolean
+            allowLoopback:
+              type: boolean
+            allowLinkLocal:
+              type: boolean
+            maximumRequestBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            maximumResponseBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            timeoutMs:
+              type: integer
+              minimum: 1
+              maximum: 600000
+          required:
+            - allowedProtocols
+            - allowedHosts
+            - allowedPorts
+            - allowRedirects
+            - maximumRedirects
+            - allowPrivateNetworks
+            - allowLoopback
+            - allowLinkLocal
+            - maximumRequestBytes
+            - maximumResponseBytes
+            - timeoutMs
+          additionalProperties: false
+      required:
+        - connectorKey
+        - connectorVersion
+        - name
+      additionalProperties: false
+    UpdateConnectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        configuration:
+          type: object
+          additionalProperties: {}
+        networkPolicy:
+          type: object
+          properties:
+            allowedProtocols:
+              type: array
+              items:
+                type: string
+                enum:
+                  - https
+              minItems: 1
+            allowedHosts:
+              type: array
+              items:
+                type: string
+                minLength: 1
+              maxItems: 100
+            allowedPorts:
+              type: array
+              items:
+                type: integer
+                minimum: 1
+                maximum: 65535
+              maxItems: 20
+            allowedPathPrefixes:
+              type: array
+              items:
+                type: string
+              maxItems: 100
+            allowRedirects:
+              type: boolean
+            maximumRedirects:
+              type: integer
+              minimum: 0
+              maximum: 10
+            allowPrivateNetworks:
+              type: boolean
+            allowLoopback:
+              type: boolean
+            allowLinkLocal:
+              type: boolean
+            maximumRequestBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            maximumResponseBytes:
+              type: integer
+              minimum: 0
+              maximum: 52428800
+            timeoutMs:
+              type: integer
+              minimum: 1
+              maximum: 600000
+          required:
+            - allowedProtocols
+            - allowedHosts
+            - allowedPorts
+            - allowRedirects
+            - maximumRedirects
+            - allowPrivateNetworks
+            - allowLoopback
+            - allowLinkLocal
+            - maximumRequestBytes
+            - maximumResponseBytes
+            - timeoutMs
+          additionalProperties: false
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    TestConnectionRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          maxLength: 200
+      additionalProperties: false
+    TestConnectionResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - SUCCESS
+            - FAILURE
+            - NOT_TESTED
+        checkedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        latencyMs:
+          type: integer
+          minimum: 0
+          nullable: true
+        credentialFingerprint:
+          type: string
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorSummary:
+          type: string
+          nullable: true
+      required:
+        - status
+        - checkedAt
+        - latencyMs
+        - credentialFingerprint
+        - errorCode
+        - errorSummary
+      additionalProperties: false
+    TestConnectionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - SUCCESS
+                - FAILURE
+                - NOT_TESTED
+            checkedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            latencyMs:
+              type: integer
+              minimum: 0
+              nullable: true
+            credentialFingerprint:
+              type: string
+              nullable: true
+            errorCode:
+              type: string
+              nullable: true
+            errorSummary:
+              type: string
+              nullable: true
+          required:
+            - status
+            - checkedAt
+            - latencyMs
+            - credentialFingerprint
+            - errorCode
+            - errorSummary
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ConnectionCommandRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ListConnectionsQuery:
+      type: object
+      properties:
+        connectorKey:
+          type: string
+          enum:
+            - system.http
+            - system.webhook
+            - internal.test
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - SUSPENDED
+            - ERROR
+            - REVOKED
+        search:
+          type: string
+          maxLength: 120
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      additionalProperties: false
+    CredentialMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        versionNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUPERSEDED
+            - REVOKED
+        fingerprint:
+          type: string
+        keyVersion:
+          type: string
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        activatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        supersededAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+      required:
+        - id
+        - organizationId
+        - connectionId
+        - versionNumber
+        - status
+        - fingerprint
+        - keyVersion
+        - createdByUserId
+        - createdAt
+        - activatedAt
+        - supersededAt
+        - revokedAt
+      additionalProperties: false
+    CredentialMetadataResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            versionNumber:
+              type: integer
+              minimum: 1
+            status:
+              type: string
+              enum:
+                - ACTIVE
+                - SUPERSEDED
+                - REVOKED
+            fingerprint:
+              type: string
+            keyVersion:
+              type: string
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            activatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            supersededAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            revokedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+          required:
+            - id
+            - organizationId
+            - connectionId
+            - versionNumber
+            - status
+            - fingerprint
+            - keyVersion
+            - createdByUserId
+            - createdAt
+            - activatedAt
+            - supersededAt
+            - revokedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    CredentialMetadataListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              connectionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              versionNumber:
+                type: integer
+                minimum: 1
+              status:
+                type: string
+                enum:
+                  - ACTIVE
+                  - SUPERSEDED
+                  - REVOKED
+              fingerprint:
+                type: string
+              keyVersion:
+                type: string
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              activatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              supersededAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              revokedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+            required:
+              - id
+              - organizationId
+              - connectionId
+              - versionNumber
+              - status
+              - fingerprint
+              - keyVersion
+              - createdByUserId
+              - createdAt
+              - activatedAt
+              - supersededAt
+              - revokedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    CreateConnectionCredentialRequest:
+      type: object
+      properties:
+        secret:
+          type: object
+          additionalProperties: {}
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - secret
+      additionalProperties: false
+    RotateConnectionCredentialRequest:
+      type: object
+      properties:
+        secret:
+          type: object
+          additionalProperties: {}
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+        - secret
+      additionalProperties: false
+    OrganizationToolBinding:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectorToolDefinitionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectorToolKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        connectorToolVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        enabled:
+          type: boolean
+        configurationOverrides:
+          type: object
+          additionalProperties: {}
+        policyOverrides:
+          type: object
+          additionalProperties: {}
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - connectionId
+        - connectorToolDefinitionId
+        - connectorToolKey
+        - connectorToolVersion
+        - name
+        - enabled
+        - configurationOverrides
+        - policyOverrides
+        - createdByUserId
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    OrganizationToolBindingResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectorToolDefinitionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectorToolKey:
+              type: string
+              minLength: 1
+              maxLength: 64
+            connectorToolVersion:
+              type: string
+              minLength: 1
+              maxLength: 32
+            name:
+              type: string
+              minLength: 1
+              maxLength: 120
+            enabled:
+              type: boolean
+            configurationOverrides:
+              type: object
+              additionalProperties: {}
+            policyOverrides:
+              type: object
+              additionalProperties: {}
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - connectionId
+            - connectorToolDefinitionId
+            - connectorToolKey
+            - connectorToolVersion
+            - name
+            - enabled
+            - configurationOverrides
+            - policyOverrides
+            - createdByUserId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    OrganizationToolBindingListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              connectionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              connectorToolDefinitionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              connectorToolKey:
+                type: string
+                minLength: 1
+                maxLength: 64
+              connectorToolVersion:
+                type: string
+                minLength: 1
+                maxLength: 32
+              name:
+                type: string
+                minLength: 1
+                maxLength: 120
+              enabled:
+                type: boolean
+              configurationOverrides:
+                type: object
+                additionalProperties: {}
+              policyOverrides:
+                type: object
+                additionalProperties: {}
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - connectionId
+              - connectorToolDefinitionId
+              - connectorToolKey
+              - connectorToolVersion
+              - name
+              - enabled
+              - configurationOverrides
+              - policyOverrides
+              - createdByUserId
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    CreateOrganizationToolBindingRequest:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectorToolKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        connectorToolVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        configurationOverrides:
+          type: object
+          additionalProperties: {}
+        policyOverrides:
+          type: object
+          additionalProperties: {}
+      required:
+        - connectionId
+        - connectorToolKey
+        - connectorToolVersion
+        - name
+      additionalProperties: false
+    UpdateOrganizationToolBindingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        enabled:
+          type: boolean
+        configurationOverrides:
+          type: object
+          additionalProperties: {}
+        policyOverrides:
+          type: object
+          additionalProperties: {}
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ListToolBindingsQuery:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        enabled:
+          type: boolean
+        connectorKey:
+          type: string
+          enum:
+            - system.http
+            - system.webhook
+            - internal.test
+        toolKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      additionalProperties: false
+    ToolBindingCommandRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    OperationToolBinding:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        organizationToolBindingId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        alias:
+          type: string
+          minLength: 1
+          maxLength: 60
+        enabled:
+          type: boolean
+        allowedActionKeys:
+          type: array
+          items:
+            type: string
+            enum:
+              - external.http.request
+              - external.webhook.send
+              - connector.test.echo
+              - connector.test.failure
+              - connector.test.timeout
+          minItems: 1
+          maxItems: 20
+        inputMapping:
+          type: object
+          additionalProperties: {}
+        outputMapping:
+          type: object
+          additionalProperties: {}
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - operationId
+        - operationVersionId
+        - organizationToolBindingId
+        - alias
+        - enabled
+        - allowedActionKeys
+        - inputMapping
+        - outputMapping
+        - createdByUserId
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    OperationToolBindingResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            operationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            operationVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            organizationToolBindingId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            alias:
+              type: string
+              minLength: 1
+              maxLength: 60
+            enabled:
+              type: boolean
+            allowedActionKeys:
+              type: array
+              items:
+                type: string
+                enum:
+                  - external.http.request
+                  - external.webhook.send
+                  - connector.test.echo
+                  - connector.test.failure
+                  - connector.test.timeout
+              minItems: 1
+              maxItems: 20
+            inputMapping:
+              type: object
+              additionalProperties: {}
+            outputMapping:
+              type: object
+              additionalProperties: {}
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - operationId
+            - operationVersionId
+            - organizationToolBindingId
+            - alias
+            - enabled
+            - allowedActionKeys
+            - inputMapping
+            - outputMapping
+            - createdByUserId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    OperationToolBindingListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              operationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              operationVersionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              organizationToolBindingId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              alias:
+                type: string
+                minLength: 1
+                maxLength: 60
+              enabled:
+                type: boolean
+              allowedActionKeys:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - external.http.request
+                    - external.webhook.send
+                    - connector.test.echo
+                    - connector.test.failure
+                    - connector.test.timeout
+                minItems: 1
+                maxItems: 20
+              inputMapping:
+                type: object
+                additionalProperties: {}
+              outputMapping:
+                type: object
+                additionalProperties: {}
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - operationId
+              - operationVersionId
+              - organizationToolBindingId
+              - alias
+              - enabled
+              - allowedActionKeys
+              - inputMapping
+              - outputMapping
+              - createdByUserId
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    CreateOperationToolBindingRequest:
+      type: object
+      properties:
+        organizationToolBindingId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        alias:
+          type: string
+          minLength: 1
+          maxLength: 60
+        operationVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        allowedActionKeys:
+          type: array
+          items:
+            type: string
+            enum:
+              - external.http.request
+              - external.webhook.send
+              - connector.test.echo
+              - connector.test.failure
+              - connector.test.timeout
+          minItems: 1
+          maxItems: 20
+        inputMapping:
+          type: object
+          additionalProperties: {}
+        outputMapping:
+          type: object
+          additionalProperties: {}
+      required:
+        - organizationToolBindingId
+        - alias
+        - allowedActionKeys
+      additionalProperties: false
+    UpdateOperationToolBindingRequest:
+      type: object
+      properties:
+        alias:
+          type: string
+          minLength: 1
+          maxLength: 60
+        enabled:
+          type: boolean
+        allowedActionKeys:
+          type: array
+          items:
+            type: string
+            enum:
+              - external.http.request
+              - external.webhook.send
+              - connector.test.echo
+              - connector.test.failure
+              - connector.test.timeout
+          minItems: 1
+          maxItems: 20
+        inputMapping:
+          type: object
+          additionalProperties: {}
+        outputMapping:
+          type: object
+          additionalProperties: {}
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    WebhookEndpoint:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        key:
+          type: string
+          minLength: 1
+          maxLength: 80
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - REVOKED
+        signatureScheme:
+          type: string
+          enum:
+            - HMAC_SHA256
+            - STATIC_BEARER
+            - NONE
+        signatureRequired:
+          type: boolean
+        replayWindowSeconds:
+          type: integer
+          minimum: 0
+          maximum: 86400
+        allowedEventTypes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 120
+          maxItems: 100
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        operationVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - connectionId
+        - key
+        - status
+        - signatureScheme
+        - signatureRequired
+        - replayWindowSeconds
+        - allowedEventTypes
+        - operationId
+        - operationVersionId
+        - createdByUserId
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    WebhookEndpointResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            key:
+              type: string
+              minLength: 1
+              maxLength: 80
+            status:
+              type: string
+              enum:
+                - ACTIVE
+                - SUSPENDED
+                - REVOKED
+            signatureScheme:
+              type: string
+              enum:
+                - HMAC_SHA256
+                - STATIC_BEARER
+                - NONE
+            signatureRequired:
+              type: boolean
+            replayWindowSeconds:
+              type: integer
+              minimum: 0
+              maximum: 86400
+            allowedEventTypes:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 120
+              maxItems: 100
+            operationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            operationVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - connectionId
+            - key
+            - status
+            - signatureScheme
+            - signatureRequired
+            - replayWindowSeconds
+            - allowedEventTypes
+            - operationId
+            - operationVersionId
+            - createdByUserId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    WebhookEndpointListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              connectionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              key:
+                type: string
+                minLength: 1
+                maxLength: 80
+              status:
+                type: string
+                enum:
+                  - ACTIVE
+                  - SUSPENDED
+                  - REVOKED
+              signatureScheme:
+                type: string
+                enum:
+                  - HMAC_SHA256
+                  - STATIC_BEARER
+                  - NONE
+              signatureRequired:
+                type: boolean
+              replayWindowSeconds:
+                type: integer
+                minimum: 0
+                maximum: 86400
+              allowedEventTypes:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                maxItems: 100
+              operationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              operationVersionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - connectionId
+              - key
+              - status
+              - signatureScheme
+              - signatureRequired
+              - replayWindowSeconds
+              - allowedEventTypes
+              - operationId
+              - operationVersionId
+              - createdByUserId
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    WebhookEndpointSecret:
+      type: object
+      properties:
+        endpoint:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            connectionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            key:
+              type: string
+              minLength: 1
+              maxLength: 80
+            status:
+              type: string
+              enum:
+                - ACTIVE
+                - SUSPENDED
+                - REVOKED
+            signatureScheme:
+              type: string
+              enum:
+                - HMAC_SHA256
+                - STATIC_BEARER
+                - NONE
+            signatureRequired:
+              type: boolean
+            replayWindowSeconds:
+              type: integer
+              minimum: 0
+              maximum: 86400
+            allowedEventTypes:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 120
+              maxItems: 100
+            operationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            operationVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - connectionId
+            - key
+            - status
+            - signatureScheme
+            - signatureRequired
+            - replayWindowSeconds
+            - allowedEventTypes
+            - operationId
+            - operationVersionId
+            - createdByUserId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        endpointToken:
+          type: string
+        signingSecret:
+          type: string
+          nullable: true
+      required:
+        - endpoint
+        - endpointToken
+        - signingSecret
+      additionalProperties: false
+    WebhookEndpointSecretResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            endpoint:
+              type: object
+              properties:
+                id:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                organizationId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                connectionId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                key:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - SUSPENDED
+                    - REVOKED
+                signatureScheme:
+                  type: string
+                  enum:
+                    - HMAC_SHA256
+                    - STATIC_BEARER
+                    - NONE
+                signatureRequired:
+                  type: boolean
+                replayWindowSeconds:
+                  type: integer
+                  minimum: 0
+                  maximum: 86400
+                allowedEventTypes:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 120
+                  maxItems: 100
+                operationId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  nullable: true
+                operationVersionId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  nullable: true
+                createdByUserId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                revision:
+                  type: integer
+                  minimum: 0
+                createdAt:
+                  type: string
+                  format: date-time
+                  description: ISO 8601 date-time in UTC (Z suffix)
+                updatedAt:
+                  type: string
+                  format: date-time
+                  description: ISO 8601 date-time in UTC (Z suffix)
+              required:
+                - id
+                - organizationId
+                - connectionId
+                - key
+                - status
+                - signatureScheme
+                - signatureRequired
+                - replayWindowSeconds
+                - allowedEventTypes
+                - operationId
+                - operationVersionId
+                - createdByUserId
+                - revision
+                - createdAt
+                - updatedAt
+              additionalProperties: false
+            endpointToken:
+              type: string
+            signingSecret:
+              type: string
+              nullable: true
+          required:
+            - endpoint
+            - endpointToken
+            - signingSecret
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        webhookEndpointId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        externalDeliveryId:
+          type: string
+          nullable: true
+        payloadHash:
+          type: string
+        status:
+          type: string
+          enum:
+            - RECEIVED
+            - ACCEPTED
+            - REJECTED
+            - REPLAYED
+            - PROCESSED
+            - FAILED
+        receivedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        processedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        errorCode:
+          type: string
+          nullable: true
+        errorSummary:
+          type: string
+          nullable: true
+      required:
+        - id
+        - organizationId
+        - webhookEndpointId
+        - externalDeliveryId
+        - payloadHash
+        - status
+        - receivedAt
+        - processedAt
+        - correlationId
+        - errorCode
+        - errorSummary
+      additionalProperties: false
+    CreateWebhookEndpointRequest:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        key:
+          type: string
+          minLength: 1
+          maxLength: 80
+        signatureScheme:
+          type: string
+          enum:
+            - HMAC_SHA256
+            - STATIC_BEARER
+            - NONE
+          default: HMAC_SHA256
+        allowInsecureNoSignature:
+          type: boolean
+        replayWindowSeconds:
+          type: integer
+          minimum: 0
+          maximum: 86400
+          default: 300
+        allowedEventTypes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 120
+          maxItems: 100
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        signingSecret:
+          type: string
+          minLength: 1
+          maxLength: 400
+      required:
+        - connectionId
+        - key
+      additionalProperties: false
+    UpdateWebhookEndpointRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 80
+        replayWindowSeconds:
+          type: integer
+          minimum: 0
+          maximum: 86400
+        allowedEventTypes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 120
+          maxItems: 100
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        operationVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    WebhookCommandRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ListWebhookEndpointsQuery:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - SUSPENDED
+            - REVOKED
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      additionalProperties: false
+    InboundWebhookAcceptedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - accepted
+            - replayed
+        deliveryId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+      required:
+        - status
+        - deliveryId
       additionalProperties: false
