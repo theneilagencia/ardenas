@@ -40,6 +40,7 @@ import { EnforcementService } from '../enforcement/enforcement.service';
 import { hashActionPayload } from '../enforcement/action-payload';
 import { AuthorizationService } from '../authz/authorization.service';
 import { OperationToolBindingsRepository } from '../connectors/tool-bindings/tool-bindings.repository';
+import { AgentDefinitionsRepository } from '../agents/agents/agent-definitions.repository';
 import { ExecutionsRepository } from './executions.repository';
 import { ExecutionRecorder } from './execution.recorder';
 import { ExecutionQueue } from './execution.queue';
@@ -58,6 +59,7 @@ export class ExecutionsService {
     private readonly queue: ExecutionQueue,
     private readonly authz: AuthorizationService,
     private readonly opToolBindings: OperationToolBindingsRepository,
+    private readonly agents: AgentDefinitionsRepository,
   ) {}
 
   private orgId(ctx: AuthenticatedRequestContext): string {
@@ -198,6 +200,23 @@ export class ExecutionsService {
             });
             continue;
           }
+          if (s.agent) {
+            // Etapa de agente (ARDEN-BE-007.3): fail-fast do agente publicado + snapshot
+            // seguro (agentKey + ids da versão publicada; SEM prompt, modelId, provider ou
+            // segredo). O runtime RE-resolve e RE-valida tudo tenant-scoped na execução.
+            const resolvedAgent = await this.assertAgentBinding(tx, orgId, s.agent.agentKey);
+            const actionKey = s.agent.actionKey;
+            const stepInput = { $agent: { agentKey: s.agent.agentKey, agentDefinitionId: resolvedAgent.agentDefinitionId, agentVersionId: resolvedAgent.agentVersionId, actionKey }, $source: body.input ?? {} } as Prisma.InputJsonValue;
+            await tx.executionStep.create({
+              data: {
+                organizationId: orgId, executionRunId: run.id, definitionStepKey: s.id, sequence: i + 1,
+                name: s.name, actionKey, status: 'PENDING',
+                input: stepInput, inputHash: hashActionPayload(actionKey, body.input),
+                maxAttempts, timeoutAt,
+              },
+            });
+            continue;
+          }
           const executor = this.resolveExecutor(body.stepExecutors, s.id, s.producesEvidence);
           const stepInput = (body.input ?? {}) as Prisma.InputJsonValue;
           await tx.executionStep.create({
@@ -298,6 +317,12 @@ export class ExecutionsService {
           await tx.executionStep.create({ data: { organizationId: orgId, executionRunId: created.id, definitionStepKey: s.id, sequence: i + 1, name: s.name, actionKey: s.tool.actionKey, status: 'PENDING', input: stepInput, inputHash: hashActionPayload(s.tool.actionKey, input.payload), maxAttempts: 1 } });
           continue;
         }
+        if (s.agent) {
+          const resolvedAgent = await this.assertAgentBinding(tx, orgId, s.agent.agentKey);
+          const stepInput = { $agent: { agentKey: s.agent.agentKey, agentDefinitionId: resolvedAgent.agentDefinitionId, agentVersionId: resolvedAgent.agentVersionId, actionKey: s.agent.actionKey }, $source: input.payload ?? {} } as Prisma.InputJsonValue;
+          await tx.executionStep.create({ data: { organizationId: orgId, executionRunId: created.id, definitionStepKey: s.id, sequence: i + 1, name: s.name, actionKey: s.agent.actionKey, status: 'PENDING', input: stepInput, inputHash: hashActionPayload(s.agent.actionKey, input.payload), maxAttempts: 1 } });
+          continue;
+        }
         const executor = this.resolveExecutor(undefined, s.id, s.producesEvidence);
         await tx.executionStep.create({ data: { organizationId: orgId, executionRunId: created.id, definitionStepKey: s.id, sequence: i + 1, name: s.name, actionKey: executor, status: 'PENDING', input: (input.payload ?? {}) as Prisma.InputJsonValue, inputHash: hashActionPayload(executor, input.payload), maxAttempts: 1 } });
       }
@@ -310,6 +335,23 @@ export class ExecutionsService {
       return (await this.repo.findRun(orgId, created.id, tx))!;
     });
     return { run: toRunContract(run), created: true };
+  }
+
+  /**
+   * Fail-fast na criação: o agente deve existir no tenant, estar ACTIVE e ter uma versão
+   * publicada. Fixa (pin) a versão publicada corrente no snapshot — o runtime RE-valida
+   * tudo tenant-scoped na execução. Não expõe prompt, modelId, provider nem segredo.
+   */
+  private async assertAgentBinding(
+    tx: Prisma.TransactionClient,
+    orgId: string,
+    agentKey: string,
+  ): Promise<{ agentDefinitionId: string; agentVersionId: string }> {
+    const agent = await this.agents.findByKey(orgId, agentKey, tx);
+    if (!agent) throw executionNotAllowed(`Agente indisponível: ${agentKey}.`);
+    if (agent.status !== 'ACTIVE') throw executionNotAllowed(`Agente não está ativo: ${agentKey}.`);
+    if (!agent.currentPublishedVersionId) throw executionNotAllowed(`Agente sem versão publicada: ${agentKey}.`);
+    return { agentDefinitionId: agent.id, agentVersionId: agent.currentPublishedVersionId };
   }
 
   /** Fail-fast na criação: o alias externo deve ter binding habilitado com a ação permitida. */

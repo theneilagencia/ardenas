@@ -8,25 +8,36 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import { isExternalExecutorActionKey } from '@arden/contracts';
+import { isExternalExecutorActionKey, isAgentExecutorActionKey } from '@arden/contracts';
 import { getExecutor, hasExecutor, StepExecutionError, type StepExecutor } from './executors';
 import { ExternalToolStepExecutor } from './external-tool-step.executor';
+import { AgentStepExecutor } from './agent-step.executor';
 
 @Injectable()
 export class StepExecutorRegistry {
-  constructor(private readonly external: ExternalToolStepExecutor) {}
+  constructor(
+    private readonly external: ExternalToolStepExecutor,
+    private readonly agent: AgentStepExecutor,
+  ) {}
 
   hasExecutor(actionKey: string): boolean {
-    return isExternalExecutorActionKey(actionKey) || hasExecutor(actionKey);
+    return isExternalExecutorActionKey(actionKey) || isAgentExecutorActionKey(actionKey) || hasExecutor(actionKey);
   }
 
-  /** Resolve o executor para a action key. Externas → executor de conector (DI). */
+  /** Resolve o executor para a action key. Externas → conector; agent.execute → runtime (DI). */
   resolve(actionKey: string): StepExecutor {
     if (isExternalExecutorActionKey(actionKey)) {
       return {
         actionKey: actionKey as StepExecutor['actionKey'],
         execute: (ctx) => this.external.execute(ctx),
         // Ferramentas externas NÃO compensam (efeito externo); compensate ausente.
+      };
+    }
+    if (isAgentExecutorActionKey(actionKey)) {
+      return {
+        actionKey: actionKey as StepExecutor['actionKey'],
+        execute: (ctx) => this.agent.execute(ctx),
+        // Agente determinístico não aplica efeito externo nesta fase; compensate ausente.
       };
     }
     if (!hasExecutor(actionKey)) {

@@ -12,7 +12,7 @@ import type { Prisma, ExecutionActorType, EvidenceType } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { canonicalize } from '../enforcement/action-payload';
 
-const SENSITIVE = /(authorization|token|secret|password|cookie|bearer)/i;
+const SENSITIVE = /(authorization|api[-_]?key|token|secret|password|passwd|cookie|bearer|credential|nonce|auth[-_]?tag|master[-_]?key|private[-_]?key)/i;
 
 /** Remove chaves sensíveis em profundidade antes de persistir. */
 export function sanitizeContent(value: unknown): unknown {
