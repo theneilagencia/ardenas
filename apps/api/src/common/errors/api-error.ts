@@ -190,6 +190,23 @@ export const toolExecutionDenied = (message = 'Execução de ferramenta negada.'
   new ApiException('TOOL_EXECUTION_DENIED', { message });
 export const webhookEndpointRevoked = (message = 'Endpoint de webhook revogado.') =>
   new ApiException('WEBHOOK_ENDPOINT_REVOKED', { message });
+// ── Webhooks de ENTRADA (ARDEN-BE-006.7) — mensagens públicas GENÉRICAS ──────────
+export const webhookSignatureInvalid = (message = 'Assinatura inválida.') =>
+  new ApiException('WEBHOOK_SIGNATURE_INVALID', { message });
+export const webhookTimestampInvalid = (message = 'Timestamp inválido.') =>
+  new ApiException('WEBHOOK_TIMESTAMP_INVALID', { message });
+export const webhookReplayed = (message = 'Evento já processado.') =>
+  new ApiException('WEBHOOK_REPLAYED', { message });
+export const webhookEventNotAllowed = (message = 'Tipo de evento não permitido.') =>
+  new ApiException('WEBHOOK_EVENT_NOT_ALLOWED', { message });
+export const webhookEndpointSuspended = (message = 'Endpoint indisponível.') =>
+  new ApiException('WEBHOOK_ENDPOINT_SUSPENDED', { message });
+export const webhookTriggerDenied = (message = 'Gatilho não autorizado.') =>
+  new ApiException('WEBHOOK_TRIGGER_DENIED', { message });
+export const webhookDeliveryConflict = (message = 'Conflito de entrega.') =>
+  new ApiException('WEBHOOK_DELIVERY_CONFLICT', { message });
+export const rateLimited = (message = 'Muitas requisições.') =>
+  new ApiException('RATE_LIMITED', { message });
 
 // ── Rede segura / SSRF (ARDEN-BE-006.5) — mensagens públicas GENÉRICAS ───────────
 export const networkPolicyDenied = (message = 'Requisição bloqueada pela política de rede.') =>

@@ -39,6 +39,19 @@ export class CredentialResolver {
     @Inject(SECRET_VAULT) private readonly vault: SecretVault,
   ) {}
 
+  /**
+   * Resolve o segredo de uma VERSÃO específica de credencial (ex.: segredo de
+   * assinatura de webhook), tenant-scoped, sem exigir que seja a ativa da conexão.
+   * Não audita (o chamador registra o contexto de webhook). Nunca loga o segredo.
+   */
+  async resolveCredentialVersion(input: { organizationId: string; connectionId: string; credentialVersionId: string }): Promise<ResolvedCredential> {
+    const version = await this.credentials.findById(input.organizationId, input.credentialVersionId);
+    if (!version || version.connectionId !== input.connectionId) throw credentialRequired();
+    if (version.status === 'REVOKED') throw credentialRequired();
+    const resolved = await this.vault.resolveSecret({ organizationId: input.organizationId, connectionId: input.connectionId, credentialVersionId: version.id });
+    return { connectionId: input.connectionId, credentialVersionId: version.id, secret: resolved.secret, fingerprint: resolved.fingerprint, keyVersion: resolved.keyVersion };
+  }
+
   async resolveActiveCredential(input: ResolveActiveCredentialInput): Promise<ResolvedCredential> {
     const { organizationId, connectionId } = input;
     const correlationId = input.correlationId ?? 'internal';

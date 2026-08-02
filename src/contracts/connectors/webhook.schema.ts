@@ -94,9 +94,14 @@ export type WebhookCommandRequest = z.infer<typeof webhookCommandRequest>;
  */
 export const webhookEndpointSecret = z.object({
   endpoint: webhookEndpoint,
-  /** Token público da URL de entrada. Exibido UMA vez; guardado só como hash. */
-  endpointToken: z.string(),
-  /** Segredo de assinatura (quando aplicável). Exibido UMA vez. */
+  /** URL pública de entrada (contém o token). Exibida UMA vez. */
+  endpointUrl: z.string(),
+  /**
+   * Token público da URL de entrada. Exibido UMA vez; guardado só como hash. `null`
+   * em replay idempotente da criação (o token NÃO é reexposto nem persistido).
+   */
+  endpointToken: z.string().nullable(),
+  /** Segredo de assinatura (quando aplicável). Exibido UMA vez; `null` em replay. */
   signingSecret: z.string().nullable(),
 });
 export type WebhookEndpointSecret = z.infer<typeof webhookEndpointSecret>;
@@ -135,7 +140,9 @@ export type ListWebhookDeliveriesQuery = z.infer<typeof listWebhookDeliveriesQue
 
 /** Resposta pública MÍNIMA do recebimento (sem detalhe interno de configuração). */
 export const inboundWebhookAcceptedResponse = z.object({
+  accepted: z.boolean(),
   status: z.enum(['accepted', 'replayed']),
+  correlationId,
   deliveryId: webhookDeliveryId.nullable(),
 });
 export type InboundWebhookAcceptedResponse = z.infer<typeof inboundWebhookAcceptedResponse>;

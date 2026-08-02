@@ -8883,6 +8883,9 @@ components:
                 - WEBHOOK_REPLAYED
                 - WEBHOOK_EVENT_NOT_ALLOWED
                 - WEBHOOK_ENDPOINT_REVOKED
+                - WEBHOOK_ENDPOINT_SUSPENDED
+                - WEBHOOK_TRIGGER_DENIED
+                - WEBHOOK_DELIVERY_CONFLICT
                 - RATE_LIMITED
                 - DEPENDENCY_UNAVAILABLE
                 - INTERNAL_ERROR
@@ -20698,13 +20701,17 @@ components:
             - createdAt
             - updatedAt
           additionalProperties: false
+        endpointUrl:
+          type: string
         endpointToken:
           type: string
+          nullable: true
         signingSecret:
           type: string
           nullable: true
       required:
         - endpoint
+        - endpointUrl
         - endpointToken
         - signingSecret
       additionalProperties: false
@@ -20800,13 +20807,17 @@ components:
                 - createdAt
                 - updatedAt
               additionalProperties: false
+            endpointUrl:
+              type: string
             endpointToken:
               type: string
+              nullable: true
             signingSecret:
               type: string
               nullable: true
           required:
             - endpoint
+            - endpointUrl
             - endpointToken
             - signingSecret
           additionalProperties: false
@@ -20999,17 +21010,25 @@ components:
     InboundWebhookAcceptedResponse:
       type: object
       properties:
+        accepted:
+          type: boolean
         status:
           type: string
           enum:
             - accepted
             - replayed
+        correlationId:
+          type: string
+          minLength: 1
+          maxLength: 200
         deliveryId:
           type: string
           minLength: 1
           maxLength: 128
           nullable: true
       required:
+        - accepted
         - status
+        - correlationId
         - deliveryId
       additionalProperties: false

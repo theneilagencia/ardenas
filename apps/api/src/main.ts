@@ -20,7 +20,9 @@ export async function createApp(): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ bodyLimit: BODY_LIMIT_BYTES, requestTimeout: 30_000 }),
-    { bufferLogs: true },
+    // rawBody: preserva os bytes ORIGINAIS do corpo (necessário para verificar a
+    // assinatura HMAC de webhooks de entrada sobre o raw body, nunca reserializado).
+    { bufferLogs: true, rawBody: true },
   );
   await buildApp(app, config);
   return app;
