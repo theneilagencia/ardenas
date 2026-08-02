@@ -23,6 +23,7 @@ import { PoliciesModule } from './policies/policies.module';
 import { EnforcementModule } from './enforcement/enforcement.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { ExecutionsModule } from './executions/executions.module';
+import { ConnectorsModule } from './connectors/connectors.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 
@@ -50,6 +51,8 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     ApprovalsModule,
     // Motor de execução (ARDEN-BE-005).
     ExecutionsModule,
+    // Conectores, credenciais, ferramentas e webhooks — persistência (ARDEN-BE-006.3).
+    ConnectorsModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
