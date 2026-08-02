@@ -176,6 +176,7 @@ const TAGS = [
   { name: 'Enforcement', description: 'Avaliação de ações e autorizações de ação.' },
   { name: 'Executions', description: 'Execuções assíncronas, etapas, eventos e evidências.' },
   { name: 'Connectors', description: 'Conectores, conexões, credenciais, ferramentas externas e webhooks (contratado — ARDEN-BE-006).' },
+  { name: 'Agents', description: 'Runtime de agentes: agentes, versões, providers e configurações de modelo (contratado — ARDEN-BE-007). Sem execução direta; execução via etapa agent.execute.' },
 ];
 
 /** Constrói o documento OpenAPI 3.0.3 completo. */

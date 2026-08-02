@@ -35,6 +35,10 @@ tags:
     description: Execuções assíncronas, etapas, eventos e evidências.
   - name: Connectors
     description: Conectores, conexões, credenciais, ferramentas externas e webhooks (contratado — ARDEN-BE-006).
+  - name: Agents
+    description: >-
+      Runtime de agentes: agentes, versões, providers e configurações de modelo (contratado — ARDEN-BE-007). Sem
+      execução direta; execução via etapa agent.execute.
 paths:
   /session:
     get:
@@ -8788,6 +8792,2070 @@ paths:
       x-idempotent: false
       x-optimistic-concurrency: false
       description: Endpoint público. Autenticação por assinatura + proteção de replay. Resposta pública mínima.
+  /organizations/{organizationId}/agents:
+    get:
+      operationId: agents.list
+      summary: Lista agentes
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - DRAFT
+                  - ACTIVE
+                  - SUSPENDED
+                  - REVOKED
+        - name: search
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                maxLength: 120
+        - name: modelConfigurationId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                maxLength: 128
+        - name: createdByUserId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                maxLength: 128
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: agents.create
+      summary: Cria um agente
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.create
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      description: Contrato definido em ARDEN-BE-007.1. Persistência e runtime em fases futuras.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentRequest'
+  /organizations/{organizationId}/agents/{agentId}:
+    get:
+      operationId: agents.get
+      summary: Consulta um agente
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: agents.update
+      summary: Edita metadados do agente
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.edit
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: PATCH não altera status (transição só por comando dedicado).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentRequest'
+  /organizations/{organizationId}/agents/{agentId}/suspend:
+    post:
+      operationId: agents.suspend
+      summary: Suspende o agente
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.suspend
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentCommandRequest'
+  /organizations/{organizationId}/agents/{agentId}/reactivate:
+    post:
+      operationId: agents.reactivate
+      summary: Reativa o agente
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.suspend
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentCommandRequest'
+  /organizations/{organizationId}/agents/{agentId}/revoke:
+    post:
+      operationId: agents.revoke
+      summary: Revoga o agente (terminal)
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.revoke
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentCommandRequest'
+  /organizations/{organizationId}/agents/{agentId}/versions:
+    get:
+      operationId: agentVersions.list
+      summary: Lista versões do agente
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - DRAFT
+                  - PUBLISHED
+                  - RETIRED
+        - name: versionNumber
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: integer
+                exclusiveMinimum: true
+                minimum: 0
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentVersionListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: agentVersions.create
+      summary: Cria um rascunho de versão
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.edit
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentVersionRequest'
+  /organizations/{organizationId}/agents/{agentId}/versions/{agentVersionId}:
+    get:
+      operationId: agentVersions.get
+      summary: Consulta uma versão
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agentVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: agentVersions.update
+      summary: Edita o rascunho da versão
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agentVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.edit
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: 'Só rascunho: versão publicada é imutável (ALREADY_PUBLISHED).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentVersionRequest'
+  /organizations/{organizationId}/agents/{agentId}/versions/{agentVersionId}/publish:
+    post:
+      operationId: agentVersions.publish
+      summary: Publica a versão (imutável)
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agentVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.publish
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishAgentVersionRequest'
+  /organizations/{organizationId}/agents/{agentId}/versions/{agentVersionId}/retire:
+    post:
+      operationId: agentVersions.retire
+      summary: Retira a versão (não volta a publicada)
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: agentVersionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentVersionResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.publish
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetireAgentVersionRequest'
+  /model-providers:
+    get:
+      operationId: modelProviders.list
+      summary: Lista providers de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelProviderListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_provider.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /model-providers/{providerKey}:
+    get:
+      operationId: modelProviders.get
+      summary: Consulta um provider de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: providerKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelProviderResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_provider.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/model-configurations:
+    get:
+      operationId: modelConfigurations.list
+      summary: Lista configurações de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: providerKey
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                minLength: 1
+                maxLength: 80
+                pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - DRAFT
+                  - ACTIVE
+                  - SUSPENDED
+                  - REVOKED
+        - name: modelId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                maxLength: 200
+        - name: search
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                maxLength: 120
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigurationListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_configuration.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    post:
+      operationId: modelConfigurations.create
+      summary: Cria uma configuração de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+      responses:
+        '201':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigurationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_configuration.create
+      x-idempotent: true
+      x-optimistic-concurrency: false
+      description: A credencial é referenciada por conexão (cofre) e nunca retornada.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateModelConfigurationRequest'
+  /organizations/{organizationId}/model-configurations/{configurationId}:
+    get:
+      operationId: modelConfigurations.get
+      summary: Consulta uma configuração de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: configurationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigurationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_configuration.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+    patch:
+      operationId: modelConfigurations.update
+      summary: Edita a configuração de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: configurationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigurationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_configuration.edit
+      x-idempotent: false
+      x-optimistic-concurrency: true
+      description: PATCH não altera status (transição só por comando dedicado).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateModelConfigurationRequest'
+  /organizations/{organizationId}/model-configurations/{configurationId}/activate:
+    post:
+      operationId: modelConfigurations.activate
+      summary: Ativa a configuração de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: configurationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigurationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_configuration.edit
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelConfigurationCommandRequest'
+  /organizations/{organizationId}/model-configurations/{configurationId}/suspend:
+    post:
+      operationId: modelConfigurations.suspend
+      summary: Suspende a configuração de modelo
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: configurationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigurationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_configuration.edit
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelConfigurationCommandRequest'
+  /organizations/{organizationId}/model-configurations/{configurationId}/revoke:
+    post:
+      operationId: modelConfigurations.revoke
+      summary: Revoga a configuração de modelo (terminal)
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: configurationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Obrigatório em comandos críticos. Mesma chave + mesmo body → mesma resposta.
+          schema:
+            type: string
+            minLength: 8
+        - name: If-Match
+          in: header
+          required: false
+          description: Concorrência otimista (revisão esperada). Conflito → 409 VERSION_CONFLICT.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfigurationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_configuration.revoke
+      x-idempotent: true
+      x-optimistic-concurrency: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelConfigurationCommandRequest'
 components:
   securitySchemes:
     bearerAuth:
@@ -8886,6 +10954,35 @@ components:
                 - WEBHOOK_ENDPOINT_SUSPENDED
                 - WEBHOOK_TRIGGER_DENIED
                 - WEBHOOK_DELIVERY_CONFLICT
+                - AGENT_NOT_FOUND
+                - AGENT_NOT_ACTIVE
+                - AGENT_SUSPENDED
+                - AGENT_REVOKED
+                - AGENT_VERSION_NOT_FOUND
+                - AGENT_VERSION_NOT_PUBLISHED
+                - AGENT_VERSION_RETIRED
+                - MODEL_PROVIDER_NOT_AVAILABLE
+                - MODEL_PROVIDER_DISABLED
+                - MODEL_CONFIGURATION_NOT_FOUND
+                - MODEL_CONFIGURATION_NOT_ACTIVE
+                - AGENT_CONTEXT_TOO_LARGE
+                - AGENT_INPUT_INVALID
+                - AGENT_OUTPUT_INVALID
+                - AGENT_OUTPUT_REPAIR_EXHAUSTED
+                - AGENT_TOOL_NOT_ALLOWED
+                - AGENT_TOOL_CALL_INVALID
+                - AGENT_TOOL_CALL_LIMIT_EXCEEDED
+                - AGENT_TOOL_REQUIRES_APPROVAL
+                - AGENT_TURN_LIMIT_EXCEEDED
+                - AGENT_TOKEN_LIMIT_EXCEEDED
+                - AGENT_COST_LIMIT_EXCEEDED
+                - AGENT_TIMEOUT
+                - MODEL_RATE_LIMITED
+                - MODEL_PROVIDER_ERROR
+                - MODEL_RESULT_UNKNOWN
+                - MODEL_CONTENT_FILTERED
+                - AGENT_EVALUATION_FAILED
+                - AGENT_PROMPT_INJECTION_DETECTED
                 - RATE_LIMITED
                 - DEPENDENCY_UNAVAILABLE
                 - INTERNAL_ERROR
@@ -9725,6 +11822,21 @@ components:
                       - alias
                       - actionKey
                     additionalProperties: false
+                  agent:
+                    type: object
+                    properties:
+                      agentKey:
+                        type: string
+                        minLength: 1
+                        maxLength: 80
+                      actionKey:
+                        type: string
+                        enum:
+                          - agent.execute
+                    required:
+                      - agentKey
+                      - actionKey
+                    additionalProperties: false
                 required:
                   - id
                   - order
@@ -9996,6 +12108,21 @@ components:
                       - alias
                       - actionKey
                     additionalProperties: false
+                  agent:
+                    type: object
+                    properties:
+                      agentKey:
+                        type: string
+                        minLength: 1
+                        maxLength: 80
+                      actionKey:
+                        type: string
+                        enum:
+                          - agent.execute
+                    required:
+                      - agentKey
+                      - actionKey
+                    additionalProperties: false
                 required:
                   - id
                   - order
@@ -10181,6 +12308,21 @@ components:
                               - connector.test.timeout
                         required:
                           - alias
+                          - actionKey
+                        additionalProperties: false
+                      agent:
+                        type: object
+                        properties:
+                          agentKey:
+                            type: string
+                            minLength: 1
+                            maxLength: 80
+                          actionKey:
+                            type: string
+                            enum:
+                              - agent.execute
+                        required:
+                          - agentKey
                           - actionKey
                         additionalProperties: false
                     required:
@@ -10671,6 +12813,21 @@ components:
                           - alias
                           - actionKey
                         additionalProperties: false
+                      agent:
+                        type: object
+                        properties:
+                          agentKey:
+                            type: string
+                            minLength: 1
+                            maxLength: 80
+                          actionKey:
+                            type: string
+                            enum:
+                              - agent.execute
+                        required:
+                          - agentKey
+                          - actionKey
+                        additionalProperties: false
                     required:
                       - id
                       - order
@@ -10963,6 +13120,21 @@ components:
                                 - connector.test.timeout
                           required:
                             - alias
+                            - actionKey
+                          additionalProperties: false
+                        agent:
+                          type: object
+                          properties:
+                            agentKey:
+                              type: string
+                              minLength: 1
+                              maxLength: 80
+                            actionKey:
+                              type: string
+                              enum:
+                                - agent.execute
+                          required:
+                            - agentKey
                             - actionKey
                           additionalProperties: false
                       required:
@@ -11276,6 +13448,21 @@ components:
                                   - connector.test.timeout
                             required:
                               - alias
+                              - actionKey
+                            additionalProperties: false
+                          agent:
+                            type: object
+                            properties:
+                              agentKey:
+                                type: string
+                                minLength: 1
+                                maxLength: 80
+                              actionKey:
+                                type: string
+                                enum:
+                                  - agent.execute
+                            required:
+                              - agentKey
                               - actionKey
                             additionalProperties: false
                         required:
@@ -16593,6 +18780,7 @@ components:
             - connector.test.echo
             - connector.test.failure
             - connector.test.timeout
+            - agent.execute
         status:
           type: string
           enum:
@@ -17224,6 +19412,7 @@ components:
                 - connector.test.echo
                 - connector.test.failure
                 - connector.test.timeout
+                - agent.execute
             status:
               type: string
               enum:
@@ -17360,6 +19549,7 @@ components:
                   - connector.test.echo
                   - connector.test.failure
                   - connector.test.timeout
+                  - agent.execute
               status:
                 type: string
                 enum:
@@ -17809,6 +19999,7 @@ components:
               - connector.test.echo
               - connector.test.failure
               - connector.test.timeout
+              - agent.execute
       required:
         - actionKey
       additionalProperties: false
@@ -21031,4 +23222,2819 @@ components:
         - status
         - correlationId
         - deliveryId
+      additionalProperties: false
+    AgentDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        key:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - SUSPENDED
+            - REVOKED
+        currentPublishedVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - key
+        - name
+        - description
+        - status
+        - currentPublishedVersionId
+        - createdByUserId
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    AgentResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            key:
+              type: string
+              minLength: 1
+              maxLength: 80
+              pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+            name:
+              type: string
+              minLength: 1
+              maxLength: 120
+            description:
+              type: string
+              maxLength: 500
+              nullable: true
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - ACTIVE
+                - SUSPENDED
+                - REVOKED
+            currentPublishedVersionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - key
+            - name
+            - description
+            - status
+            - currentPublishedVersionId
+            - createdByUserId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    AgentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              key:
+                type: string
+                minLength: 1
+                maxLength: 80
+                pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+              name:
+                type: string
+                minLength: 1
+                maxLength: 120
+              description:
+                type: string
+                maxLength: 500
+                nullable: true
+              status:
+                type: string
+                enum:
+                  - DRAFT
+                  - ACTIVE
+                  - SUSPENDED
+                  - REVOKED
+              currentPublishedVersionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - key
+              - name
+              - description
+              - status
+              - currentPublishedVersionId
+              - createdByUserId
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    CreateAgentRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+      required:
+        - key
+        - name
+      additionalProperties: false
+    UpdateAgentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    AgentCommandRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ListAgentsQuery:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - SUSPENDED
+            - REVOKED
+        search:
+          type: string
+          maxLength: 120
+        modelConfigurationId:
+          type: string
+          maxLength: 128
+        createdByUserId:
+          type: string
+          maxLength: 128
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      additionalProperties: false
+    AgentVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        agentDefinitionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        versionNumber:
+          type: integer
+          exclusiveMinimum: true
+          minimum: 0
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - PUBLISHED
+            - RETIRED
+        objective:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        systemInstructions:
+          type: string
+          minLength: 1
+          maxLength: 20000
+        modelConfigurationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        inputSchema:
+          type: object
+          additionalProperties: {}
+        outputSchema:
+          type: object
+          additionalProperties: {}
+        contextPolicy:
+          type: object
+          properties:
+            includeExecutionInput:
+              type: boolean
+            includeOperationMetadata:
+              type: boolean
+            previousStepOutputs:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                allowedStepKeys:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 120
+                  maxItems: 100
+              required:
+                - enabled
+                - allowedStepKeys
+              additionalProperties: false
+            linkedDocuments:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                documentReferenceIds:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 120
+                  maxItems: 100
+              required:
+                - enabled
+                - documentReferenceIds
+              additionalProperties: false
+            toolResults:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                allowedToolAliases:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 120
+                  maxItems: 100
+              required:
+                - enabled
+                - allowedToolAliases
+              additionalProperties: false
+            maximumContextBytes:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 4000000
+            maximumInputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 1000000
+            redactSensitiveFields:
+              type: boolean
+          required:
+            - includeExecutionInput
+            - includeOperationMetadata
+            - previousStepOutputs
+            - linkedDocuments
+            - toolResults
+            - maximumContextBytes
+            - maximumInputTokens
+            - redactSensitiveFields
+          additionalProperties: false
+        executionPolicy:
+          type: object
+          properties:
+            maximumTurns:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 50
+            maximumToolCalls:
+              type: integer
+              minimum: 0
+              maximum: 100
+            maximumDurationMs:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 3600000
+            maximumInputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 1000000
+            maximumOutputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 200000
+            structuredOutputRequired:
+              type: boolean
+            toolCallingAllowed:
+              type: boolean
+            retryInvalidOutput:
+              type: boolean
+            maximumOutputRepairAttempts:
+              type: integer
+              minimum: 0
+              maximum: 5
+            timeoutBehavior:
+              type: string
+              enum:
+                - FAIL
+                - SUSPEND
+            unknownResultBehavior:
+              type: string
+              enum:
+                - FAIL
+                - SUSPEND
+          required:
+            - maximumTurns
+            - maximumToolCalls
+            - maximumDurationMs
+            - maximumInputTokens
+            - maximumOutputTokens
+            - structuredOutputRequired
+            - toolCallingAllowed
+            - retryInvalidOutput
+            - maximumOutputRepairAttempts
+            - timeoutBehavior
+            - unknownResultBehavior
+          additionalProperties: false
+        toolPolicy:
+          type: object
+          properties:
+            allowedAliases:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 60
+              maxItems: 50
+            maximumCallsPerAlias:
+              type: object
+              additionalProperties:
+                type: integer
+                minimum: 0
+                maximum: 100
+            allowRead:
+              type: boolean
+            allowWrite:
+              type: boolean
+            allowDestructive:
+              type: boolean
+            allowFinancial:
+              type: boolean
+            allowSecurityCritical:
+              type: boolean
+            requireAuthorizationFor:
+              type: array
+              items:
+                type: string
+                enum:
+                  - WRITE
+                  - DESTRUCTIVE
+                  - FINANCIAL
+                  - SECURITY_CRITICAL
+              maxItems: 4
+          required:
+            - allowedAliases
+            - allowRead
+            - allowWrite
+            - allowDestructive
+            - allowFinancial
+            - allowSecurityCritical
+            - requireAuthorizationFor
+          additionalProperties: false
+        evaluationPolicy:
+          type: object
+          properties:
+            requireValidOutputSchema:
+              type: boolean
+            requireCompletionCriteria:
+              type: boolean
+            requireEvidenceReferences:
+              type: boolean
+            forbiddenOutputPaths:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 200
+              maxItems: 100
+            requiredOutputPaths:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 200
+              maxItems: 100
+            deterministicChecks:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    enum:
+                      - output.schema_valid
+                      - output.required_paths_present
+                      - output.forbidden_paths_absent
+                      - output.completion_criteria_met
+                      - output.evidence_referenced
+                  configuration:
+                    type: object
+                    additionalProperties: {}
+                required:
+                  - key
+                  - configuration
+                additionalProperties: false
+              maxItems: 50
+            llmJudge:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                modelConfigurationId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  nullable: true
+                advisoryOnly:
+                  type: boolean
+                  default: true
+              required:
+                - enabled
+              additionalProperties: false
+          required:
+            - requireValidOutputSchema
+            - requireCompletionCriteria
+            - requireEvidenceReferences
+            - forbiddenOutputPaths
+            - requiredOutputPaths
+            - deterministicChecks
+          additionalProperties: false
+        costPolicy:
+          type: object
+          properties:
+            maximumEstimatedCostMinor:
+              type: integer
+              minimum: 0
+              nullable: true
+            currency:
+              type: string
+              pattern: ^[A-Z]{3}$
+              nullable: true
+            maximumInputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 1000000
+            maximumOutputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 200000
+            maximumToolCalls:
+              type: integer
+              minimum: 0
+              maximum: 100
+            actionOnLimit:
+              type: string
+              enum:
+                - FAIL
+                - SUSPEND
+                - REQUIRE_APPROVAL
+          required:
+            - maximumInputTokens
+            - maximumOutputTokens
+            - maximumToolCalls
+            - actionOnLimit
+          additionalProperties: false
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        publishedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+        retiredAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+          nullable: true
+      required:
+        - id
+        - organizationId
+        - agentDefinitionId
+        - versionNumber
+        - status
+        - objective
+        - systemInstructions
+        - modelConfigurationId
+        - inputSchema
+        - outputSchema
+        - contextPolicy
+        - executionPolicy
+        - toolPolicy
+        - evaluationPolicy
+        - costPolicy
+        - createdByUserId
+        - revision
+        - createdAt
+        - publishedAt
+        - retiredAt
+      additionalProperties: false
+    AgentVersionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            agentDefinitionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            versionNumber:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - PUBLISHED
+                - RETIRED
+            objective:
+              type: string
+              minLength: 1
+              maxLength: 2000
+            systemInstructions:
+              type: string
+              minLength: 1
+              maxLength: 20000
+            modelConfigurationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            inputSchema:
+              type: object
+              additionalProperties: {}
+            outputSchema:
+              type: object
+              additionalProperties: {}
+            contextPolicy:
+              type: object
+              properties:
+                includeExecutionInput:
+                  type: boolean
+                includeOperationMetadata:
+                  type: boolean
+                previousStepOutputs:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    allowedStepKeys:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - allowedStepKeys
+                  additionalProperties: false
+                linkedDocuments:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    documentReferenceIds:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - documentReferenceIds
+                  additionalProperties: false
+                toolResults:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    allowedToolAliases:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - allowedToolAliases
+                  additionalProperties: false
+                maximumContextBytes:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 4000000
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                redactSensitiveFields:
+                  type: boolean
+              required:
+                - includeExecutionInput
+                - includeOperationMetadata
+                - previousStepOutputs
+                - linkedDocuments
+                - toolResults
+                - maximumContextBytes
+                - maximumInputTokens
+                - redactSensitiveFields
+              additionalProperties: false
+            executionPolicy:
+              type: object
+              properties:
+                maximumTurns:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 50
+                maximumToolCalls:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                maximumDurationMs:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 3600000
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                maximumOutputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 200000
+                structuredOutputRequired:
+                  type: boolean
+                toolCallingAllowed:
+                  type: boolean
+                retryInvalidOutput:
+                  type: boolean
+                maximumOutputRepairAttempts:
+                  type: integer
+                  minimum: 0
+                  maximum: 5
+                timeoutBehavior:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+                unknownResultBehavior:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+              required:
+                - maximumTurns
+                - maximumToolCalls
+                - maximumDurationMs
+                - maximumInputTokens
+                - maximumOutputTokens
+                - structuredOutputRequired
+                - toolCallingAllowed
+                - retryInvalidOutput
+                - maximumOutputRepairAttempts
+                - timeoutBehavior
+                - unknownResultBehavior
+              additionalProperties: false
+            toolPolicy:
+              type: object
+              properties:
+                allowedAliases:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 60
+                  maxItems: 50
+                maximumCallsPerAlias:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                allowRead:
+                  type: boolean
+                allowWrite:
+                  type: boolean
+                allowDestructive:
+                  type: boolean
+                allowFinancial:
+                  type: boolean
+                allowSecurityCritical:
+                  type: boolean
+                requireAuthorizationFor:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - WRITE
+                      - DESTRUCTIVE
+                      - FINANCIAL
+                      - SECURITY_CRITICAL
+                  maxItems: 4
+              required:
+                - allowedAliases
+                - allowRead
+                - allowWrite
+                - allowDestructive
+                - allowFinancial
+                - allowSecurityCritical
+                - requireAuthorizationFor
+              additionalProperties: false
+            evaluationPolicy:
+              type: object
+              properties:
+                requireValidOutputSchema:
+                  type: boolean
+                requireCompletionCriteria:
+                  type: boolean
+                requireEvidenceReferences:
+                  type: boolean
+                forbiddenOutputPaths:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 100
+                requiredOutputPaths:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 100
+                deterministicChecks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        enum:
+                          - output.schema_valid
+                          - output.required_paths_present
+                          - output.forbidden_paths_absent
+                          - output.completion_criteria_met
+                          - output.evidence_referenced
+                      configuration:
+                        type: object
+                        additionalProperties: {}
+                    required:
+                      - key
+                      - configuration
+                    additionalProperties: false
+                  maxItems: 50
+                llmJudge:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    modelConfigurationId:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                      nullable: true
+                    advisoryOnly:
+                      type: boolean
+                      default: true
+                  required:
+                    - enabled
+                  additionalProperties: false
+              required:
+                - requireValidOutputSchema
+                - requireCompletionCriteria
+                - requireEvidenceReferences
+                - forbiddenOutputPaths
+                - requiredOutputPaths
+                - deterministicChecks
+              additionalProperties: false
+            costPolicy:
+              type: object
+              properties:
+                maximumEstimatedCostMinor:
+                  type: integer
+                  minimum: 0
+                  nullable: true
+                currency:
+                  type: string
+                  pattern: ^[A-Z]{3}$
+                  nullable: true
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                maximumOutputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 200000
+                maximumToolCalls:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                actionOnLimit:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+                    - REQUIRE_APPROVAL
+              required:
+                - maximumInputTokens
+                - maximumOutputTokens
+                - maximumToolCalls
+                - actionOnLimit
+              additionalProperties: false
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            publishedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+            retiredAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+              nullable: true
+          required:
+            - id
+            - organizationId
+            - agentDefinitionId
+            - versionNumber
+            - status
+            - objective
+            - systemInstructions
+            - modelConfigurationId
+            - inputSchema
+            - outputSchema
+            - contextPolicy
+            - executionPolicy
+            - toolPolicy
+            - evaluationPolicy
+            - costPolicy
+            - createdByUserId
+            - revision
+            - createdAt
+            - publishedAt
+            - retiredAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    AgentVersionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              agentDefinitionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              versionNumber:
+                type: integer
+                exclusiveMinimum: true
+                minimum: 0
+              status:
+                type: string
+                enum:
+                  - DRAFT
+                  - PUBLISHED
+                  - RETIRED
+              objective:
+                type: string
+                minLength: 1
+                maxLength: 2000
+              systemInstructions:
+                type: string
+                minLength: 1
+                maxLength: 20000
+              modelConfigurationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              inputSchema:
+                type: object
+                additionalProperties: {}
+              outputSchema:
+                type: object
+                additionalProperties: {}
+              contextPolicy:
+                type: object
+                properties:
+                  includeExecutionInput:
+                    type: boolean
+                  includeOperationMetadata:
+                    type: boolean
+                  previousStepOutputs:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                      allowedStepKeys:
+                        type: array
+                        items:
+                          type: string
+                          minLength: 1
+                          maxLength: 120
+                        maxItems: 100
+                    required:
+                      - enabled
+                      - allowedStepKeys
+                    additionalProperties: false
+                  linkedDocuments:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                      documentReferenceIds:
+                        type: array
+                        items:
+                          type: string
+                          minLength: 1
+                          maxLength: 120
+                        maxItems: 100
+                    required:
+                      - enabled
+                      - documentReferenceIds
+                    additionalProperties: false
+                  toolResults:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                      allowedToolAliases:
+                        type: array
+                        items:
+                          type: string
+                          minLength: 1
+                          maxLength: 120
+                        maxItems: 100
+                    required:
+                      - enabled
+                      - allowedToolAliases
+                    additionalProperties: false
+                  maximumContextBytes:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 4000000
+                  maximumInputTokens:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 1000000
+                  redactSensitiveFields:
+                    type: boolean
+                required:
+                  - includeExecutionInput
+                  - includeOperationMetadata
+                  - previousStepOutputs
+                  - linkedDocuments
+                  - toolResults
+                  - maximumContextBytes
+                  - maximumInputTokens
+                  - redactSensitiveFields
+                additionalProperties: false
+              executionPolicy:
+                type: object
+                properties:
+                  maximumTurns:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 50
+                  maximumToolCalls:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                  maximumDurationMs:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 3600000
+                  maximumInputTokens:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 1000000
+                  maximumOutputTokens:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 200000
+                  structuredOutputRequired:
+                    type: boolean
+                  toolCallingAllowed:
+                    type: boolean
+                  retryInvalidOutput:
+                    type: boolean
+                  maximumOutputRepairAttempts:
+                    type: integer
+                    minimum: 0
+                    maximum: 5
+                  timeoutBehavior:
+                    type: string
+                    enum:
+                      - FAIL
+                      - SUSPEND
+                  unknownResultBehavior:
+                    type: string
+                    enum:
+                      - FAIL
+                      - SUSPEND
+                required:
+                  - maximumTurns
+                  - maximumToolCalls
+                  - maximumDurationMs
+                  - maximumInputTokens
+                  - maximumOutputTokens
+                  - structuredOutputRequired
+                  - toolCallingAllowed
+                  - retryInvalidOutput
+                  - maximumOutputRepairAttempts
+                  - timeoutBehavior
+                  - unknownResultBehavior
+                additionalProperties: false
+              toolPolicy:
+                type: object
+                properties:
+                  allowedAliases:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                      maxLength: 60
+                    maxItems: 50
+                  maximumCallsPerAlias:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                      minimum: 0
+                      maximum: 100
+                  allowRead:
+                    type: boolean
+                  allowWrite:
+                    type: boolean
+                  allowDestructive:
+                    type: boolean
+                  allowFinancial:
+                    type: boolean
+                  allowSecurityCritical:
+                    type: boolean
+                  requireAuthorizationFor:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - WRITE
+                        - DESTRUCTIVE
+                        - FINANCIAL
+                        - SECURITY_CRITICAL
+                    maxItems: 4
+                required:
+                  - allowedAliases
+                  - allowRead
+                  - allowWrite
+                  - allowDestructive
+                  - allowFinancial
+                  - allowSecurityCritical
+                  - requireAuthorizationFor
+                additionalProperties: false
+              evaluationPolicy:
+                type: object
+                properties:
+                  requireValidOutputSchema:
+                    type: boolean
+                  requireCompletionCriteria:
+                    type: boolean
+                  requireEvidenceReferences:
+                    type: boolean
+                  forbiddenOutputPaths:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                      maxLength: 200
+                    maxItems: 100
+                  requiredOutputPaths:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                      maxLength: 200
+                    maxItems: 100
+                  deterministicChecks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          enum:
+                            - output.schema_valid
+                            - output.required_paths_present
+                            - output.forbidden_paths_absent
+                            - output.completion_criteria_met
+                            - output.evidence_referenced
+                        configuration:
+                          type: object
+                          additionalProperties: {}
+                      required:
+                        - key
+                        - configuration
+                      additionalProperties: false
+                    maxItems: 50
+                  llmJudge:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                      modelConfigurationId:
+                        type: string
+                        minLength: 1
+                        maxLength: 128
+                        nullable: true
+                      advisoryOnly:
+                        type: boolean
+                        default: true
+                    required:
+                      - enabled
+                    additionalProperties: false
+                required:
+                  - requireValidOutputSchema
+                  - requireCompletionCriteria
+                  - requireEvidenceReferences
+                  - forbiddenOutputPaths
+                  - requiredOutputPaths
+                  - deterministicChecks
+                additionalProperties: false
+              costPolicy:
+                type: object
+                properties:
+                  maximumEstimatedCostMinor:
+                    type: integer
+                    minimum: 0
+                    nullable: true
+                  currency:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    nullable: true
+                  maximumInputTokens:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 1000000
+                  maximumOutputTokens:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 200000
+                  maximumToolCalls:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                  actionOnLimit:
+                    type: string
+                    enum:
+                      - FAIL
+                      - SUSPEND
+                      - REQUIRE_APPROVAL
+                required:
+                  - maximumInputTokens
+                  - maximumOutputTokens
+                  - maximumToolCalls
+                  - actionOnLimit
+                additionalProperties: false
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              publishedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+              retiredAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+                nullable: true
+            required:
+              - id
+              - organizationId
+              - agentDefinitionId
+              - versionNumber
+              - status
+              - objective
+              - systemInstructions
+              - modelConfigurationId
+              - inputSchema
+              - outputSchema
+              - contextPolicy
+              - executionPolicy
+              - toolPolicy
+              - evaluationPolicy
+              - costPolicy
+              - createdByUserId
+              - revision
+              - createdAt
+              - publishedAt
+              - retiredAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    CreateAgentVersionRequest:
+      type: object
+      properties:
+        basedOnVersionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        definition:
+          type: object
+          properties:
+            objective:
+              type: string
+              minLength: 1
+              maxLength: 2000
+            systemInstructions:
+              type: string
+              minLength: 1
+              maxLength: 20000
+            modelConfigurationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            inputSchema:
+              type: object
+              additionalProperties: {}
+            outputSchema:
+              type: object
+              additionalProperties: {}
+            contextPolicy:
+              type: object
+              properties:
+                includeExecutionInput:
+                  type: boolean
+                includeOperationMetadata:
+                  type: boolean
+                previousStepOutputs:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    allowedStepKeys:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - allowedStepKeys
+                  additionalProperties: false
+                linkedDocuments:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    documentReferenceIds:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - documentReferenceIds
+                  additionalProperties: false
+                toolResults:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    allowedToolAliases:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - allowedToolAliases
+                  additionalProperties: false
+                maximumContextBytes:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 4000000
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                redactSensitiveFields:
+                  type: boolean
+              required:
+                - includeExecutionInput
+                - includeOperationMetadata
+                - previousStepOutputs
+                - linkedDocuments
+                - toolResults
+                - maximumContextBytes
+                - maximumInputTokens
+                - redactSensitiveFields
+              additionalProperties: false
+            executionPolicy:
+              type: object
+              properties:
+                maximumTurns:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 50
+                maximumToolCalls:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                maximumDurationMs:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 3600000
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                maximumOutputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 200000
+                structuredOutputRequired:
+                  type: boolean
+                toolCallingAllowed:
+                  type: boolean
+                retryInvalidOutput:
+                  type: boolean
+                maximumOutputRepairAttempts:
+                  type: integer
+                  minimum: 0
+                  maximum: 5
+                timeoutBehavior:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+                unknownResultBehavior:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+              required:
+                - maximumTurns
+                - maximumToolCalls
+                - maximumDurationMs
+                - maximumInputTokens
+                - maximumOutputTokens
+                - structuredOutputRequired
+                - toolCallingAllowed
+                - retryInvalidOutput
+                - maximumOutputRepairAttempts
+                - timeoutBehavior
+                - unknownResultBehavior
+              additionalProperties: false
+            toolPolicy:
+              type: object
+              properties:
+                allowedAliases:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 60
+                  maxItems: 50
+                maximumCallsPerAlias:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                allowRead:
+                  type: boolean
+                allowWrite:
+                  type: boolean
+                allowDestructive:
+                  type: boolean
+                allowFinancial:
+                  type: boolean
+                allowSecurityCritical:
+                  type: boolean
+                requireAuthorizationFor:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - WRITE
+                      - DESTRUCTIVE
+                      - FINANCIAL
+                      - SECURITY_CRITICAL
+                  maxItems: 4
+              required:
+                - allowedAliases
+                - allowRead
+                - allowWrite
+                - allowDestructive
+                - allowFinancial
+                - allowSecurityCritical
+                - requireAuthorizationFor
+              additionalProperties: false
+            evaluationPolicy:
+              type: object
+              properties:
+                requireValidOutputSchema:
+                  type: boolean
+                requireCompletionCriteria:
+                  type: boolean
+                requireEvidenceReferences:
+                  type: boolean
+                forbiddenOutputPaths:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 100
+                requiredOutputPaths:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 100
+                deterministicChecks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        enum:
+                          - output.schema_valid
+                          - output.required_paths_present
+                          - output.forbidden_paths_absent
+                          - output.completion_criteria_met
+                          - output.evidence_referenced
+                      configuration:
+                        type: object
+                        additionalProperties: {}
+                    required:
+                      - key
+                      - configuration
+                    additionalProperties: false
+                  maxItems: 50
+                llmJudge:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    modelConfigurationId:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                      nullable: true
+                    advisoryOnly:
+                      type: boolean
+                      default: true
+                  required:
+                    - enabled
+                  additionalProperties: false
+              required:
+                - requireValidOutputSchema
+                - requireCompletionCriteria
+                - requireEvidenceReferences
+                - forbiddenOutputPaths
+                - requiredOutputPaths
+                - deterministicChecks
+              additionalProperties: false
+            costPolicy:
+              type: object
+              properties:
+                maximumEstimatedCostMinor:
+                  type: integer
+                  minimum: 0
+                  nullable: true
+                currency:
+                  type: string
+                  pattern: ^[A-Z]{3}$
+                  nullable: true
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                maximumOutputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 200000
+                maximumToolCalls:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                actionOnLimit:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+                    - REQUIRE_APPROVAL
+              required:
+                - maximumInputTokens
+                - maximumOutputTokens
+                - maximumToolCalls
+                - actionOnLimit
+              additionalProperties: false
+          required:
+            - objective
+            - systemInstructions
+            - modelConfigurationId
+            - inputSchema
+            - outputSchema
+            - contextPolicy
+            - executionPolicy
+            - toolPolicy
+            - evaluationPolicy
+            - costPolicy
+          additionalProperties: false
+        changeSummary:
+          type: string
+          maxLength: 1000
+      additionalProperties: false
+    UpdateAgentVersionRequest:
+      type: object
+      properties:
+        definition:
+          type: object
+          properties:
+            objective:
+              type: string
+              minLength: 1
+              maxLength: 2000
+            systemInstructions:
+              type: string
+              minLength: 1
+              maxLength: 20000
+            modelConfigurationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            inputSchema:
+              type: object
+              additionalProperties: {}
+            outputSchema:
+              type: object
+              additionalProperties: {}
+            contextPolicy:
+              type: object
+              properties:
+                includeExecutionInput:
+                  type: boolean
+                includeOperationMetadata:
+                  type: boolean
+                previousStepOutputs:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    allowedStepKeys:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - allowedStepKeys
+                  additionalProperties: false
+                linkedDocuments:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    documentReferenceIds:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - documentReferenceIds
+                  additionalProperties: false
+                toolResults:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    allowedToolAliases:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                        maxLength: 120
+                      maxItems: 100
+                  required:
+                    - enabled
+                    - allowedToolAliases
+                  additionalProperties: false
+                maximumContextBytes:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 4000000
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                redactSensitiveFields:
+                  type: boolean
+              required:
+                - includeExecutionInput
+                - includeOperationMetadata
+                - previousStepOutputs
+                - linkedDocuments
+                - toolResults
+                - maximumContextBytes
+                - maximumInputTokens
+                - redactSensitiveFields
+              additionalProperties: false
+            executionPolicy:
+              type: object
+              properties:
+                maximumTurns:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 50
+                maximumToolCalls:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                maximumDurationMs:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 3600000
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                maximumOutputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 200000
+                structuredOutputRequired:
+                  type: boolean
+                toolCallingAllowed:
+                  type: boolean
+                retryInvalidOutput:
+                  type: boolean
+                maximumOutputRepairAttempts:
+                  type: integer
+                  minimum: 0
+                  maximum: 5
+                timeoutBehavior:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+                unknownResultBehavior:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+              required:
+                - maximumTurns
+                - maximumToolCalls
+                - maximumDurationMs
+                - maximumInputTokens
+                - maximumOutputTokens
+                - structuredOutputRequired
+                - toolCallingAllowed
+                - retryInvalidOutput
+                - maximumOutputRepairAttempts
+                - timeoutBehavior
+                - unknownResultBehavior
+              additionalProperties: false
+            toolPolicy:
+              type: object
+              properties:
+                allowedAliases:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 60
+                  maxItems: 50
+                maximumCallsPerAlias:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                allowRead:
+                  type: boolean
+                allowWrite:
+                  type: boolean
+                allowDestructive:
+                  type: boolean
+                allowFinancial:
+                  type: boolean
+                allowSecurityCritical:
+                  type: boolean
+                requireAuthorizationFor:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - WRITE
+                      - DESTRUCTIVE
+                      - FINANCIAL
+                      - SECURITY_CRITICAL
+                  maxItems: 4
+              required:
+                - allowedAliases
+                - allowRead
+                - allowWrite
+                - allowDestructive
+                - allowFinancial
+                - allowSecurityCritical
+                - requireAuthorizationFor
+              additionalProperties: false
+            evaluationPolicy:
+              type: object
+              properties:
+                requireValidOutputSchema:
+                  type: boolean
+                requireCompletionCriteria:
+                  type: boolean
+                requireEvidenceReferences:
+                  type: boolean
+                forbiddenOutputPaths:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 100
+                requiredOutputPaths:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 100
+                deterministicChecks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        enum:
+                          - output.schema_valid
+                          - output.required_paths_present
+                          - output.forbidden_paths_absent
+                          - output.completion_criteria_met
+                          - output.evidence_referenced
+                      configuration:
+                        type: object
+                        additionalProperties: {}
+                    required:
+                      - key
+                      - configuration
+                    additionalProperties: false
+                  maxItems: 50
+                llmJudge:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    modelConfigurationId:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                      nullable: true
+                    advisoryOnly:
+                      type: boolean
+                      default: true
+                  required:
+                    - enabled
+                  additionalProperties: false
+              required:
+                - requireValidOutputSchema
+                - requireCompletionCriteria
+                - requireEvidenceReferences
+                - forbiddenOutputPaths
+                - requiredOutputPaths
+                - deterministicChecks
+              additionalProperties: false
+            costPolicy:
+              type: object
+              properties:
+                maximumEstimatedCostMinor:
+                  type: integer
+                  minimum: 0
+                  nullable: true
+                currency:
+                  type: string
+                  pattern: ^[A-Z]{3}$
+                  nullable: true
+                maximumInputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 1000000
+                maximumOutputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 200000
+                maximumToolCalls:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                actionOnLimit:
+                  type: string
+                  enum:
+                    - FAIL
+                    - SUSPEND
+                    - REQUIRE_APPROVAL
+              required:
+                - maximumInputTokens
+                - maximumOutputTokens
+                - maximumToolCalls
+                - actionOnLimit
+              additionalProperties: false
+          required:
+            - objective
+            - systemInstructions
+            - modelConfigurationId
+            - inputSchema
+            - outputSchema
+            - contextPolicy
+            - executionPolicy
+            - toolPolicy
+            - evaluationPolicy
+            - costPolicy
+          additionalProperties: false
+        changeSummary:
+          type: string
+          maxLength: 1000
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - definition
+        - expectedRevision
+      additionalProperties: false
+    PublishAgentVersionRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        changeSummary:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      required:
+        - expectedRevision
+        - changeSummary
+      additionalProperties: false
+    RetireAgentVersionRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ListAgentVersionsQuery:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - PUBLISHED
+            - RETIRED
+        versionNumber:
+          type: integer
+          exclusiveMinimum: true
+          minimum: 0
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      additionalProperties: false
+    ModelProviderDefinition:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        version:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - DEPRECATED
+            - DISABLED
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum:
+              - STRUCTURED_OUTPUT
+              - TOOL_CALLING
+              - STREAMING
+              - VISION
+              - PROMPT_CACHING
+          maxItems: 5
+        productionAllowed:
+          type: boolean
+        systemManaged:
+          type: boolean
+      required:
+        - key
+        - version
+        - name
+        - status
+        - capabilities
+        - productionAllowed
+        - systemManaged
+      additionalProperties: false
+    ModelProviderResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 80
+              pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+            version:
+              type: string
+              minLength: 1
+              maxLength: 32
+            name:
+              type: string
+              minLength: 1
+              maxLength: 120
+            description:
+              type: string
+              maxLength: 500
+              nullable: true
+            status:
+              type: string
+              enum:
+                - ACTIVE
+                - DEPRECATED
+                - DISABLED
+            capabilities:
+              type: array
+              items:
+                type: string
+                enum:
+                  - STRUCTURED_OUTPUT
+                  - TOOL_CALLING
+                  - STREAMING
+                  - VISION
+                  - PROMPT_CACHING
+              maxItems: 5
+            productionAllowed:
+              type: boolean
+            systemManaged:
+              type: boolean
+          required:
+            - key
+            - version
+            - name
+            - status
+            - capabilities
+            - productionAllowed
+            - systemManaged
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ModelProviderListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                minLength: 1
+                maxLength: 80
+                pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+              version:
+                type: string
+                minLength: 1
+                maxLength: 32
+              name:
+                type: string
+                minLength: 1
+                maxLength: 120
+              description:
+                type: string
+                maxLength: 500
+                nullable: true
+              status:
+                type: string
+                enum:
+                  - ACTIVE
+                  - DEPRECATED
+                  - DISABLED
+              capabilities:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - STRUCTURED_OUTPUT
+                    - TOOL_CALLING
+                    - STREAMING
+                    - VISION
+                    - PROMPT_CACHING
+                maxItems: 5
+              productionAllowed:
+                type: boolean
+              systemManaged:
+                type: boolean
+            required:
+              - key
+              - version
+              - name
+              - status
+              - capabilities
+              - productionAllowed
+              - systemManaged
+            additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ModelConfiguration:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        organizationId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        providerKey:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        providerVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        modelId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        credentialConnectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        parameters:
+          type: object
+          properties:
+            temperature:
+              type: number
+              minimum: 0
+              maximum: 2
+            topP:
+              type: number
+              minimum: 0
+              maximum: 1
+            maximumOutputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 200000
+            stopSequences:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 120
+              maxItems: 8
+          required:
+            - maximumOutputTokens
+          additionalProperties: false
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - SUSPENDED
+            - REVOKED
+        createdByUserId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        revision:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - id
+        - organizationId
+        - providerKey
+        - providerVersion
+        - name
+        - modelId
+        - credentialConnectionId
+        - parameters
+        - status
+        - createdByUserId
+        - revision
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ModelConfigurationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              minLength: 1
+              maxLength: 128
+            organizationId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            providerKey:
+              type: string
+              minLength: 1
+              maxLength: 80
+              pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+            providerVersion:
+              type: string
+              minLength: 1
+              maxLength: 32
+            name:
+              type: string
+              minLength: 1
+              maxLength: 120
+            modelId:
+              type: string
+              minLength: 1
+              maxLength: 200
+            credentialConnectionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+              nullable: true
+            parameters:
+              type: object
+              properties:
+                temperature:
+                  type: number
+                  minimum: 0
+                  maximum: 2
+                topP:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                maximumOutputTokens:
+                  type: integer
+                  exclusiveMinimum: true
+                  minimum: 0
+                  maximum: 200000
+                stopSequences:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 120
+                  maxItems: 8
+              required:
+                - maximumOutputTokens
+              additionalProperties: false
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - ACTIVE
+                - SUSPENDED
+                - REVOKED
+            createdByUserId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            revision:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - id
+            - organizationId
+            - providerKey
+            - providerVersion
+            - name
+            - modelId
+            - credentialConnectionId
+            - parameters
+            - status
+            - createdByUserId
+            - revision
+            - createdAt
+            - updatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ModelConfigurationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 128
+              organizationId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              providerKey:
+                type: string
+                minLength: 1
+                maxLength: 80
+                pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+              providerVersion:
+                type: string
+                minLength: 1
+                maxLength: 32
+              name:
+                type: string
+                minLength: 1
+                maxLength: 120
+              modelId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              credentialConnectionId:
+                type: string
+                minLength: 1
+                maxLength: 128
+                nullable: true
+              parameters:
+                type: object
+                properties:
+                  temperature:
+                    type: number
+                    minimum: 0
+                    maximum: 2
+                  topP:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                  maximumOutputTokens:
+                    type: integer
+                    exclusiveMinimum: true
+                    minimum: 0
+                    maximum: 200000
+                  stopSequences:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                      maxLength: 120
+                    maxItems: 8
+                required:
+                  - maximumOutputTokens
+                additionalProperties: false
+              status:
+                type: string
+                enum:
+                  - DRAFT
+                  - ACTIVE
+                  - SUSPENDED
+                  - REVOKED
+              createdByUserId:
+                type: string
+                minLength: 1
+                maxLength: 128
+              revision:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+              updatedAt:
+                type: string
+                format: date-time
+                description: ISO 8601 date-time in UTC (Z suffix)
+            required:
+              - id
+              - organizationId
+              - providerKey
+              - providerVersion
+              - name
+              - modelId
+              - credentialConnectionId
+              - parameters
+              - status
+              - createdByUserId
+              - revision
+              - createdAt
+              - updatedAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    CreateModelConfigurationRequest:
+      type: object
+      properties:
+        providerKey:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        providerVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        modelId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        credentialConnectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        parameters:
+          type: object
+          properties:
+            temperature:
+              type: number
+              minimum: 0
+              maximum: 2
+            topP:
+              type: number
+              minimum: 0
+              maximum: 1
+            maximumOutputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 200000
+            stopSequences:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 120
+              maxItems: 8
+          required:
+            - maximumOutputTokens
+          additionalProperties: false
+      required:
+        - providerKey
+        - providerVersion
+        - name
+        - modelId
+        - parameters
+      additionalProperties: false
+    UpdateModelConfigurationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        modelId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        credentialConnectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+        parameters:
+          type: object
+          properties:
+            temperature:
+              type: number
+              minimum: 0
+              maximum: 2
+            topP:
+              type: number
+              minimum: 0
+              maximum: 1
+            maximumOutputTokens:
+              type: integer
+              exclusiveMinimum: true
+              minimum: 0
+              maximum: 200000
+            stopSequences:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 120
+              maxItems: 8
+          required:
+            - maximumOutputTokens
+          additionalProperties: false
+        expectedRevision:
+          type: integer
+          minimum: 0
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ModelConfigurationCommandRequest:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          maxLength: 400
+      required:
+        - expectedRevision
+      additionalProperties: false
+    ListModelConfigurationsQuery:
+      type: object
+      properties:
+        providerKey:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - SUSPENDED
+            - REVOKED
+        modelId:
+          type: string
+          maxLength: 200
+        search:
+          type: string
+          maxLength: 120
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
       additionalProperties: false
