@@ -29,6 +29,15 @@ export function bearer(subject: string, opts: { email?: string; ttlSeconds?: num
 export async function resetIdentity(): Promise<void> {
   await prisma.$transaction([
     prisma.identityAuditEvent.deleteMany(),
+    // Conectores (ARDEN-BE-006): limpar tabelas TENANT-SCOPED antes de operações/
+    // organizações (FKs). O CATÁLOGO (connector_definitions/tool_definitions) é
+    // system-managed e NÃO é apagado aqui — permanece projetado.
+    prisma.webhookDelivery.deleteMany(),
+    prisma.webhookEndpoint.deleteMany(),
+    prisma.operationToolBinding.deleteMany(),
+    prisma.organizationToolBinding.deleteMany(),
+    prisma.connectionCredentialVersion.deleteMany(),
+    prisma.organizationConnection.deleteMany(),
     // Execução (ARDEN-BE-005): limpar ANTES de autorizações/operações/versões (FKs).
     prisma.executionJob.deleteMany(),
     prisma.evidenceRecord.deleteMany(),
