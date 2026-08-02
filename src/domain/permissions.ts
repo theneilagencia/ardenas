@@ -44,6 +44,20 @@ export type Permission =
   | 'risk.manage'
   | 'integration.view'
   | 'integration.manage'
+  // Conectores, conexões, credenciais, ferramentas e webhooks (ARDEN-BE-006).
+  | 'connector.view'
+  | 'connector.manage'
+  | 'connection.view'
+  | 'connection.create'
+  | 'connection.edit'
+  | 'connection.test'
+  | 'connection.rotate_credentials'
+  | 'connection.revoke'
+  | 'tool.view'
+  | 'tool.bind'
+  | 'webhook.view'
+  | 'webhook.manage'
+  | 'integration.execute'
   | 'context.view'
   | 'context.manage'
   | 'file.view'
@@ -98,6 +112,19 @@ export const ALL_PERMISSIONS: Permission[] = [
   'risk.manage',
   'integration.view',
   'integration.manage',
+  'connector.view',
+  'connector.manage',
+  'connection.view',
+  'connection.create',
+  'connection.edit',
+  'connection.test',
+  'connection.rotate_credentials',
+  'connection.revoke',
+  'tool.view',
+  'tool.bind',
+  'webhook.view',
+  'webhook.manage',
+  'integration.execute',
   'context.view',
   'context.manage',
   'file.view',
@@ -149,6 +176,12 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'risk.view',
     'context.view',
     'integration.view',
+    'connector.view',
+    'connection.view',
+    'tool.view',
+    'tool.bind',
+    'webhook.view',
+    'integration.execute',
     'file.view',
     'budget.view',
     'audit.view',
@@ -167,6 +200,10 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'risk.view',
     'audit.view',
     'file.view',
+    'connector.view',
+    'connection.view',
+    'connection.test',
+    'integration.execute',
   ],
   approver: [
     'organization.view',
@@ -196,6 +233,18 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'role.manage',
     'integration.view',
     'integration.manage',
+    'connector.view',
+    'connector.manage',
+    'connection.view',
+    'connection.create',
+    'connection.edit',
+    'connection.test',
+    'connection.rotate_credentials',
+    'connection.revoke',
+    'tool.view',
+    'tool.bind',
+    'webhook.view',
+    'webhook.manage',
     'risk.view',
     'risk.manage',
     'audit.view',
@@ -218,6 +267,10 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.view',
     'risk.view',
     'file.view',
+    'connector.view',
+    'connection.view',
+    'tool.view',
+    'webhook.view',
   ],
 };
 
