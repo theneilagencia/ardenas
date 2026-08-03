@@ -38,6 +38,11 @@ preservada. Sem force-push; sem branch apagada.
 
 ## 3. Conformidade de escopo (condições de reprovação — todas NÃO violadas)
 
+> Corroborado por auditoria independente (9/9 checks PASS com evidência file:line):
+> guard tests `agents-no-runtime.spec.ts` (sem SDK, sem rede, sem execução direta),
+> `secret-canary.contract.test.ts`, `model-provider-catalog.spec.ts`, `architecture.test.ts`.
+> Gating do `internal.test-model` em 3 pontos (resolver + publish + config).
+
 | # | Invariante | Evidência |
 | --- | --- | --- |
 | 1 | Sem provider comercial/SDK (Anthropic/OpenAI/Bedrock/Vertex/…) | ausente em `package.json` (ambos); único provider é `internal.test-model` (`productionAllowed=false`) |
@@ -98,6 +103,9 @@ versão publicada somente-leitura e ausência de segredo em storage.
 - E2E Playwright de frontend dos três fluxos (automático/supervisionado/falha): os mesmos
   caminhos são cobertos pela integração da API com worker real.
 - Rate cards comerciais reais e provider real chegam com a fase futura (fora do escopo).
+- `AgentExecutionResult.evaluationSummary`/`governanceSummary` são colunas `Json` que hoje
+  recebem só chaves/status/contadores determinísticos (nenhum conteúdo bruto). Recomenda-se
+  um teste de guarda de serialização caso esses campos venham a ser expandidos.
 - Dependabot reporta vulnerabilidades no branch default (grupo npm) — endereçadas por PRs
   de dependência separados (ex.: PR #11), fora do escopo funcional deste milestone.
 
