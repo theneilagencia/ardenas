@@ -21,6 +21,6 @@ import { ApprovalDelegationsController } from './delegations.controller';
   imports: [AuthzModule, IdempotencyModule, AuditModule, EnforcementModule],
   controllers: [ApprovalFlowsController, ApprovalRequestsController, ApprovalDelegationsController],
   providers: [ApprovalsRepository, ApprovalFlowsService, ApprovalRequestsService, ApprovalDelegationsService],
-  exports: [ApprovalsRepository],
+  exports: [ApprovalsRepository, ApprovalRequestsService],
 })
 export class ApprovalsModule {}

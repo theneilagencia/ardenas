@@ -1342,3 +1342,41 @@ model AgentVersion {
   @@index([agentDefinitionId, status])
   @@map("agent_versions")
 }
+
+/// Status de um checkpoint do loop do agente (ARDEN-BE-007.5).
+enum AgentRuntimeCheckpointStatus {
+  ACTIVE
+  SUSPENDED
+  COMPLETED
+}
+
+/// Checkpoint MÍNIMO do loop de tool calling do agente (ARDEN-BE-007.5). Permite
+/// retomada idempotente após aprovação humana e garante execução única de tools por
+/// replay. NÃO guarda prompt, contexto, segredo, credencial, Authorization, input/output
+/// bruto sensível nem provider request — apenas contadores, hashes e metadados
+/// sanitizados. Uma linha por etapa de agente (`agent.execute`).
+model AgentRuntimeCheckpoint {
+  id               String                       @id @default(uuid()) @db.Uuid
+  organizationId   String                       @map("organization_id") @db.Uuid
+  executionRunId   String                       @map("execution_run_id") @db.Uuid
+  executionStepId  String                       @unique @map("execution_step_id") @db.Uuid
+  agentDefinitionId String                      @map("agent_definition_id") @db.Uuid
+  agentVersionId   String                       @map("agent_version_id") @db.Uuid
+  status           AgentRuntimeCheckpointStatus @default(ACTIVE)
+  turnCount        Int                          @default(0) @map("turn_count")
+  modelCallCount   Int                          @default(0) @map("model_call_count")
+  toolCallCount    Int                          @default(0) @map("tool_call_count")
+  /// Metadados SANITIZADOS da tool call pendente de aprovação (sem input/segredo bruto).
+  pendingToolCall  Json?                        @map("pending_tool_call")
+  /// Mapa idemKey → resultado sanitizado de tool calls já concluídas (execução única).
+  completedToolCalls Json                       @default("{}") @map("completed_tool_calls")
+  approvalRequestId String?                     @map("approval_request_id") @db.Uuid
+  contextHash      String?                      @map("context_hash")
+  revision         Int                          @default(1)
+  createdAt        DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, executionRunId])
+  @@index([approvalRequestId])
+  @@map("agent_runtime_checkpoints")
+}

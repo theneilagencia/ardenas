@@ -189,6 +189,29 @@ export class EnforcementService {
     });
   }
 
+  /**
+   * Consumo ATÔMICO e single-use de uma `ActionAuthorization` (ARDEN-BE-007.5). Mesmo
+   * padrão de `ACTIVE → USED` do BE-005, porém NÃO lança — devolve um resultado tipado
+   * para o worker do agente. O `updateMany where status:'ACTIVE'` + `count===1` garante
+   * que apenas um consumidor vence sob concorrência.
+   */
+  async consumeAuthorization(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    authorizationId: string,
+    scope: { actionKey: string; operationId: string; operationVersionId: string; actionPayloadHash: string; now: Date },
+  ): Promise<{ ok: boolean; reason?: string }> {
+    const auth = await tx.actionAuthorization.findFirst({ where: { id: authorizationId, organizationId } });
+    if (!auth) return { ok: false, reason: 'NOT_FOUND' };
+    if (auth.actionKey !== scope.actionKey || auth.operationId !== scope.operationId || auth.operationVersionId !== scope.operationVersionId || auth.actionPayloadHash !== scope.actionPayloadHash) {
+      return { ok: false, reason: 'PAYLOAD_MISMATCH' };
+    }
+    if (auth.status !== 'ACTIVE') return { ok: false, reason: `STATUS_${auth.status}` };
+    if (auth.validUntil && auth.validUntil < scope.now) return { ok: false, reason: 'EXPIRED' };
+    const consumed = await tx.actionAuthorization.updateMany({ where: { id: authorizationId, organizationId, status: 'ACTIVE' }, data: { status: 'USED', usedAt: scope.now, revision: { increment: 1 } } });
+    return consumed.count === 1 ? { ok: true } : { ok: false, reason: 'ALREADY_USED' };
+  }
+
   /** Endpoint POST action-authorizations/validate — não executa a ação. */
   async validate(
     ctx: AuthenticatedRequestContext,
