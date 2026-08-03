@@ -77,6 +77,17 @@ apenas a **infraestrutura administrativa** (conector `system.anthropic`, provide
 no cofre, validação local, lifecycle de `ModelConfiguration` com ativação bloqueada). Rate cards
 comerciais permanecem **vazios**. A decisão continua **CONDITIONALLY_CONFIRMED** — sem execução.
 
+## 4c. Estado após 008.3 (provider executável atrás de gate)
+
+O 008.3 tornou o provider **executável em runtime**, mas **apenas atrás de feature gate de
+teste/desenvolvimento** e **sem nenhuma chamada externa real** (SDK pinado e isolado, transporte
+real gated na rede, testes offline com transporte fake). O provider persistido permanece
+**`DISABLED`** / `productionAllowed=false`; o registro no runtime é condicional
+(`RUNTIME_ENABLED && NODE_ENV !== 'production'`) e a produção continua bloqueada. A decisão segue
+**CONDITIONALLY_CONFIRMED**: nenhuma chamada externa ocorreu e governança/preços permanecem
+UNVERIFIED. Ver `ANTHROPIC_RUNTIME_FEATURE_GATES.md` e
+`../implementation/ARDEN_BE_008_ANTHROPIC_RUNTIME_REPORT.md`.
+
 ## 5. Consequência para 008.2 (gate)
 
 Antes de habilitar execução (008.2+): (a) ler diretamente a página oficial de pricing e

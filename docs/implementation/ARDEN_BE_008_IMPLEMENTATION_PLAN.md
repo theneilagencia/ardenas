@@ -103,3 +103,19 @@ permanecem **`DISABLED`**; sem SDK, sem chamada real, sem endpoint de execução
 **Próximo: 008.3** — instalação controlada do SDK + provider executável em ambiente restrito
 (structured output, Fatia 1), condicionado à reabertura do gate (verificação direta de pricing e
 governança).
+
+## Atualização 008.3
+
+Provider `anthropic.direct@1` tornado **executável em runtime**, porém **apenas atrás de feature
+gate de teste/desenvolvimento** e **sem nenhuma chamada externa real**. SDK oficial instalado e
+pinado (`@anthropic-ai/sdk@0.115.0`, exato), isolado atrás de uma porta de transporte; transporte
+real gated na rede; transporte fake offline para os testes; `AnthropicModelProvider` (structured
+output, Fatia 1) integrado de forma provider-neutra; registro condicional
+(`RUNTIME_ENABLED && !production`); produção bloqueada em 3 pontos. Provider persistido permanece
+`DISABLED`; **sem migração**, OpenAPI diff-free; pricing/governança seguem **UNVERIFIED**.
+Detalhe em `ARDEN_BE_008_ANTHROPIC_RUNTIME_REPORT.md` + evidência em
+`ARDEN_BE_008_ANTHROPIC_RUNTIME_TEST_EVIDENCE.md`.
+
+**Próximo: 008.4** — verificação oficial **manual** de pricing e governança de dados +
+**smoke test real controlado** (credencial real, custo controlado, fora do PR público, sem dados
+reais de cliente) + habilitação restrita; só então rate cards comerciais e ativação em produção.

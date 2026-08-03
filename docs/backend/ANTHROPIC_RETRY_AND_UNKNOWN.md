@@ -44,3 +44,12 @@ evidência, e deixar a GOVERNANÇA decidir (`unknownResultBehavior`: FAIL/SUSPEN
 O timeout efetivo de cada chamada = **mínimo** de: timeout do passo, política do agente
 (`AgentExecutionPolicy`), timeout de request do provider (default SDK 10 min) e o deadline
 seguro do lease do job. Nenhuma tentativa pode ultrapassar o lease do job.
+
+## 5. Atualização 008.3 — retry implementado no runtime
+
+O runtime (008.3) implementa a política acima como **retry do adapter** em
+`anthropic-retry-policy.ts`, com o retry do SDK **desligado** (`maxRetries=0`). A fase de falha
+(`phase = BEFORE_SEND | AFTER_SEND`, no `AnthropicTransportError`) distingue falha pré-envio
+(seguro retriar) de resultado incerto (`AFTER_SEND` → nunca retriado). UNKNOWN é tratado como
+descrito (nunca sucesso, nunca retry cego → `MODEL_RESULT_UNKNOWN`). Nenhuma chamada real ocorre
+nesta fase (execução atrás de gate). Detalhe em `ANTHROPIC_RUNTIME_RETRY.md`.

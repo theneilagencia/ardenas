@@ -67,3 +67,13 @@ Os tipos do SDK (v0.115.0) expõem, no `Usage`/request, os campos:
   tratamento/retenção por tier são UNVERIFIED**.
 
 Não interpretar esses campos como garantia de governança até confirmação por leitura direta.
+
+## 6. Atualização 008.3 — provider executável, mas sem chamada externa
+
+O 008.3 tornou o provider **executável em runtime**, porém **apenas atrás de feature gate de
+teste/desenvolvimento** e **sem nenhuma chamada externa real** (transporte real gated na rede,
+testes offline). Portanto, mesmo com o provider executável, **nenhuma requisição foi enviada à
+Anthropic** e a governança de dados permanece **UNVERIFIED** — nenhum item do §3 mudou de status.
+O provider persistido segue `DISABLED` e a produção continua bloqueada. A verificação oficial
+manual de retenção/treinamento/residency e o smoke test real controlado ficam para o 008.4. Ver
+`ANTHROPIC_RUNTIME_FEATURE_GATES.md` e `../implementation/ARDEN_BE_008_ANTHROPIC_RUNTIME_REPORT.md`.
