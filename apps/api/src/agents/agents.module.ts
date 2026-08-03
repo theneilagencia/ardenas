@@ -42,6 +42,8 @@ import { APP_CONFIG } from '../config/config.module';
 import type { AppConfig } from '../config/env.schema';
 import { AnthropicModelProvider } from './providers/anthropic/anthropic-model-provider';
 import { AnthropicProviderCredentialResolver } from './providers/anthropic/anthropic-provider-credential.resolver';
+import { AnthropicNonProdGate } from './providers/anthropic/anthropic-non-prod-gate';
+import { AnthropicSmokeTestService } from './providers/anthropic/anthropic-smoke-test.service';
 import { AnthropicSdkTransport } from './providers/anthropic/sdk/anthropic-sdk-transport';
 import { FakeAnthropicTransport } from './providers/anthropic/anthropic-fake-transport';
 import { ANTHROPIC_TRANSPORT } from './providers/anthropic/anthropic-transport.port';
@@ -108,7 +110,9 @@ import { AgentResultsController } from './governance/agent-results.controller';
     AnthropicSdkTransport,
     FakeAnthropicTransport,
     AnthropicProviderCredentialResolver,
+    AnthropicNonProdGate,
     AnthropicModelProvider,
+    AnthropicSmokeTestService,
     // Transporte por COMPOSIÇÃO de ambiente: fake OFFLINE em teste (nunca rede), SDK real
     // caso contrário. Não é backdoor de header/query — é escolha de módulo (§21).
     {
@@ -164,6 +168,8 @@ import { AgentResultsController } from './governance/agent-results.controller';
     ModelProviderCatalogProjector,
     ModelCatalogProjector,
     RateCardCatalogProjector,
+    AnthropicSmokeTestService,
+    AnthropicNonProdGate,
     // Expostos ao motor de execução (ExecutionsModule) — sem ciclo (AgentsModule não
     // importa ExecutionsModule).
     AGENT_RUNTIME,

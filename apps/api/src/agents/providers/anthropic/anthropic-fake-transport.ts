@@ -128,15 +128,16 @@ export class FakeAnthropicTransport implements AnthropicTransport {
     };
   }
 
-  /** Produz um objeto minimamente válido para o outputSchema (schema walk raso). */
+  /** Produz um objeto minimamente válido para o outputSchema (schema walk raso; honra enum). */
   private validOutput(request: AnthropicTransportRequest): Record<string, unknown> {
     const schema = request.tools?.find((t) => t.name === ANTHROPIC_STRUCTURED_OUTPUT_TOOL)?.input_schema as
-      | { properties?: Record<string, { type?: string }>; required?: string[] }
+      | { properties?: Record<string, { type?: string; enum?: unknown[] }>; required?: string[] }
       | undefined;
     const out: Record<string, unknown> = {};
     const props = schema?.properties ?? {};
     for (const [key, def] of Object.entries(props)) {
-      out[key] = def.type === 'number' || def.type === 'integer' ? 1 : def.type === 'boolean' ? true : `${key}-ok`;
+      if (Array.isArray(def.enum) && def.enum.length > 0) out[key] = def.enum[0];
+      else out[key] = def.type === 'number' || def.type === 'integer' ? 1 : def.type === 'boolean' ? true : `${key}-ok`;
     }
     return out;
   }

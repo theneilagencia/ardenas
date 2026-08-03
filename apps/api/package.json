@@ -22,7 +22,8 @@
     "db:migrate:status": "prisma migrate status",
     "db:reset:test": "prisma migrate reset --force --skip-seed",
     "db:seed": "ARDEN_CLI=seed vite-node prisma/seed.ts",
-    "bootstrap:organization": "ARDEN_CLI=bootstrap vite-node prisma/bootstrap-organization.ts"
+    "bootstrap:organization": "ARDEN_CLI=bootstrap vite-node prisma/bootstrap-organization.ts",
+    "smoke:anthropic": "ARDEN_CLI=anthropic-smoke vite-node src/scripts/anthropic-smoke-test.cli.ts"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

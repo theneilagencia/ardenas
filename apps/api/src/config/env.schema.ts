@@ -65,7 +65,29 @@ export const envSchema = z
     // Gate de CHAMADA EXTERNA: autoriza o transporte real (SDK) a alcançar a Anthropic.
     // Default false. Com false, o transporte real NUNCA chama a rede (erro seguro).
     ANTHROPIC_PROVIDER_EXTERNAL_CALLS_ENABLED: booleanish.default(false),
+
+    // ── Smoke test real controlado (ARDEN-BE-008.4) ──────────────────────────
+    // Habilita o comando de smoke test (nunca em suíte normal/CI). Default false.
+    ANTHROPIC_SMOKE_TEST_ENABLED: booleanish.default(false),
+    // Reconhecimento explícito do operador de que uma chamada real pode ocorrer.
+    ANTHROPIC_SMOKE_TEST_ACKNOWLEDGED: booleanish.default(false),
+    // Allowlist server-side de organizações autorizadas a chamadas reais NÃO produtivas
+    // (CSV de UUIDs). Nunca vem do request. Vazio = nenhuma organização autorizada.
+    ANTHROPIC_NON_PROD_ALLOWED_ORGANIZATION_IDS: z.string().default(''),
+    // Quotas conservadoras não produtivas (denial-of-wallet), configuráveis.
+    ANTHROPIC_NON_PROD_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(4096).default(256),
+    ANTHROPIC_NON_PROD_DAILY_CALL_CAP: z.coerce.number().int().min(1).max(10000).default(50),
+    ANTHROPIC_NON_PROD_MAX_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(1),
+    // Circuit breaker: falhas consecutivas para abrir; janela de meio-aberto (ms).
+    ANTHROPIC_CIRCUIT_BREAKER_THRESHOLD: z.coerce.number().int().min(1).max(100).default(5),
+    ANTHROPIC_CIRCUIT_BREAKER_COOLDOWN_MS: z.coerce.number().int().min(1000).max(3600000).default(60000),
   })
+  .transform((env) => ({
+    ...env,
+    anthropicNonProdAllowedOrganizationIds: env.ANTHROPIC_NON_PROD_ALLOWED_ORGANIZATION_IDS.split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  }))
   .transform((env) => ({
     ...env,
     corsOrigins: env.CORS_ORIGINS.split(',')

@@ -26,6 +26,8 @@ import { ANTHROPIC_TRANSPORT, AnthropicTransportException, type AnthropicTranspo
 import type { AnthropicTransportRequest } from './anthropic-transport.types';
 import { AnthropicProviderCredentialResolver, type ResolvedAnthropicCredential } from './anthropic-provider-credential.resolver';
 import { assertAnthropicSchemaCompatible } from './anthropic-schema-compatibility';
+import { AnthropicNonProdGate } from './anthropic-non-prod-gate';
+import { modelProviderDisabled } from '../../../common/errors/api-error';
 
 const M_REQUESTS = 'arden_model_provider_requests_total';
 const M_DURATION = 'arden_model_provider_request_duration_ms';
@@ -49,7 +51,13 @@ export class AnthropicModelProvider implements ModelProvider {
     private readonly credentials: AnthropicProviderCredentialResolver,
     private readonly prisma: PrismaService,
     private readonly metrics: AgentMetrics,
+    private readonly nonProdGate: AnthropicNonProdGate,
   ) {}
+
+  /** UTC day key para as quotas diárias (não usa relógio proibido — API normal). */
+  private dayKey(nowMs: number): string {
+    return new Date(nowMs).toISOString().slice(0, 10);
+  }
 
   async generate(request: ModelGenerationRequest, context?: ModelGenerationContext): Promise<ModelGenerationResult> {
     if (!context) throw new ModelProviderInvocationError('PROVIDER_ERROR', 'Contexto de execução ausente.');
@@ -64,22 +72,46 @@ export class AnthropicModelProvider implements ModelProvider {
     if (request.outputSchema) assertAnthropicSchemaCompatible(request.outputSchema);
 
     const labels = { provider: this.key, model: request.modelId };
+    // Política de chamada REAL (ARDEN-BE-008.4): só quando o gate de chamadas externas está
+    // ligado. Na demonstração offline (008.3, gate off) a política não se aplica.
+    const realCall = this.nonProdGate.externalCallsEnabled();
+    const nowMs = Date.now();
+    const dayKey = this.dayKey(nowMs);
     let credential: ResolvedAnthropicCredential | null = null;
+    let acquired = false;
     try {
+      if (realCall) {
+        // Bloqueia produção/allowlist/breaker ANTES de resolver a credencial (§16/§34).
+        this.nonProdGate.assertRealCallAllowed(context.organizationId, nowMs, dayKey);
+      }
       credential = await this.credentials.resolve({
         organizationId: context.organizationId,
         modelConfigurationId: context.modelConfigurationId,
         credentialConnectionId: context.credentialConnectionId,
         correlationId: context.correlationId,
       });
+      if (realCall && !context.smokeTest && !credential.smokeVerified) {
+        // Execução real normal exige smoke test válido para ESTA versão de credencial.
+        throw modelProviderDisabled('Versão de credencial sem smoke test válido (ARDEN-BE-008.4).');
+      }
       const opts = await this.parameterOptions(context.organizationId, context.modelConfigurationId);
       const transportRequest = this.requestMapper.map(request, opts);
+      if (realCall) {
+        // Quota de tokens de saída (denial-of-wallet) não produtiva.
+        transportRequest.max_tokens = Math.min(transportRequest.max_tokens, this.nonProdGate.maxOutputTokens());
+        this.nonProdGate.acquire(context.organizationId, dayKey);
+        acquired = true;
+      }
       const timeoutMs = this.effectiveTimeout(context.deadlineMs, credential.timeoutMs);
-      return await this.callWithRetry(request, transportRequest, credential.apiKey, timeoutMs, context, labels);
+      const result = await this.callWithRetry(request, transportRequest, credential.apiKey, timeoutMs, context, labels);
+      if (realCall) this.nonProdGate.recordSuccess();
+      return result;
     } catch (err) {
+      if (realCall) this.nonProdGate.recordFailure(Date.now());
       if (err instanceof ModelProviderInvocationError) throw err;
       throw this.toInvocationError(err);
     } finally {
+      if (acquired) this.nonProdGate.release();
       // Descarte best-effort do plaintext (limitação de zeroização em JS — documentada).
       if (credential) credential.apiKey = '';
     }

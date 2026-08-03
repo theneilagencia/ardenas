@@ -28,6 +28,8 @@ export interface ResolvedAnthropicCredential {
   /** Config NÃO sensível da conexão (base URL travada em OFFICIAL). */
   timeoutMs: number;
   maximumRetries: number;
+  /** Se ESTA versão de credencial passou por um smoke test PASSED (ARDEN-BE-008.4). */
+  smokeVerified: boolean;
 }
 
 @Injectable()
@@ -61,6 +63,10 @@ export class AnthropicProviderCredentialResolver {
       throw credentialInvalid([{ field: 'apiKey', code: 'APIKEY_MISSING', message: 'Credencial Anthropic sem apiKey.' }]);
     }
     const config = (conn.configuration ?? {}) as { timeoutMs?: unknown; maximumRetries?: unknown };
+    // Verificação de smoke test vinculada À VERSÃO de credencial (rotação invalida).
+    const version = await this.prisma.connectionCredentialVersion.findFirst({ where: { id: resolved.credentialVersionId }, select: { metadata: true } });
+    const smoke = (version?.metadata as { smokeTest?: { status?: string; credentialVersionId?: string } } | null)?.smokeTest;
+    const smokeVerified = smoke?.status === 'PASSED' && smoke.credentialVersionId === resolved.credentialVersionId;
     const out: ResolvedAnthropicCredential = {
       apiKey,
       fingerprint: resolved.fingerprint,
@@ -68,6 +74,7 @@ export class AnthropicProviderCredentialResolver {
       connectionId: credentialConnectionId,
       timeoutMs: typeof config.timeoutMs === 'number' ? config.timeoutMs : 60_000,
       maximumRetries: typeof config.maximumRetries === 'number' ? config.maximumRetries : 2,
+      smokeVerified,
     };
     resolved.secret = {}; // descarta o mapa do cofre (apiKey copiada apenas para `out`).
     return out;

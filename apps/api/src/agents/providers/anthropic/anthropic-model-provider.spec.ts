@@ -22,7 +22,9 @@ function makeProvider(transport: FakeAnthropicTransport, metrics = new AgentMetr
     resolve: async () => ({ apiKey: CANARY, fingerprint: 'fp', credentialVersionId: 'cv', connectionId: 'conn', timeoutMs: 60_000, maximumRetries: 2 }),
   };
   const prisma = { modelConfiguration: { findFirst: async () => ({ parameters: { maximumOutputTokens: 512, temperature: 0.2 } }) } };
-  return new AnthropicModelProvider(transport, credentials as never, prisma as never, metrics);
+  // Gate não produtivo: chamadas externas DESLIGADAS nos testes unitários (caminho offline).
+  const gate = { externalCallsEnabled: () => false } as never;
+  return new AnthropicModelProvider(transport, credentials as never, prisma as never, metrics, gate);
 }
 
 function req(over: Partial<ModelGenerationRequest> = {}): ModelGenerationRequest {

@@ -11,6 +11,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ANTHROPIC_MODEL_CATALOG } from '@arden/contracts';
+import type { OperationStep } from '@arden/contracts';
 
 // Gate de runtime ON antes do boot (composição de TESTE — nunca produção).
 process.env.ANTHROPIC_PROVIDER_RUNTIME_ENABLED = 'true';
@@ -76,8 +77,8 @@ async function setupAnthropicAgent(orgId: string, auth: string, connectionId: st
   return agentKey;
 }
 
-function agentStep(agentKey: string) {
-  return { id: 's1', order: 0, name: 'Etapa de agente', description: '', authorityLevel: 'execute_under_rule' as const, requiresApproval: false, workUnitCost: 0, producesEvidence: true, agent: { agentKey, actionKey: 'agent.execute' } };
+function agentStep(agentKey: string): OperationStep {
+  return { id: 's1', order: 0, name: 'Etapa de agente', description: '', authorityLevel: 'execute_under_rule', requiresApproval: false, workUnitCost: 0, producesEvidence: true, agent: { agentKey, actionKey: 'agent.execute' } };
 }
 function level3() {
   return { level: 3 as const, allowedActions: [{ key: 'communication.send', semanticLevel: 'execute_under_rule' as const, destructive: false }], approvalRequired: false, approvalPolicyId: null, financialLimit: null, destructiveActionsAllowed: false, justificationRequired: false };

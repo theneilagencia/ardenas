@@ -33,6 +33,12 @@ export interface ModelGenerationContext {
   correlationId: string;
   /** Teto de duração efetivo da etapa (ms); 0 = sem teto de etapa. */
   deadlineMs?: number;
+  /**
+   * Marca uma chamada de SMOKE TEST controlado (ARDEN-BE-008.4). Só o comando de smoke
+   * define isto; ESTABELECE a verificação da credencial e, por isso, não exige smoke prévio
+   * (mas ainda exige ambiente não produtivo + organização allowlisted + confirmação).
+   */
+  smokeTest?: boolean;
 }
 
 /** Provider de modelo — infraestrutura substituível. */
