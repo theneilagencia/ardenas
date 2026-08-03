@@ -83,3 +83,10 @@ Prosseguir o ARDEN-BE-008 com **Anthropic Claude via API direta**, reutilizando 
 conexões do BE-006 e a interface `ModelProvider` existente. Bedrock/OpenAI/Vertex ficam como
 providers adicionais de fases posteriores, habilitáveis pela mesma abstração. Ver o plano em
 `../implementation/ARDEN_BE_008_IMPLEMENTATION_PLAN.md`.
+
+> **Atualização 008.1** — a recomendação acima foi convertida em decisão técnica verificável
+> (`ANTHROPIC_PROVIDER_DECISION_VERIFIED.md`, status **CONDITIONALLY_CONFIRMED**), com os fatos de
+> SDK/transporte/erros/modelos lidos de fonte oficial (`ANTHROPIC_OFFICIAL_SOURCE_REGISTER.md`).
+> Preços e governança de dados continuam PENDING_DIRECT/UNVERIFIED — a confirmar por leitura
+> direta antes de 008.2. O provider foi materializado apenas como **contrato** (`CONTRACT_ONLY` /
+> `DISABLED`), sem SDK, sem chamada real e sem execução.
