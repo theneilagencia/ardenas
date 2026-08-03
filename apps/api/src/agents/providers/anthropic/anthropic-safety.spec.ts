@@ -18,7 +18,11 @@ const REPO_ROOT = resolve(HERE, '../../../../../..');
 const CANARY = 'ARDEN_BE008_ANTHROPIC_CONTRACT_SECRET_CANARY';
 const CONTRACTS_DIR = resolve(REPO_ROOT, 'src/contracts/model-providers/anthropic');
 
-const FORBIDDEN_SDKS = ['@anthropic-ai/sdk', 'anthropic', 'openai', '@aws-sdk/client-bedrock-runtime', '@google-cloud/vertexai', 'langchain', 'llamaindex'];
+// ARDEN-BE-008.3: o SDK oficial passa a ser PERMITIDO, mas APENAS na versão fixada
+// exata 0.115.0 (verificada no 008.1). Qualquer outra versão/SDK comercial → falha.
+const ANTHROPIC_SDK = '@anthropic-ai/sdk';
+const ANTHROPIC_SDK_PINNED = '0.115.0';
+const FORBIDDEN_SDKS = ['anthropic', 'openai', '@aws-sdk/client-bedrock-runtime', '@google-cloud/vertexai', 'langchain', 'llamaindex'];
 const PKG_FILES = ['package.json', 'apps/api/package.json', 'src/contracts/package.json'];
 
 /** Lê apenas os fontes de PRODUÇÃO (.ts, exclui specs de teste). */
@@ -28,8 +32,8 @@ function readDirTs(dir: string): string[] {
     .map((f) => readFileSync(resolve(dir, f), 'utf8'));
 }
 
-describe('Anthropic — guard de dependências (nenhum SDK comercial instalado)', () => {
-  it('nenhum package.json declara SDK comercial', () => {
+describe('Anthropic — guard de dependências (só o SDK oficial fixado é permitido)', () => {
+  it('nenhum package.json declara outro SDK comercial', () => {
     for (const rel of PKG_FILES) {
       const p = resolve(REPO_ROOT, rel);
       if (!existsSync(p)) continue;
@@ -38,6 +42,19 @@ describe('Anthropic — guard de dependências (nenhum SDK comercial instalado)'
       for (const sdk of FORBIDDEN_SDKS) expect(deps[sdk], `${rel} não deve declarar ${sdk}`).toBeUndefined();
       // 'ai' (Vercel AI SDK) proibido como dependência exata.
       expect(deps['ai']).toBeUndefined();
+    }
+  });
+  it('apenas apps/api declara o SDK oficial, fixado na versão exata 0.115.0', () => {
+    const api = JSON.parse(readFileSync(resolve(REPO_ROOT, 'apps/api/package.json'), 'utf8'));
+    const apiDeps = { ...(api.dependencies ?? {}), ...(api.devDependencies ?? {}) };
+    expect(apiDeps[ANTHROPIC_SDK]).toBe(ANTHROPIC_SDK_PINNED); // sem ^, ~, *, latest.
+    // Os pacotes raiz e de contratos NÃO declaram o SDK (isolamento).
+    for (const rel of ['package.json', 'src/contracts/package.json']) {
+      const p = resolve(REPO_ROOT, rel);
+      if (!existsSync(p)) continue;
+      const pkg = JSON.parse(readFileSync(p, 'utf8'));
+      const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+      expect(deps[ANTHROPIC_SDK], `${rel} não deve declarar o SDK`).toBeUndefined();
     }
   });
 });

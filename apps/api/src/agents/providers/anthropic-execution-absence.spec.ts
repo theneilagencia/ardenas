@@ -17,15 +17,32 @@ import {
 
 const API_SRC = resolve(__dirname, '../../..', 'src');
 const REPO_ROOT = resolve(__dirname, '../../../../..');
-const FORBIDDEN_SDKS = ['@anthropic-ai/sdk', 'openai', '@aws-sdk/client-bedrock-runtime', '@google-cloud/vertexai', 'langchain'];
+// ARDEN-BE-008.3: o SDK oficial é permitido, mas SOMENTE dentro da borda de transporte.
+const SDK_BOUNDARY = resolve(__dirname, 'anthropic', 'sdk');
+const FORBIDDEN_SDKS = ['openai', '@aws-sdk/client-bedrock-runtime', '@google-cloud/vertexai', 'langchain'];
 
-/** Varre recursivamente os fontes de PRODUÇÃO (.ts, exclui specs). */
+/** Varre recursivamente os fontes de PRODUÇÃO (.ts, exclui specs), pulando a borda do SDK. */
 function readProductionTs(dir: string): string[] {
   const out: string[] = [];
   for (const name of readdirSync(dir)) {
     const full = resolve(dir, name);
+    if (full === SDK_BOUNDARY) continue; // a borda do SDK é a ÚNICA que pode importar o SDK.
     if (statSync(full).isDirectory()) {
       out.push(...readProductionTs(full));
+    } else if (name.endsWith('.ts') && !name.endsWith('.spec.ts') && !name.endsWith('.test.ts')) {
+      out.push(readFileSync(full, 'utf8'));
+    }
+  }
+  return out;
+}
+
+/** Varre TODOS os fontes de produção, INCLUINDO a borda do SDK. */
+function readAllProductionTs(dir: string): string[] {
+  const out: string[] = [];
+  for (const name of readdirSync(dir)) {
+    const full = resolve(dir, name);
+    if (statSync(full).isDirectory()) {
+      out.push(...readAllProductionTs(full));
     } else if (name.endsWith('.ts') && !name.endsWith('.spec.ts') && !name.endsWith('.test.ts')) {
       out.push(readFileSync(full, 'utf8'));
     }
@@ -45,23 +62,21 @@ describe('Anthropic — ausência de dependência de SDK', () => {
   });
 });
 
-describe('Anthropic — ausência de execução real nos fontes da API', () => {
-  const sources = readProductionTs(API_SRC).join('\n');
-  it('nenhum fonte importa o SDK Anthropic nem chama messages.create', () => {
-    expect(/@anthropic-ai\/sdk/.test(sources)).toBe(false);
-    expect(/messages\.create\s*\(/.test(sources)).toBe(false);
+describe('Anthropic — SDK e chamada real confinados à borda de transporte', () => {
+  const outsideBoundary = readProductionTs(API_SRC).join('\n');
+  it('FORA da borda sdk/: nenhum import do SDK nem messages.create', () => {
+    expect(/@anthropic-ai\/sdk/.test(outsideBoundary)).toBe(false);
+    expect(/messages\.create\s*\(/.test(outsideBoundary)).toBe(false);
   });
-  it('nenhum fonte faz fetch/axios para o domínio Anthropic', () => {
-    expect(/https?:\/\/api\.anthropic\.com/.test(sources)).toBe(false);
-    expect(/fetch\s*\(\s*[`'"]https?:\/\/api\.anthropic/.test(sources)).toBe(false);
-  });
-  it('não existe classe AnthropicModelProvider executável', () => {
-    expect(/class\s+AnthropicModelProvider\b/.test(sources)).toBe(false);
+  it('nenhum fonte (nem a borda) faz fetch/axios manual para o domínio Anthropic', () => {
+    const all = readAllProductionTs(API_SRC).join('\n');
+    expect(/fetch\s*\(\s*[`'"]https?:\/\/api\.anthropic/.test(all)).toBe(false);
+    expect(/from ['"]axios['"]/.test(all)).toBe(false);
   });
 });
 
-describe('Anthropic — provider/modelos não executáveis', () => {
-  it('provider anthropic.direct permanece DISABLED / productionAllowed=false', () => {
+describe('Anthropic — provider/modelos persistidos não executáveis (catálogo)', () => {
+  it('provider anthropic.direct permanece DISABLED / productionAllowed=false no catálogo canônico', () => {
     const p = MODEL_PROVIDER_DEFINITIONS.find((m) => m.key === ANTHROPIC_PROVIDER_KEY);
     expect(p?.status).toBe('DISABLED');
     expect(p?.productionAllowed).toBe(false);
