@@ -24,7 +24,6 @@ async function main(): Promise<void> {
   const operator = arg('operator') ?? process.env.USER ?? 'unknown';
 
   if (!organizationId || !connectionId || !modelConfigurationId) {
-    // eslint-disable-next-line no-console
     console.error('Uso: ARDEN_CLI=anthropic-smoke ... --organizationId=<> --connectionId=<> --modelConfigurationId=<> --confirm-live-anthropic-call');
     process.exit(2);
   }
@@ -34,7 +33,6 @@ async function main(): Promise<void> {
     const service = app.get(AnthropicSmokeTestService);
     const result = await service.run({ organizationId, connectionId, modelConfigurationId, confirmed, operator });
     // Resultado SANITIZADO (sem chave/prompt/raw).
-    // eslint-disable-next-line no-console
     console.log(JSON.stringify(result, null, 2));
     process.exit(result.status === 'PASSED' ? 0 : 1);
   } finally {
@@ -44,7 +42,6 @@ async function main(): Promise<void> {
 
 if (process.env.ARDEN_CLI === 'anthropic-smoke') {
   main().catch((err) => {
-    // eslint-disable-next-line no-console
     console.error('Falha no smoke test:', err instanceof Error ? err.message : err);
     process.exit(1);
   });
