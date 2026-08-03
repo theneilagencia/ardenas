@@ -77,3 +77,13 @@ Anthropic** e a governança de dados permanece **UNVERIFIED** — nenhum item do
 O provider persistido segue `DISABLED` e a produção continua bloqueada. A verificação oficial
 manual de retenção/treinamento/residency e o smoke test real controlado ficam para o 008.4. Ver
 `ANTHROPIC_RUNTIME_FEATURE_GATES.md` e `../implementation/ARDEN_BE_008_ANTHROPIC_RUNTIME_REPORT.md`.
+
+## 7. Atualização 008.4 — gate 008.4A: ainda UNVERIFIED, sem chamada real
+
+O gate 008.4A (verificação oficial manual/por documentos, 2026-08-03) resultou em **B
+(insuficiente)**: **0 documentos oficiais recebidos** e páginas oficiais **403 reconfirmado**.
+`DATA_GOVERNANCE_STATUS = UNVERIFIED` — **nenhum item do §3 mudou de status**. A chamada real do
+smoke test (008.4C) **não foi executada** (sem credencial/documentos oficiais), então **nenhuma
+requisição foi enviada à Anthropic**. A infraestrutura de smoke real está pronta e provada
+offline, mas o provider persistido segue `DISABLED` e a produção continua bloqueada. Ver
+`ANTHROPIC_LIVE_SMOKE_TEST.md` e `../implementation/ARDEN_BE_008_NON_PROD_ENABLEMENT_REPORT.md`.

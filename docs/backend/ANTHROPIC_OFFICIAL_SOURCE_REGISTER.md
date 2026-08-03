@@ -92,6 +92,16 @@ Tentativas legítimas adicionais às páginas oficiais de preço e governança, 
 **PRICING_STATUS = UNVERIFIED**, **DATA_GOVERNANCE_STATUS = UNVERIFIED** (bloqueante). Nenhum
 preço/retenção promovido; rate cards permanecem vazios; provider permanece `DISABLED`.
 
+## Re-gate 008.4A (2026-08-03) — verificação oficial manual/por documentos
+
+Gate de documentos oficiais para autorizar o smoke test real: **0 documentos oficiais
+recebidos** do responsável técnico; acesso automatizado às páginas oficiais de preço/governança
+**403 (Cloudflare) reconfirmado em 2026-08-03**. Resultado: **B (insuficiente)** —
+**PRICING_STATUS = UNVERIFIED**, **DATA_GOVERNANCE_STATUS = UNVERIFIED**
+(Retention/Training/ZDR/Residency/DPA/Sub-processors/Abuse/Deletion/Enterprise, todos UNVERIFIED).
+Nenhum rate card criado; custo permanece `null`; provider permanece `DISABLED`. A chamada real do
+smoke (008.4C) **não foi executada**. Ver `../implementation/ARDEN_BE_008_LIVE_SMOKE_REPORT.md`.
+
 ## Fontes NÃO usadas como decisão
 
 Blogs, agregadores, Stack Overflow, Reddit, tutoriais, posts de terceiros, snippets não

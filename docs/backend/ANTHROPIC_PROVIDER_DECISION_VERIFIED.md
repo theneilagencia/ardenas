@@ -88,6 +88,19 @@ real gated na rede, testes offline com transporte fake). O provider persistido p
 UNVERIFIED. Ver `ANTHROPIC_RUNTIME_FEATURE_GATES.md` e
 `../implementation/ARDEN_BE_008_ANTHROPIC_RUNTIME_REPORT.md`.
 
+## 4d. Estado após 008.4 (smoke test real + habilitação restrita)
+
+O 008.4 entregou a **infraestrutura de smoke test real controlado** e a **habilitação restrita
+não produtiva** (gate + quotas + circuit breaker + binding do smoke à versão de credencial), mas a
+**chamada real NÃO foi executada** (008.4C): sem credencial oficial de teste, sem documentos
+oficiais (gate 008.4A = **Resultado B**: `PRICING_STATUS=UNVERIFIED`,
+`DATA_GOVERNANCE_STATUS=UNVERIFIED`; 0 documentos; 403 reconfirmado 2026-08-03). O caminho real
+está provado **offline** (fake transport). Provider persistido permanece **`DISABLED`** /
+`productionAllowed=false`; produção continua bloqueada (agora em 4 pontos). A decisão segue
+**CONDITIONALLY_CONFIRMED** — nenhuma chamada externa ocorreu, pricing/governança seguem
+UNVERIFIED. Ver `ANTHROPIC_NON_PROD_ENABLEMENT.md`, `ANTHROPIC_LIVE_SMOKE_TEST.md` e
+`../implementation/ARDEN_BE_008_NON_PROD_ENABLEMENT_REPORT.md`.
+
 ## 5. Consequência para 008.2 (gate)
 
 Antes de habilitar execução (008.2+): (a) ler diretamente a página oficial de pricing e

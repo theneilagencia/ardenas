@@ -55,3 +55,13 @@ ou `null`. Card ausente → custo `null` + `COST_RATE_CARD_NOT_AVAILABLE`. **Nun
 custo conhecido igual a zero; ausência de preço verificado é `null`. Como não há preço nesta
 fase, todo modelo Anthropic resolve para `null` (catálogo incompleto sinalizado, execução
 não bloqueada — mas o provider já está `DISABLED`).
+
+## 5. Atualização 008.4 — ainda vazio (pricing UNVERIFIED)
+
+O gate 008.4A (2026-08-03) reconfirmou **PRICING_STATUS = UNVERIFIED** (0 documentos oficiais
+recebidos; páginas de pricing **403 reconfirmado**). **Nenhum rate card foi criado**; o catálogo
+de rate cards Anthropic permanece **VAZIO**. Mesmo no smoke test real (não executado), o custo
+seria `estimatedCostMinor=null` / `currency=null` com usage real, sinalizado por
+`COST_RATE_CARD_NOT_AVAILABLE` — nunca um valor monetário estimado. Ver
+`ANTHROPIC_NON_PROD_QUOTAS.md` (contenção por tokens/chamadas, sem moeda) e
+`ANTHROPIC_LIVE_TEST_EVIDENCE_MODEL.md`.

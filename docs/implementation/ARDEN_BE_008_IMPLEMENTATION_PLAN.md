@@ -119,3 +119,31 @@ Detalhe em `ARDEN_BE_008_ANTHROPIC_RUNTIME_REPORT.md` + evidência em
 **Próximo: 008.4** — verificação oficial **manual** de pricing e governança de dados +
 **smoke test real controlado** (credencial real, custo controlado, fora do PR público, sem dados
 reais de cliente) + habilitação restrita; só então rate cards comerciais e ativação em produção.
+
+## Atualização 008.4
+
+Quatro gates sequenciais (detalhe em `ARDEN_BE_008_LIVE_SMOKE_REPORT.md`):
+
+- **008.4A (verificação oficial manual/por documentos)** — **Resultado B (insuficiente)**: 0
+  documentos oficiais recebidos, páginas oficiais 403 reconfirmado (2026-08-03) →
+  `PRICING_STATUS=UNVERIFIED`, `DATA_GOVERNANCE_STATUS=UNVERIFIED`. Nenhum rate card criado.
+- **008.4B (infraestrutura de smoke test)** — **PASS**: CLI admin `npm run smoke:anthropic`
+  (fora das suítes normais/CI), guardada por múltiplos flags + confirmação explícita; credencial
+  só do cofre; payload sintético fixo; caminho real sem bypass; resultado sanitizado. Provado
+  offline (fake transport).
+- **008.4C (smoke test real)** — **NOT EXECUTED**: sem credencial oficial de teste, sem
+  documentos oficiais, sem confirmação de operador. Nenhuma chamada real. Caminho fica para o
+  operador com credencial legítima.
+- **008.4D (habilitação restrita não produtiva)** — **PASS**: `AnthropicNonProdGate` (não
+  produção via `NODE_ENV` ao vivo + org allowlist server-side + circuit breaker + quotas), binding
+  do smoke à versão de credencial, rotação invalida smoke. Provider persistido segue `DISABLED`;
+  **sem migração**, sem endpoint novo, OpenAPI diff-free; frontend não alterado. Produção
+  bloqueada em 4 pontos → `MODEL_PROVIDER_DISABLED`.
+
+Detalhe em `ARDEN_BE_008_NON_PROD_ENABLEMENT_REPORT.md` + evidência em
+`ARDEN_BE_008_LIVE_SMOKE_TEST_EVIDENCE.md`.
+
+**Próximo: 008.5** — tool calling real da Anthropic (Fatia 2): tradução de definições de tools e
+`tool_use`, integração com authority-gradient/aprovações/`ExternalToolExecutor` (BE-004/005/006).
+Produção continua **bloqueada**; rate cards comerciais e `productionAllowed=true` dependem de
+reabrir o gate 008.4A (pricing e governança hoje UNVERIFIED).
