@@ -1380,3 +1380,251 @@ model AgentRuntimeCheckpoint {
   @@index([approvalRequestId])
   @@map("agent_runtime_checkpoints")
 }
+
+// ── ARDEN-BE-007.6 — resultado operacional, usage, custo e governança ────────────
+
+enum AgentResultStatus {
+  SUCCEEDED
+  FAILED
+  SUSPENDED
+  REQUIRES_APPROVAL
+  UNKNOWN
+}
+
+enum AgentOutputValidationStatus {
+  VALID
+  INVALID
+  NOT_AVAILABLE
+}
+
+enum AgentEvaluationStatus {
+  PASSED
+  FAILED
+  PARTIAL
+  NOT_RUN
+}
+
+enum AgentGovernanceStatus {
+  WITHIN_LIMITS
+  LIMIT_WARNING
+  LIMIT_EXCEEDED
+  BLOCKED
+}
+
+enum AgentModelCallPurpose {
+  PRIMARY
+  OUTPUT_REPAIR
+  TOOL_CONTINUATION
+  EVALUATION
+}
+
+enum ModelRateCardStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum AgentUsageRollupDimension {
+  ORGANIZATION
+  OPERATION
+  OPERATION_VERSION
+  AGENT_DEFINITION
+  AGENT_VERSION
+  MODEL_CONFIGURATION
+  PROVIDER
+  MODEL
+}
+
+/// Resultado operacional CONSOLIDADO de uma execução de agente (uma linha por etapa
+/// `agent.execute`). Tenant-scoped. NUNCA guarda prompt/contexto/output completo/segredo —
+/// apenas status, contadores, tokens, custo estimado e hashes. Atualizável para
+/// PAUSED/RESUMED; o desfecho terminal não é duplicado (unique por etapa).
+model AgentExecutionResult {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  organizationId         String                      @map("organization_id") @db.Uuid
+  executionRunId         String                      @map("execution_run_id") @db.Uuid
+  executionStepId        String                      @unique @map("execution_step_id") @db.Uuid
+  operationId            String                      @map("operation_id") @db.Uuid
+  operationVersionId     String                      @map("operation_version_id") @db.Uuid
+  agentDefinitionId      String                      @map("agent_definition_id") @db.Uuid
+  agentVersionId         String                      @map("agent_version_id") @db.Uuid
+
+  status                 AgentResultStatus
+  outputValidationStatus AgentOutputValidationStatus @default(NOT_AVAILABLE) @map("output_validation_status")
+  evaluationStatus       AgentEvaluationStatus       @default(NOT_RUN) @map("evaluation_status")
+  governanceStatus       AgentGovernanceStatus       @default(WITHIN_LIMITS) @map("governance_status")
+
+  outputHash             String?                     @map("output_hash")
+  contextHash            String?                     @map("context_hash")
+
+  modelCallCount         Int                         @default(0) @map("model_call_count")
+  toolCallCount          Int                         @default(0) @map("tool_call_count")
+  turnCount              Int                         @default(0) @map("turn_count")
+  repairAttemptCount     Int                         @default(0) @map("repair_attempt_count")
+  approvalCount          Int                         @default(0) @map("approval_count")
+  securitySignalCount    Int                         @default(0) @map("security_signal_count")
+
+  inputTokens            Int                         @default(0) @map("input_tokens")
+  outputTokens           Int                         @default(0) @map("output_tokens")
+  cachedInputTokens      Int                         @default(0) @map("cached_input_tokens")
+  cachedOutputTokens     Int                         @default(0) @map("cached_output_tokens")
+
+  estimatedCostMinor     BigInt?                     @map("estimated_cost_minor")
+  currency               String?
+  rateCardId             String?                     @map("rate_card_id") @db.Uuid
+
+  providerKey            String                      @map("provider_key")
+  modelId                String                      @map("model_id")
+
+  evaluationSummary      Json                        @default("{}") @map("evaluation_summary")
+  governanceSummary      Json                        @default("{}") @map("governance_summary")
+  evidenceReferenceIds   Json                        @default("[]") @map("evidence_reference_ids")
+
+  startedAt              DateTime?                   @map("started_at") @db.Timestamptz(6)
+  completedAt            DateTime?                   @map("completed_at") @db.Timestamptz(6)
+  durationMs             Int                         @default(0) @map("duration_ms")
+  revision               Int                         @default(1)
+  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, agentDefinitionId, createdAt])
+  @@index([organizationId, operationId, createdAt])
+  @@index([executionRunId])
+  @@map("agent_execution_results")
+}
+
+/// Uma linha por chamada ao provider de modelo. Sem prompt/contexto/segredo — só tokens,
+/// hashes e custo estimado. Idempotente por (etapa, índice da chamada).
+model AgentModelCallUsage {
+  id                   String                @id @default(uuid()) @db.Uuid
+  organizationId       String                @map("organization_id") @db.Uuid
+  executionRunId       String                @map("execution_run_id") @db.Uuid
+  executionStepId      String                @map("execution_step_id") @db.Uuid
+  agentDefinitionId    String                @map("agent_definition_id") @db.Uuid
+  agentVersionId       String                @map("agent_version_id") @db.Uuid
+  modelConfigurationId String                @map("model_configuration_id") @db.Uuid
+
+  providerKey          String                @map("provider_key")
+  providerVersion      String                @map("provider_version")
+  modelId              String                @map("model_id")
+
+  callIndex            Int                   @map("call_index")
+  purpose              AgentModelCallPurpose @default(PRIMARY)
+  status               String
+  finishReason         String?               @map("finish_reason")
+
+  inputTokens          Int                   @default(0) @map("input_tokens")
+  outputTokens         Int                   @default(0) @map("output_tokens")
+  cachedInputTokens    Int                   @default(0) @map("cached_input_tokens")
+  cachedOutputTokens   Int                   @default(0) @map("cached_output_tokens")
+
+  estimatedCostMinor   BigInt?               @map("estimated_cost_minor")
+  currency             String?
+  rateCardId           String?               @map("rate_card_id") @db.Uuid
+
+  requestHash          String?               @map("request_hash")
+  responseHash         String?               @map("response_hash")
+
+  durationMs           Int                   @default(0) @map("duration_ms")
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([executionStepId, callIndex], name: "uniq_model_call_per_step")
+  @@index([organizationId, createdAt])
+  @@index([executionRunId])
+  @@map("agent_model_call_usage")
+}
+
+/// Metadados SANITIZADOS de cada tool call (sem input/output/credential/URL/headers).
+/// Idempotente por (etapa, toolCallId).
+model AgentToolCallUsage {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  executionRunId    String   @map("execution_run_id") @db.Uuid
+  executionStepId   String   @map("execution_step_id") @db.Uuid
+  agentDefinitionId String   @map("agent_definition_id") @db.Uuid
+  agentVersionId    String   @map("agent_version_id") @db.Uuid
+
+  toolCallId        String   @map("tool_call_id")
+  alias             String
+  actionKey         String   @map("action_key")
+  riskLevel         String   @map("risk_level")
+  decision          String
+  status            String
+
+  authorizationId   String?  @map("authorization_id") @db.Uuid
+  approvalRequestId String?  @map("approval_request_id") @db.Uuid
+
+  inputHash         String?  @map("input_hash")
+  outputHash        String?  @map("output_hash")
+
+  durationMs        Int      @default(0) @map("duration_ms")
+  retryCount        Int      @default(0) @map("retry_count")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt       DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@unique([executionStepId, toolCallId], name: "uniq_tool_call_per_step")
+  @@index([organizationId, createdAt])
+  @@index([executionRunId])
+  @@map("agent_tool_call_usage")
+}
+
+/// Agregação diária UTC por dimensão (upsert idempotente). Nunca mistura moedas num total.
+model AgentUsageRollup {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  organizationId        String                    @map("organization_id") @db.Uuid
+  dimensionType         AgentUsageRollupDimension @map("dimension_type")
+  dimensionId           String                    @map("dimension_id")
+  periodDate            DateTime                  @map("period_date") @db.Date
+  providerKey           String                    @map("provider_key")
+  modelId               String                    @map("model_id")
+  currency              String
+
+  executionCount        Int                       @default(0) @map("execution_count")
+  succeededCount        Int                       @default(0) @map("succeeded_count")
+  failedCount           Int                       @default(0) @map("failed_count")
+  suspendedCount        Int                       @default(0) @map("suspended_count")
+  unknownCount          Int                       @default(0) @map("unknown_count")
+  modelCallCount        Int                       @default(0) @map("model_call_count")
+  toolCallCount         Int                       @default(0) @map("tool_call_count")
+  inputTokens           BigInt                    @default(0) @map("input_tokens")
+  outputTokens          BigInt                    @default(0) @map("output_tokens")
+  estimatedCostMinor    BigInt                    @default(0) @map("estimated_cost_minor")
+  durationMs            BigInt                    @default(0) @map("duration_ms")
+  approvalCount         Int                       @default(0) @map("approval_count")
+  criticalSignalCount   Int                       @default(0) @map("critical_signal_count")
+
+  revision              Int                       @default(1)
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, dimensionType, dimensionId, periodDate, providerKey, modelId, currency], name: "uniq_rollup_bucket")
+  @@index([organizationId, dimensionType, periodDate])
+  @@map("agent_usage_rollups")
+}
+
+/// Catálogo SYSTEM-MANAGED de preços ESTIMADOS (não comercial, sem internet). Custos em
+/// unidade menor por milhão de tokens. `internal.test-model` = tudo 0 USD. Versionado.
+model ModelRateCard {
+  id                                 String              @id @default(uuid()) @db.Uuid
+  providerKey                        String              @map("provider_key")
+  providerVersion                    String              @map("provider_version")
+  modelId                            String              @map("model_id")
+  currency                           String
+
+  inputCostPerMillionTokensMinor        BigInt           @default(0) @map("input_cost_per_million_tokens_minor")
+  outputCostPerMillionTokensMinor       BigInt           @default(0) @map("output_cost_per_million_tokens_minor")
+  cachedInputCostPerMillionTokensMinor  BigInt           @default(0) @map("cached_input_cost_per_million_tokens_minor")
+  cachedOutputCostPerMillionTokensMinor BigInt           @default(0) @map("cached_output_cost_per_million_tokens_minor")
+
+  effectiveFrom                      DateTime            @default(now()) @map("effective_from") @db.Timestamptz(6)
+  effectiveUntil                     DateTime?           @map("effective_until") @db.Timestamptz(6)
+  status                             ModelRateCardStatus @default(ACTIVE)
+  source                             String              @default("INTERNAL")
+  catalogHash                        String              @map("catalog_hash")
+  createdAt                          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                          DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([providerKey, providerVersion, modelId, status], name: "uniq_active_rate_card")
+  @@index([providerKey, modelId, status])
+  @@map("model_rate_cards")
+}
