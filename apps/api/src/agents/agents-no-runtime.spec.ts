@@ -20,7 +20,10 @@ function walk(dir: string): string[] {
   return out;
 }
 
-const files = walk(ROOT).filter((f) => !f.endsWith('.spec.ts'));
+// A borda do SDK (ARDEN-BE-008.3) é o ÚNICO lugar autorizado a importar o SDK comercial;
+// é coberta por seu próprio teste arquitetural (anthropic-sdk-boundary.spec.ts). Excluída aqui.
+const SDK_BOUNDARY = join('providers', 'anthropic', 'sdk');
+const files = walk(ROOT).filter((f) => !f.endsWith('.spec.ts') && !f.includes(SDK_BOUNDARY));
 
 /** Remove comentários (linha e bloco) para não casar com prosa explicativa. */
 function stripComments(src: string): string {
