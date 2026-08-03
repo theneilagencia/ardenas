@@ -14,7 +14,7 @@ import { PrismaService } from '../database/prisma.service';
 import { ExecutionsRepository } from './executions.repository';
 import { ExecutionRecorder } from './execution.recorder';
 import { ExecutionQueue, type AcquiredJob } from './execution.queue';
-import { StepExecutionError, type StepExecutionContext } from './executors';
+import { StepExecutionError, StepSuspendedError, type StepExecutionContext } from './executors';
 import { StepExecutorRegistry } from './step-executor-registry';
 import { canTransition, isTerminal } from './execution.state-machine';
 import { backoffDelayMs, DEFAULT_RETRY } from './retry-policy';
@@ -70,6 +70,10 @@ export class ExecutionProcessor {
         return;
       }
 
+      // Retomada de suspensão (ARDEN-BE-007.5): etapas PAUSED voltam a PENDING para
+      // reprocessar (o loop do agente refaz o caminho determinístico com a autorização já ativa).
+      await this.prisma.executionStep.updateMany({ where: { executionRunId: run.id, status: 'PAUSED' }, data: { status: 'PENDING', revision: { increment: 1 } } });
+
       const steps = await this.repo.stepsForRun(run.id);
       const next = steps.find((s) => s.status === 'PENDING' || s.status === 'READY' || (s.status === 'RETRY_WAIT' && (!s.nextAttemptAt || s.nextAttemptAt <= new Date())));
 
@@ -99,13 +103,21 @@ export class ExecutionProcessor {
         await this.failAndCompensate(run, corr, job.id);
         return;
       }
+      if (outcome === 'SUSPENDED') {
+        // Suspensão cooperativa (aprovação de tool): pausa a execução e libera o job.
+        run = (await this.repo.findRunById(run.id))!;
+        run = await this.transition(run, 'PAUSE_REQUESTED', 'WORKER', corr);
+        await this.transition(run, 'PAUSED', 'WORKER', corr, { pausedAt: new Date() });
+        await this.prisma.$transaction((tx) => this.queue.complete(tx, job.id));
+        return;
+      }
       // SUCCEEDED ou RETRY_SCHEDULED → continua o loop; o desfecho é reavaliado no
       // topo (RETRY_SCHEDULED cai no ramo de reagendamento acima).
     }
   }
 
   /** Processa UMA etapa numa transação. Retorna o desfecho. */
-  private async processStep(run: DbRun, step: DbStep, workerId: string, corr: string): Promise<'SUCCEEDED' | 'RETRY_SCHEDULED' | 'FAILED'> {
+  private async processStep(run: DbRun, step: DbStep, workerId: string, corr: string): Promise<'SUCCEEDED' | 'RETRY_SCHEDULED' | 'FAILED' | 'SUSPENDED'> {
     const attemptNumber = step.attemptCount + 1;
     const now = new Date();
 
@@ -135,6 +147,15 @@ export class ExecutionProcessor {
       });
       return 'SUCCEEDED';
     } catch (err) {
+      // Suspensão cooperativa (aprovação de tool) — NÃO é falha: pausa a etapa.
+      if (err instanceof StepSuspendedError) {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.executionStep.updateMany({ where: { id: step.id }, data: { status: 'PAUSED', revision: { increment: 1 } } });
+          await this.recorder.recordEvidence(tx, { organizationId: run.organizationId, executionRunId: run.id, executionStepId: step.id, evidenceType: 'DECISION', content: { ...err.evidence, suspended: true, code: err.code }, createdByType: 'WORKER', correlationId: corr });
+          await this.recorder.recordEvent(tx, { organizationId: run.organizationId, executionRunId: run.id, executionStepId: step.id, eventType: 'execution_step.suspended', actorType: 'WORKER', correlationId: corr, payload: { attempt: attemptNumber, code: err.code } });
+        });
+        return 'SUSPENDED';
+      }
       const code = err instanceof StepExecutionError ? err.code : 'STEP_FAILED';
       const retryable = err instanceof StepExecutionError ? err.retryable : false;
       const summary = err instanceof Error ? err.message : 'Erro de execução da etapa.';

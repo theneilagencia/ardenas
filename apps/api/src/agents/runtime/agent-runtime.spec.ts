@@ -26,6 +26,12 @@ import { AgentContextTrustClassifier } from './context/agent-context-trust-class
 import { PromptInjectionGuard } from './context/prompt-injection-guard';
 import { AgentContextBudgetAllocator } from './context/agent-context-budget-allocator';
 import type { AgentContextSourceResolver } from './context/agent-context-source-resolver';
+import type { AgentToolBindingResolver } from './tools/agent-tool-binding-resolver';
+import type { AgentToolCallValidator } from './tools/agent-tool-call-validator';
+import type { AgentToolAuthorityEvaluator } from './tools/agent-tool-authority-evaluator';
+import type { AgentToolExecutor } from './tools/agent-tool-executor';
+import type { AgentToolApprovalService } from './tools/agent-tool-approval.service';
+import type { AgentRuntimeCheckpointRepository } from './tools/agent-runtime-checkpoint.repository';
 import { AgentOutputValidatorV1 } from './agent-output-validator';
 import { AgentEvaluatorV1 } from './agent-evaluator';
 import type { ResolvedAgentRuntime, AgentRuntimeExecutionInput } from './agent-runtime.types';
@@ -73,18 +79,26 @@ function resolved(modelId: string, over: Partial<ResolvedAgentRuntime> = {}): Re
 
 function makeRuntime(res: ResolvedAgentRuntime): AgentRuntimeService {
   const fakeResolver = { resolveForExecution: async () => res } as unknown as AgentRuntimeResolverService;
+  const empty = {} as unknown;
   return new AgentRuntimeService(
     fakeResolver,
     new InMemoryModelProviderRegistry(new InternalTestModelProvider()),
     makeAssembler(),
     new AgentOutputValidatorV1(),
     new AgentEvaluatorV1(),
+    // Colaboradores de tool calling — não exercitados nos cenários sem tools deste spec.
+    empty as AgentToolBindingResolver,
+    empty as AgentToolCallValidator,
+    empty as AgentToolAuthorityEvaluator,
+    empty as AgentToolExecutor,
+    empty as AgentToolApprovalService,
+    empty as AgentRuntimeCheckpointRepository,
   );
 }
 
 const INPUT: AgentRuntimeExecutionInput = {
   organizationId: 'o1', operationId: 'op1', operationVersionId: 'ov1', executionRunId: 'r1', executionStepId: 's1',
-  agentDefinitionId: 'a1', agentVersionId: 'v1', input: { lead: 'Acme' }, correlationId: 'corr', attemptNumber: 1, timeoutMs: 0,
+  agentDefinitionId: 'a1', agentVersionId: 'v1', input: { lead: 'Acme' }, correlationId: 'corr', attemptNumber: 1, requestedByUserId: 'u1', timeoutMs: 0,
 };
 
 describe('AgentRuntime — sucesso e usage', () => {
@@ -158,11 +172,6 @@ describe('AgentRuntime — validações de entrada e limites', () => {
   it('input inválido contra inputSchema → AGENT_INPUT_INVALID', async () => {
     const out = await makeRuntime(resolved('test/structured-success')).execute({ ...INPUT, input: { notLead: 1 } });
     expect(out.result.errorCode).toBe('AGENT_INPUT_INVALID');
-  });
-
-  it('tool calling habilitado → rejeitado (não suportado nesta fase)', async () => {
-    const res = resolved('test/structured-success', { executionPolicy: agentExecutionPolicy.parse({ ...AGENT_EXECUTION_POLICY_SLICE_DEFAULT, toolCallingAllowed: true, maximumToolCalls: 2 }) });
-    expect((await makeRuntime(res).execute(INPUT)).result.errorCode).toBe('AGENT_TOOL_NOT_ALLOWED');
   });
 
   it('contexto acima de maximumInputTokens → AGENT_TOKEN_LIMIT_EXCEEDED', async () => {

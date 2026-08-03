@@ -9,6 +9,10 @@ import { Module } from '@nestjs/common';
 import { AuthzModule } from '../authz/authz.module';
 import { AuditModule } from '../audit/audit.module';
 import { IdempotencyModule } from '../modules/idempotency/idempotency.module';
+import { ConnectorsModule } from '../connectors/connectors.module';
+import { EnforcementModule } from '../enforcement/enforcement.module';
+import { ApprovalsModule } from '../approvals/approvals.module';
+import { ExecutionRecorder } from '../executions/execution.recorder';
 
 import { ModelProviderDefinitionsRepository } from './providers/model-providers.repository';
 import { ModelProvidersService } from './providers/model-providers.service';
@@ -45,8 +49,17 @@ import { PromptInjectionGuard } from './runtime/context/prompt-injection-guard';
 import { AgentContextBudgetAllocator } from './runtime/context/agent-context-budget-allocator';
 import { AgentContextAssemblerV2 } from './runtime/context/agent-context-assembler-v2';
 
+// Tool calling funcional (ARDEN-BE-007.5): reutiliza BE-006 (executor/binding) + BE-004
+// (autoridade/aprovação/ActionAuthorization). Sem provider comercial, sem internet.
+import { AgentToolBindingResolver } from './runtime/tools/agent-tool-binding-resolver';
+import { AgentToolCallValidator } from './runtime/tools/agent-tool-call-validator';
+import { AgentToolAuthorityEvaluator } from './runtime/tools/agent-tool-authority-evaluator';
+import { AgentToolExecutor } from './runtime/tools/agent-tool-executor';
+import { AgentToolApprovalService } from './runtime/tools/agent-tool-approval.service';
+import { AgentRuntimeCheckpointRepository } from './runtime/tools/agent-runtime-checkpoint.repository';
+
 @Module({
-  imports: [AuthzModule, AuditModule, IdempotencyModule],
+  imports: [AuthzModule, AuditModule, IdempotencyModule, ConnectorsModule, EnforcementModule, ApprovalsModule],
   controllers: [
     ModelProvidersController,
     ModelConfigurationsController,
@@ -77,6 +90,14 @@ import { AgentContextAssemblerV2 } from './runtime/context/agent-context-assembl
     AgentContextSourceResolverService,
     { provide: AGENT_CONTEXT_SOURCE_RESOLVER, useExisting: AgentContextSourceResolverService },
     AgentContextAssemblerV2,
+    // Tool calling funcional (007.5).
+    ExecutionRecorder,
+    AgentToolBindingResolver,
+    AgentToolCallValidator,
+    AgentToolAuthorityEvaluator,
+    AgentToolExecutor,
+    AgentToolApprovalService,
+    AgentRuntimeCheckpointRepository,
     AgentRuntimeService,
     { provide: AGENT_RUNTIME, useExisting: AgentRuntimeService },
   ],

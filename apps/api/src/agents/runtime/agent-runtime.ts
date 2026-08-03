@@ -21,6 +21,13 @@ import { AgentEvaluatorV1 } from './agent-evaluator';
 import { REPAIR_MARKER } from './internal-test-model.provider';
 import { ModelProviderInvocationError } from './model-provider.errors';
 import { ApiException } from '../../common/errors/api-error';
+import { AgentToolBindingResolver } from './tools/agent-tool-binding-resolver';
+import { AgentToolCallValidator } from './tools/agent-tool-call-validator';
+import { AgentToolAuthorityEvaluator } from './tools/agent-tool-authority-evaluator';
+import { AgentToolExecutor } from './tools/agent-tool-executor';
+import { AgentToolApprovalService } from './tools/agent-tool-approval.service';
+import { AgentRuntimeCheckpointRepository, type CompletedToolCallMap } from './tools/agent-runtime-checkpoint.repository';
+import type { ResolvedAgentToolDefinition, AgentToolCallHistoryEntry } from './tools/agent-tool.types';
 import type { AgentRuntime, AgentRuntimeExecutionInput, AgentRuntimeOutcome, AgentLifecycleEvent, ResolvedAgentRuntime } from './agent-runtime.types';
 
 function addUsage(a: AgentUsage, b: ModelGenerationResult['usage']): AgentUsage {
@@ -43,6 +50,12 @@ export class AgentRuntimeService implements AgentRuntime {
     private readonly assembler: AgentContextAssemblerV2,
     private readonly validator: AgentOutputValidatorV1,
     private readonly evaluator: AgentEvaluatorV1,
+    private readonly toolResolver: AgentToolBindingResolver,
+    private readonly toolValidator: AgentToolCallValidator,
+    private readonly toolAuthority: AgentToolAuthorityEvaluator,
+    private readonly toolExecutor: AgentToolExecutor,
+    private readonly toolApproval: AgentToolApprovalService,
+    private readonly checkpoints: AgentRuntimeCheckpointRepository,
   ) {}
 
   async execute(input: AgentRuntimeExecutionInput): Promise<AgentRuntimeOutcome> {
@@ -81,11 +94,6 @@ export class AgentRuntimeService implements AgentRuntime {
 
     let usage = zeroAgentUsage(resolved.providerKey, resolved.modelId);
     const base: RuntimeBase = { resolved, events, push, input };
-
-    // Tool calling não é suportado nesta fase (§11).
-    if (resolved.executionPolicy.toolCallingAllowed || resolved.executionPolicy.maximumToolCalls > 0) {
-      return this.fail(base, usage, 'FAILED', 'AGENT_TOOL_NOT_ALLOWED', 'Tool calling ainda não suportado (007.5).', false, [], null);
-    }
 
     // §7.19 + §16: valida input contra inputSchema.
     const inputViolations = validateAgainstSchema(input.input, resolved.inputSchema);
@@ -145,24 +153,36 @@ export class AgentRuntimeService implements AgentRuntime {
     const provider = this.registry.get(resolved.providerKey, resolved.providerVersion);
     const messages: ModelMessage[] = [...context.messages];
     const maxRepairs = resolved.executionPolicy.retryInvalidOutput ? resolved.executionPolicy.maximumOutputRepairAttempts : 0;
+    const toolCallingAllowed = resolved.executionPolicy.toolCallingAllowed;
 
+    // §7: ferramentas efetivamente disponíveis (interseção completa; superfície mínima).
+    let tools: ResolvedAgentToolDefinition[] = [];
+    if (toolCallingAllowed) {
+      tools = await this.toolResolver.resolveAllowedTools({
+        organizationId: input.organizationId, operationId: input.operationId, operationVersionId: input.operationVersionId,
+        correlationId: input.correlationId, allowedAliases: resolved.toolPolicy.allowedAliases,
+      });
+      push('agent.tool_definitions_resolved', { count: tools.length, aliases: tools.map((t) => t.alias) });
+      await this.checkpoints.ensure({ organizationId: input.organizationId, executionRunId: input.executionRunId, executionStepId: input.executionStepId, agentDefinitionId: resolved.agentDefinitionId, agentVersionId: resolved.agentVersionId });
+    }
+    const modelTools = tools.map((t) => ({ alias: t.alias, description: t.description, inputSchema: t.inputSchema, riskLevel: t.riskLevel }));
+    const cp = toolCallingAllowed ? await this.checkpoints.findByStep(input.organizationId, input.executionStepId) : null;
+    const completed: CompletedToolCallMap = ((cp?.completedToolCalls as CompletedToolCallMap | null) ?? {}) as CompletedToolCallMap;
+
+    const toolHistory: AgentToolCallHistoryEntry[] = [];
+    let toolCallCount = cp?.toolCallCount ?? 0;
+    let turnCount = 0;
     let repairAttemptCount = 0;
     let lastValidationErrors: { path: string; code: string; message: string }[] | undefined;
 
-    for (let call = 0; ; call++) {
+    for (;;) {
       const request: ModelGenerationRequest = {
-        providerKey: resolved.providerKey,
-        providerVersion: resolved.providerVersion,
-        modelId: resolved.modelId,
-        systemInstructions: resolved.systemInstructions,
-        messages,
-        tools: [],
-        outputSchema: resolved.outputSchema,
-        maximumInputTokens: resolved.executionPolicy.maximumInputTokens,
-        maximumOutputTokens: resolved.executionPolicy.maximumOutputTokens,
+        providerKey: resolved.providerKey, providerVersion: resolved.providerVersion, modelId: resolved.modelId,
+        systemInstructions: resolved.systemInstructions, messages, tools: modelTools, outputSchema: resolved.outputSchema,
+        maximumInputTokens: resolved.executionPolicy.maximumInputTokens, maximumOutputTokens: resolved.executionPolicy.maximumOutputTokens,
         correlationId: input.correlationId,
       };
-      push('agent.model_called', { modelId: resolved.modelId, call: call + 1 });
+      push('agent.model_called', { modelId: resolved.modelId, turn: turnCount });
 
       let result: ModelGenerationResult;
       try {
@@ -177,49 +197,171 @@ export class AgentRuntimeService implements AgentRuntime {
         return this.fail(base, usage, 'FAILED', 'MODEL_CONTENT_FILTERED', 'Conteúdo bloqueado pelo filtro do provider.', false, context.securitySignals, null);
       }
 
+      // ── Ramo de TOOL CALL (o modelo propõe; o servidor decide/executa) ───────────
+      if (result.finishReason === 'TOOL_CALL' && result.toolCalls.length > 0) {
+        if (!toolCallingAllowed) {
+          return this.fail(base, usage, 'FAILED', 'AGENT_TOOL_NOT_ALLOWED', 'Tool calling não permitido pela política.', false, context.securitySignals, null);
+        }
+        const step = await this.processToolCall({ base, resolved, tools, toolCall: result.toolCalls[0], toolHistory, completed, toolCallCount });
+        if (step.kind === 'FAIL') {
+          return this.fail(base, usage, 'FAILED', step.code, step.summary, false, context.securitySignals, null, { toolCallCount });
+        }
+        if (step.kind === 'UNKNOWN') {
+          const status = resolved.executionPolicy.unknownResultBehavior === 'SUSPEND' ? 'SUSPENDED' : 'UNKNOWN';
+          return this.fail(base, usage, status, 'MODEL_RESULT_UNKNOWN', 'Resultado de tool incerto.', false, context.securitySignals, null, { toolCallCount });
+        }
+        if (step.kind === 'SUSPEND') {
+          await this.checkpoints.markSuspended(input.executionStepId, step.pending, step.approvalRequestId, { turnCount, modelCallCount: usage.modelCallCount, toolCallCount }, context.contextHash);
+          return this.suspend(base, usage, context.securitySignals, step.approvalRequestId, step.pending.alias, { turnCount, toolCallCount });
+        }
+        // CONTINUE: um novo turno (rodada de tool). Aplica o teto de turnos.
+        turnCount++;
+        if (turnCount > resolved.executionPolicy.maximumTurns) {
+          return this.fail(base, usage, 'FAILED', 'AGENT_TURN_LIMIT_EXCEEDED', 'Limite de turnos atingido.', false, context.securitySignals, null, { toolCallCount });
+        }
+        toolCallCount++;
+        toolHistory.push({ alias: step.alias, toolCallId: step.toolCallId, status: step.status, inputHash: step.inputHash });
+        completed[step.idempotencyKey] = { alias: step.alias, actionKey: step.actionKey, status: step.status, outputHash: step.outputHash, evidenceReferenceId: step.evidenceReferenceId, errorCode: step.errorCode };
+        if (!step.replayed) {
+          await this.checkpoints.recordCompleted(input.executionStepId, step.idempotencyKey, { alias: step.alias, actionKey: step.actionKey, status: step.status, outputHash: step.outputHash, evidenceReferenceId: step.evidenceReferenceId, errorCode: step.errorCode }, { turnCount, modelCallCount: usage.modelCallCount, toolCallCount });
+        }
+        messages.push(step.message);
+        continue;
+      }
+
+      // ── Ramo de OUTPUT FINAL (validação + repair + avaliação) ────────────────────
       const validation = this.validator.validate({
-        schema: resolved.outputSchema,
-        rawOutput: result.structuredOutput,
-        maximumOutputBytes: resolved.executionPolicy.maximumOutputTokens * 4,
-        repairAttemptCount,
+        schema: resolved.outputSchema, rawOutput: result.structuredOutput,
+        maximumOutputBytes: resolved.executionPolicy.maximumOutputTokens * 4, repairAttemptCount,
       });
 
       if (validation.valid) {
-        // Avaliação determinística.
-        const evaluation = this.evaluator.evaluate({
-          policy: resolved.evaluationPolicy,
-          acceptedOutput: validation.acceptedOutput,
-          outputSchemaValid: true,
-          evidenceReferenceIds: [],
-        });
+        const evaluation = this.evaluator.evaluate({ policy: resolved.evaluationPolicy, acceptedOutput: validation.acceptedOutput, outputSchemaValid: true, evidenceReferenceIds: [] });
         if (!evaluation.passed) {
           push('agent.evaluation_failed', { failedChecks: evaluation.failedCheckKeys });
           return this.fail(base, usage, 'FAILED', 'AGENT_EVALUATION_FAILED', evaluation.reason ?? 'Avaliação reprovou.', false, context.securitySignals, null, { repairAttemptCount, evaluation });
         }
         push('agent.evaluation_passed', {});
-        return this.succeed(base, usage, validation.acceptedOutput, context.securitySignals, repairAttemptCount, evaluation.failedCheckKeys);
+        if (toolCallingAllowed) await this.checkpoints.markCompleted(input.executionStepId);
+        return this.succeed(base, usage, validation.acceptedOutput, context.securitySignals, repairAttemptCount, evaluation.failedCheckKeys, toolCallCount);
       }
 
-      // Output inválido.
       lastValidationErrors = validation.validationErrors;
       push('agent.output_invalid', { errors: (validation.validationErrors ?? []).length, repairAttemptCount });
       if (repairAttemptCount < maxRepairs) {
         repairAttemptCount++;
         push('agent.output_repair_started', { attempt: repairAttemptCount });
-        messages.push({
-          role: 'USER',
-          content: [{ type: 'TEXT', text: `${REPAIR_MARKER} corrija a saída para satisfazer o schema. Erros: ${JSON.stringify(validation.validationErrors ?? [])}` }],
-        });
+        messages.push({ role: 'USER', content: [{ type: 'TEXT', text: `${REPAIR_MARKER} corrija a saída para satisfazer o schema. Erros: ${JSON.stringify(validation.validationErrors ?? [])}` }] });
         continue;
       }
-
-      // Sem repair possível.
       if (maxRepairs > 0) {
         push('agent.output_repair_exhausted', { repairAttemptCount });
         return this.fail(base, usage, 'FAILED', 'AGENT_OUTPUT_REPAIR_EXHAUSTED', 'Tentativas de correção esgotadas.', false, context.securitySignals, null, { repairAttemptCount, validationErrors: lastValidationErrors });
       }
       return this.fail(base, usage, 'FAILED', 'AGENT_OUTPUT_INVALID', 'Saída não valida contra outputSchema.', false, context.securitySignals, null, { repairAttemptCount, validationErrors: lastValidationErrors });
     }
+  }
+
+  /**
+   * Processa UMA tool call proposta pelo modelo: valida → replay idempotente → avalia
+   * autoridade → executa (ALLOW) / cria aprovação e suspende (REQUIRE_APPROVAL) / nega (DENY).
+   * NÃO executa em paralelo; NÃO confia no provider.
+   */
+  private async processToolCall(args: {
+    base: RuntimeBase;
+    resolved: ResolvedAgentRuntime;
+    tools: ResolvedAgentToolDefinition[];
+    toolCall: { id: string; alias: string; input?: unknown };
+    toolHistory: AgentToolCallHistoryEntry[];
+    completed: CompletedToolCallMap;
+    toolCallCount: number;
+  }): Promise<ToolStep> {
+    const { base, resolved, tools, toolCall, toolHistory, completed } = args;
+    const input = base.input;
+    const push = base.push;
+    push('agent.tool_requested', { alias: toolCall.alias, toolCallId: toolCall.id });
+
+    const resolvedTool = tools.find((t) => t.alias === toolCall.alias) ?? null;
+    const validation = this.toolValidator.validate({ toolCall, resolvedTool, executionPolicy: resolved.executionPolicy, toolPolicy: resolved.toolPolicy, priorCalls: toolHistory });
+    if (!validation.valid) {
+      push('agent.tool_call_rejected', { alias: toolCall.alias, code: validation.code });
+      if (validation.code === 'AGENT_TOOL_CALL_LIMIT_EXCEEDED') push('agent.tool_limit_exceeded', { alias: toolCall.alias });
+      return { kind: 'FAIL', code: validation.code ?? 'AGENT_TOOL_CALL_INVALID', summary: validation.reason ?? 'Tool call inválida.' };
+    }
+    push('agent.tool_call_validated', { alias: toolCall.alias });
+    const tool = resolvedTool!;
+
+    const payload = toolCall.input ?? {};
+    const payloadHash = this.toolAuthority.payloadHash(payload);
+    const idempotencyKey = `${input.executionStepId}:${toolCall.id}:${payloadHash}`;
+
+    // Replay idempotente: tool já concluída neste step → não reexecuta.
+    const prior = completed[idempotencyKey];
+    if (prior) {
+      push('agent.tool_result_isolated', { alias: tool.alias, replayed: true });
+      return { kind: 'CONTINUE', replayed: true, toolCallId: toolCall.id, alias: tool.alias, actionKey: tool.actionKey, status: prior.status, inputHash: payloadHash, idempotencyKey, outputHash: prior.outputHash, evidenceReferenceId: prior.evidenceReferenceId, errorCode: prior.errorCode, message: { role: 'TOOL', toolCallId: toolCall.id, content: [{ type: 'TOOL_RESULT', data: { alias: tool.alias, status: prior.status, replayed: true } }] } };
+    }
+
+    // Avaliação de autoridade (política do agente + gradiente + ActionAuthorization).
+    const decision = await this.toolAuthority.evaluate({
+      organizationId: input.organizationId, operationId: input.operationId, operationVersionId: input.operationVersionId,
+      executionRunId: input.executionRunId, executionStepId: input.executionStepId, requestedByUserId: input.requestedByUserId,
+      correlationId: input.correlationId, alias: tool.alias, actionKey: tool.actionKey, riskLevel: tool.riskLevel,
+      toolPolicy: resolved.toolPolicy, toolPayload: payload, now: new Date(),
+    });
+    push('agent.tool_authority_evaluated', { alias: tool.alias, decision: decision.decision, reasonCode: decision.reasonCode });
+
+    const execInput = {
+      organizationId: input.organizationId, operationId: input.operationId, operationVersionId: input.operationVersionId,
+      executionRunId: input.executionRunId, executionStepId: input.executionStepId, requestedByUserId: input.requestedByUserId,
+      correlationId: input.correlationId, attemptNumber: input.attemptNumber, toolCallId: toolCall.id, idempotencyKey,
+      resolvedTool: tool, toolPayload: payload, payloadHash, decision,
+    };
+
+    if (decision.decision === 'DENY') {
+      const outcome = await this.toolExecutor.deniedOutcome(execInput, 'AGENT_TOOL_DENIED', `Tool negada (${decision.reasonCode}).`, 'DENIED');
+      push('agent.tool_execution_failed', { alias: tool.alias, status: 'DENIED', reasonCode: decision.reasonCode });
+      return this.continueFrom(outcome, idempotencyKey, payloadHash);
+    }
+
+    if (decision.decision === 'REQUIRE_APPROVAL') {
+      const approval = await this.toolApproval.createOrGet({
+        organizationId: input.organizationId, operationId: input.operationId, operationVersionId: input.operationVersionId,
+        requestedByUserId: input.requestedByUserId, correlationId: input.correlationId, executionStepId: input.executionStepId,
+        toolPayload: payload, idempotencyKey,
+      });
+      if (approval.status === 'PENDING') {
+        push('agent.tool_approval_requested', { alias: tool.alias, approvalRequestId: approval.approvalRequestId });
+        return { kind: 'SUSPEND', approvalRequestId: approval.approvalRequestId, pending: { toolCallId: toolCall.id, idempotencyKey, alias: tool.alias, actionKey: tool.actionKey, riskLevel: tool.riskLevel, inputHash: payloadHash } };
+      }
+      if (approval.status === 'REJECTED' || approval.status === 'CANCELLED' || approval.status === 'EXPIRED') {
+        push('agent.tool_approval_denied', { alias: tool.alias, approvalRequestId: approval.approvalRequestId, status: approval.status });
+        const outcome = await this.toolExecutor.deniedOutcome(execInput, 'AGENT_TOOL_DENIED', 'Aprovação negada.', 'DENIED');
+        return this.continueFrom(outcome, idempotencyKey, payloadHash);
+      }
+      // APPROVED sem autorização ativa consumível (janela rara de crash) → incerto.
+      return { kind: 'UNKNOWN' };
+    }
+
+    // ALLOW → executa uma única vez (consome autorização, se houver).
+    push('agent.tool_execution_started', { alias: tool.alias, riskLevel: tool.riskLevel });
+    const outcome = await this.toolExecutor.execute(execInput);
+    if (outcome.status === 'SUCCEEDED') push('agent.tool_execution_succeeded', { alias: tool.alias });
+    else if (outcome.status === 'UNKNOWN') { push('agent.tool_execution_unknown', { alias: tool.alias }); return { kind: 'UNKNOWN' }; }
+    else push('agent.tool_execution_failed', { alias: tool.alias, status: outcome.status });
+    push('agent.tool_result_isolated', { alias: tool.alias, isolated: outcome.meta.isolated, signals: outcome.meta.securitySignalCount });
+    if (decision.authorizationId) push('agent.tool_authorization_consumed', { alias: tool.alias });
+    return this.continueFrom(outcome, idempotencyKey, payloadHash);
+  }
+
+  /** Converte um `AgentToolCallOutcome` executado num passo CONTINUE. */
+  private continueFrom(outcome: import('./tools/agent-tool.types').AgentToolCallOutcome, idempotencyKey: string, inputHash: string): ToolStep {
+    return {
+      kind: 'CONTINUE', replayed: false, toolCallId: outcome.toolCallId, alias: outcome.alias, actionKey: outcome.meta.actionKey,
+      status: outcome.status, inputHash, idempotencyKey, outputHash: outcome.meta.outputHash,
+      evidenceReferenceId: outcome.evidenceReferenceIds[0], errorCode: outcome.errorCode,
+      message: outcome.toolMessage ?? { role: 'TOOL', toolCallId: outcome.toolCallId, content: [{ type: 'TOOL_RESULT', data: { status: outcome.status } }] },
+    };
   }
 
   /** Emite eventos de trilha do contexto (por fonte, exclusão, truncamento, sinal). */
@@ -268,13 +410,31 @@ export class AgentRuntimeService implements AgentRuntime {
     signals: AgentSecuritySignal[],
     repairAttemptCount: number,
     evaluationFailed: string[],
+    toolCallCount = 0,
   ): AgentRuntimeOutcome {
     const result: AgentExecutionResult = {
       status: 'SUCCEEDED', output,
-      usage, modelCallCount: usage.modelCallCount, toolCallCount: 0, turnCount: 1,
+      usage, modelCallCount: usage.modelCallCount, toolCallCount, turnCount: Math.max(1, usage.modelCallCount),
       evidenceReferenceIds: [], durationMs: usage.durationMs,
     };
     return this.finalize(base, result, true, signals, repairAttemptCount, output, evaluationFailed);
+  }
+
+  /** Suspensão para aprovação humana de uma tool call (REQUIRES_APPROVAL). */
+  private suspend(
+    base: RuntimeBase,
+    usage: AgentUsage,
+    signals: AgentSecuritySignal[],
+    approvalRequestId: string,
+    alias: string,
+    counts: { turnCount: number; toolCallCount: number },
+  ): AgentRuntimeOutcome {
+    const result: AgentExecutionResult = {
+      status: 'REQUIRES_APPROVAL', errorCode: 'AGENT_TOOL_REQUIRES_APPROVAL', errorSummary: 'Tool call requer aprovação humana.',
+      usage, modelCallCount: usage.modelCallCount, toolCallCount: counts.toolCallCount, turnCount: counts.turnCount,
+      evidenceReferenceIds: [], durationMs: usage.durationMs,
+    };
+    return this.finalize(base, result, false, signals, 0, null, [], { approvalRequestId, pendingAlias: alias });
   }
 
   private fail(
@@ -290,7 +450,7 @@ export class AgentRuntimeService implements AgentRuntime {
   ): AgentRuntimeOutcome {
     const result: AgentExecutionResult = {
       status, errorCode, errorSummary,
-      usage, modelCallCount: usage.modelCallCount, toolCallCount: 0, turnCount: usage.modelCallCount > 0 ? 1 : 0,
+      usage, modelCallCount: usage.modelCallCount, toolCallCount: (extra.toolCallCount as number) ?? 0, turnCount: usage.modelCallCount > 0 ? 1 : 0,
       evidenceReferenceIds: [], durationMs: usage.durationMs,
     };
     return this.finalize(base, result, retryable, signals, (extra.repairAttemptCount as number) ?? 0, output ?? null, [], extra);
@@ -327,7 +487,7 @@ export class AgentRuntimeService implements AgentRuntime {
       errorCode: safeResult.errorCode ?? null,
       repairAttemptCount,
       modelCallCount: safeResult.modelCallCount,
-      toolCallCount: 0,
+      toolCallCount: safeResult.toolCallCount,
       turnCount: safeResult.turnCount,
       usage: safeResult.usage,
       durationMs: safeResult.durationMs,
@@ -342,6 +502,7 @@ export class AgentRuntimeService implements AgentRuntime {
 
     const finalAction =
       safeResult.status === 'SUCCEEDED' ? 'agent.execution_completed'
+      : safeResult.status === 'REQUIRES_APPROVAL' ? 'agent.execution_suspended'
       : safeResult.status === 'UNKNOWN' || safeResult.status === 'SUSPENDED' ? 'agent.execution_unknown'
       : 'agent.execution_failed';
     base.push(finalAction, { status: safeResult.status, errorCode: safeResult.errorCode ?? null, modelCallCount: safeResult.modelCallCount, repairAttemptCount });
@@ -367,3 +528,23 @@ interface RuntimeBase {
   /** Contexto montado (metadados sanitizados) — enriquece a evidência final. */
   context?: AgentContextAssemblyResult;
 }
+
+/** Resultado do processamento de UMA tool call dentro do loop do runtime. */
+type ToolStep =
+  | {
+      kind: 'CONTINUE';
+      replayed: boolean;
+      toolCallId: string;
+      alias: string;
+      actionKey: string;
+      status: string;
+      inputHash: string;
+      idempotencyKey: string;
+      outputHash?: string;
+      evidenceReferenceId?: string;
+      errorCode?: string;
+      message: import('@arden/contracts').ModelMessage;
+    }
+  | { kind: 'SUSPEND'; approvalRequestId: string; pending: import('./tools/agent-runtime-checkpoint.repository').PendingToolCallMeta }
+  | { kind: 'FAIL'; code: string; summary: string }
+  | { kind: 'UNKNOWN' };

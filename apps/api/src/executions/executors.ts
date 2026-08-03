@@ -44,6 +44,22 @@ export class StepExecutionError extends Error {
   }
 }
 
+/**
+ * Sinal de SUSPENSÃO cooperativa de uma etapa (ARDEN-BE-007.5) — NÃO é falha. O processor
+ * pausa a etapa (PAUSED) e a execução, aguardando uma decisão humana (aprovação). Na
+ * retomada a etapa volta a PENDING e é reprocessada. Carrega evidência sanitizada.
+ */
+export class StepSuspendedError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+    readonly evidence: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'StepSuspendedError';
+  }
+}
+
 export interface StepExecutor {
   actionKey: ExecutorActionKey;
   execute(ctx: StepExecutionContext): Promise<StepExecutionResult>;

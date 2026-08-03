@@ -27,6 +27,8 @@ export interface AgentRuntimeExecutionInput {
   input: unknown;
   correlationId: string;
   attemptNumber: number;
+  /** Usuário que originou a execução (para autoria de aprovação/autorização). */
+  requestedByUserId: string;
   /** Timeout efetivo da etapa (ms); 0 = sem teto de etapa. */
   timeoutMs: number;
 }

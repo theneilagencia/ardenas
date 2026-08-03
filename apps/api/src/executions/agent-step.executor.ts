@@ -14,7 +14,7 @@ import { AuditRecorder } from '../audit/audit.recorder';
 import { PrismaService } from '../database/prisma.service';
 import { ExecutionsRepository } from './executions.repository';
 import { ExecutionRecorder } from './execution.recorder';
-import { StepExecutionError, type StepExecutionContext, type StepExecutionResult } from './executors';
+import { StepExecutionError, StepSuspendedError, type StepExecutionContext, type StepExecutionResult } from './executors';
 import type { AgentRuntime, AgentRuntimeOutcome } from '../agents/runtime/agent-runtime.types';
 
 /** Snapshot mínimo e seguro guardado no input da etapa de agente. */
@@ -74,6 +74,7 @@ export class AgentStepExecutor {
       input: snapshot.source,
       correlationId: run.correlationId,
       attemptNumber: ctx.attemptNumber,
+      requestedByUserId: run.requestedByUserId,
       timeoutMs: 0,
     });
 
@@ -82,9 +83,14 @@ export class AgentStepExecutor {
     if (outcome.result.status === 'SUCCEEDED') {
       return {
         output: outcome.result.output ?? null,
-        effectApplied: false, // agente determinístico não aplica efeito externo nesta fase
+        effectApplied: outcome.result.toolCallCount > 0, // tool calling pode ter aplicado efeito externo
         evidence: [{ evidenceType: 'OUTPUT', content: outcome.evidence }],
       };
+    }
+
+    // REQUIRES_APPROVAL → SUSPENSÃO cooperativa (não é falha): pausa a etapa/execução.
+    if (outcome.result.status === 'REQUIRES_APPROVAL') {
+      throw new StepSuspendedError('AGENT_TOOL_REQUIRES_APPROVAL', outcome.result.errorSummary ?? 'Tool call requer aprovação humana.', outcome.evidence);
     }
 
     // FAILED/UNKNOWN/SUSPENDED → erro tipado com evidência sanitizada para o processor.
