@@ -60,7 +60,7 @@ describe('catálogo projetado', () => {
     expect(defs.map((d) => d.key).sort()).toEqual(['internal.test', 'system.http', 'system.webhook']);
     expect(defs.find((d) => d.key === 'internal.test')!.productionAllowed).toBe(false);
     const tools = await prisma.connectorToolDefinition.count();
-    expect(tools).toBe(5);
+    expect(tools).toBe(8);
   });
 });
 
