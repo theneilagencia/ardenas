@@ -20,3 +20,4 @@ export * from './connectors/connections';
 export * from './connectors/credentials';
 export * from './connectors/tool-bindings';
 export * from './connectors/webhooks';
+export * from './agents/agents';
