@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { ExecutionStateBadge } from '@/components/ui/StateBadge';
 import { useScopedData } from '@/hooks/use-session';
 import { useOperations } from '@/hooks/use-operations';
+import { ExecutionAgentUsagePanel } from '@/features/agent-results/ExecutionAgentUsagePanel';
 
 export function ExecutionsPage() {
   const { t, i18n } = useTranslation();
@@ -125,6 +126,9 @@ export function ExecutionDetailPage() {
           </table>
         </div>
       </div>
+
+      {/* Uso/resultado dos agentes desta execução (API v1 real; oculto se não houver). */}
+      <ExecutionAgentUsagePanel executionRunId={exec.id} />
     </>
   );
 }

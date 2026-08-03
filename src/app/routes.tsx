@@ -30,6 +30,12 @@ import { ReportsPage } from '@/features/reports/ReportsPage';
 import { AssessmentPage } from '@/features/assessment/AssessmentPage';
 import { EvaluatorPage } from '@/features/assessment/EvaluatorPage';
 import { AdminPage } from '@/features/admin/AdminPage';
+import { AgentsPage } from '@/features/agents/AgentsPage';
+import { AgentDetailPage } from '@/features/agents/AgentDetailPage';
+import { AgentVersionEditorPage } from '@/features/agents/AgentVersionEditorPage';
+import { ModelConfigurationsPage } from '@/features/model-configurations/ModelConfigurationsPage';
+import { AgentResultsPage } from '@/features/agent-results/AgentResultsPage';
+import { AgentUsagePage } from '@/features/agent-results/AgentUsagePage';
 
 const guard = (permission: Permission, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
@@ -63,6 +69,15 @@ export const router = createBrowserRouter([
       { path: 'context', element: guard('context.view', <ContextPage />) },
       { path: 'integrations', element: guard('integration.view', <IntegrationsPage />) },
       { path: 'files', element: guard('file.view', <FilesPage />) },
+
+      // AGENTES (ARDEN-BE-007)
+      { path: 'agents', element: guard('agent.view', <AgentsPage />) },
+      { path: 'agents/:agentId', element: guard('agent.view', <AgentDetailPage />) },
+      { path: 'agents/:agentId/versions/new', element: guard('agent.edit', <AgentVersionEditorPage />) },
+      { path: 'agents/:agentId/versions/:agentVersionId', element: guard('agent.view', <AgentVersionEditorPage />) },
+      { path: 'model-configurations', element: guard('model_configuration.view', <ModelConfigurationsPage />) },
+      { path: 'agent-results', element: guard('agent.view', <AgentResultsPage />) },
+      { path: 'agent-usage', element: guard('agent.cost.view', <AgentUsagePage />) },
 
       // AVALIAÇÃO
       { path: 'assessment', element: guard('operation.view', <AssessmentPage />) },

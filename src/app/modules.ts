@@ -7,7 +7,10 @@
 import {
   Activity,
   BadgeCheck,
+  Bot,
   Boxes,
+  Coins,
+  Cpu,
   ClipboardCheck,
   ClipboardList,
   Database,
@@ -24,6 +27,7 @@ import {
   Shield,
   ShieldAlert,
   SlidersHorizontal,
+  Sparkles,
   TrendingUp,
   Users,
   Workflow as WorkflowIcon,
@@ -31,7 +35,7 @@ import {
 } from 'lucide-react';
 import type { Permission } from '@/domain/permissions';
 
-export type ModuleGroup = 'operate' | 'result' | 'control' | 'assessment' | 'company';
+export type ModuleGroup = 'operate' | 'result' | 'control' | 'agents' | 'assessment' | 'company';
 
 export interface ModuleDef {
   key: string;
@@ -64,6 +68,12 @@ export const MODULES: ModuleDef[] = [
   { key: 'integrations', path: '/integrations', labelKey: 'nav.integrations', icon: Plug, permission: 'integration.view', group: 'control' },
   { key: 'files', path: '/files', labelKey: 'nav.files', icon: FileArchive, permission: 'file.view', group: 'control' },
 
+  // AGENTES (ARDEN-BE-007)
+  { key: 'agents', path: '/agents', labelKey: 'nav.agents', icon: Bot, permission: 'agent.view', group: 'agents' },
+  { key: 'modelConfigurations', path: '/model-configurations', labelKey: 'nav.modelConfigurations', icon: Cpu, permission: 'model_configuration.view', group: 'agents' },
+  { key: 'agentResults', path: '/agent-results', labelKey: 'nav.agentResults', icon: Sparkles, permission: 'agent.view', group: 'agents' },
+  { key: 'agentUsage', path: '/agent-usage', labelKey: 'nav.agentUsage', icon: Coins, permission: 'agent.cost.view', group: 'agents' },
+
   // AVALIAÇÃO
   { key: 'assessment', path: '/assessment', labelKey: 'nav.assessment', icon: ClipboardList, permission: 'operation.view', group: 'assessment' },
   { key: 'evaluator', path: '/evaluator', labelKey: 'nav.evaluator', icon: LineChart, permission: 'operation.view', group: 'assessment' },
@@ -78,12 +88,13 @@ export const MODULES: ModuleDef[] = [
   { key: 'admin', path: '/admin', labelKey: 'nav.admin', icon: Settings, permission: 'organization.manage', group: 'company' },
 ];
 
-export const MODULE_GROUPS: ModuleGroup[] = ['operate', 'result', 'control', 'assessment', 'company'];
+export const MODULE_GROUPS: ModuleGroup[] = ['operate', 'result', 'control', 'agents', 'assessment', 'company'];
 
 export const GROUP_LABEL_KEY: Record<ModuleGroup, string> = {
   operate: 'navGroup.operate',
   result: 'navGroup.result',
   control: 'navGroup.control',
+  agents: 'navGroup.agents',
   assessment: 'navGroup.assessment',
   company: 'navGroup.company',
 };
