@@ -68,6 +68,15 @@ detalhamento célula a célula.
 - **Sem modelId/baseURL arbitrário**: request de execução **nunca** escolhe `modelId`; ele vem da
   configuração allowlisted. Base URL travada em `OFFICIAL`.
 
+## 4b. Estado após 008.2 (persistência administrativa)
+
+O gate 008.2A reexecutou a verificação oficial e confirmou **PRICING_STATUS = UNVERIFIED** e
+**DATA_GOVERNANCE_STATUS = UNVERIFIED** (todas as páginas 403). O 008.2B, portanto, entregou
+apenas a **infraestrutura administrativa** (conector `system.anthropic`, provider
+`anthropic.direct` e catálogo de modelos **persistidos como DISABLED**, credencial tenant-managed
+no cofre, validação local, lifecycle de `ModelConfiguration` com ativação bloqueada). Rate cards
+comerciais permanecem **vazios**. A decisão continua **CONDITIONALLY_CONFIRMED** — sem execução.
+
 ## 5. Consequência para 008.2 (gate)
 
 Antes de habilitar execução (008.2+): (a) ler diretamente a página oficial de pricing e

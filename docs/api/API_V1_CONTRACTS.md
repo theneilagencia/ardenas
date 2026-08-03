@@ -125,3 +125,20 @@ ainda; execução direta de agentes NÃO existe.
   `AgentEvaluator`, `AgentRuntime`) + tokens de DI, sem implementação.
 - **Action key:** `agent.execute` (única) no `executorActionKey` do BE-005; `operationStep.agent`
   espelha `operationStep.tool`. Sem `model.generate`/`chat`/`agent.run`.
+
+## ARDEN-BE-008.2 — Provider comercial Anthropic (infra administrativa)
+
+Dois endpoints **aditivos** ao OpenAPI (`docs/api/openapi-v1.yaml` → 98 paths). O provider
+`anthropic.direct` e os modelos permanecem `DISABLED`; nenhum código de erro novo; nenhuma response
+declara segredo. Infra administrativa apenas — **não** há execução.
+
+- **`POST …/connections/{connectionId}/validate-configuration`** — Request
+  `ValidateConnectionConfigurationRequest` (`note?`). Response
+  `ConnectionConfigurationValidationResponse` = `{ connectionId, configurationValid, credentialPresent,
+  credentialDecryptable, providerCompatible, providerVerificationStatus, credentialFingerprint,
+  issues[], validatedAt }`. Validação **exclusivamente LOCAL** (decifra a credencial do cofre, confere
+  compatibilidade com o provider): **nunca** contata o provider — `providerVerificationStatus` é sempre
+  `NOT_VERIFIED_WITH_PROVIDER` — e **nunca** devolve segredo.
+- **`GET /model-providers/{providerKey}/versions/{providerVersion}/models`** — Response
+  `ModelCatalogListResponse` (array das entradas persistidas de `model_catalog_entries`). Todos os
+  modelos Anthropic `DISABLED`; sem segredo, sem preço.

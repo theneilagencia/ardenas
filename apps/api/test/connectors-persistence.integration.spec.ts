@@ -57,10 +57,12 @@ async function newConnection(ctx: AuthenticatedRequestContext) {
 describe('catálogo projetado', () => {
   it('conectores e ferramentas de referência existem; internal.test não é de produção', async () => {
     const defs = await prisma.connectorDefinition.findMany();
-    expect(defs.map((d) => d.key).sort()).toEqual(['internal.test', 'system.http', 'system.webhook']);
+    // system.anthropic (ARDEN-BE-008.2): conector MODEL_PROVIDER, sem ferramenta de geração.
+    expect(defs.map((d) => d.key).sort()).toEqual(['internal.test', 'system.anthropic', 'system.http', 'system.webhook']);
     expect(defs.find((d) => d.key === 'internal.test')!.productionAllowed).toBe(false);
+    expect(defs.find((d) => d.key === 'system.anthropic')!.category).toBe('MODEL_PROVIDER');
     const tools = await prisma.connectorToolDefinition.count();
-    expect(tools).toBe(8);
+    expect(tools).toBe(8); // system.anthropic não adiciona ferramentas.
   });
 });
 

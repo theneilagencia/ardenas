@@ -186,3 +186,19 @@ fases futuras — aqui é só o contrato.
 | `MODEL_CONTENT_FILTERED` | 422 | sim | não | conteúdo bloqueado por filtro do provider |
 | `AGENT_EVALUATION_FAILED` | 409 | sim | não | avaliação determinística reprovou |
 | `AGENT_PROMPT_INJECTION_DETECTED` | 403 | sim (genérico) | não | sinal de injeção bloqueado |
+
+## ARDEN-BE-008.2 — Provider comercial Anthropic (infra administrativa)
+
+**Nenhum código de erro novo.** O endpoint `validate-configuration` e a `ModelConfiguration` Anthropic
+reutilizam os códigos existentes:
+
+| Código | HTTP | Quando (contexto Anthropic) |
+| --- | --- | --- |
+| `VALIDATION_ERROR` | 422 | `modelId` fora do allowlist ou `parameters` fora do schema estrito |
+| `MODEL_PROVIDER_DISABLED` | 409 | tentativa de **ativar** `ModelConfiguration` (provider `DISABLED`) |
+| `VERSION_CONFLICT` | 409 | concorrência otimista em conexão/configuração |
+| `RESOURCE_NOT_FOUND` | 404 | conexão/config inexistente **ou de outro tenant** |
+
+DRAFT de configuração é **preparável**; ativação é bloqueada com `MODEL_PROVIDER_DISABLED`. A validação
+é **local** (`providerVerificationStatus = NOT_VERIFIED_WITH_PROVIDER`), nunca contata o provider e
+nunca expõe segredo.

@@ -151,3 +151,14 @@ em `docs/frontend/AGENTS_UI_ARCHITECTURE.md` (+ docs irmãs).
 Publicada imutável (sem PATCH; CTA "criar nova versão"); concorrência via `expectedRevision`;
 idempotência mintada por ação no repositório. `estimatedCostMinor: null` → "Custo não
 disponível", nunca "0,00". Sem segredo/prompt/instrução em storage/URL/log/analytics.
+
+## ARDEN-BE-008.2 — Provider comercial Anthropic (infra administrativa)
+
+**O frontend funcional NÃO foi alterado nesta fase.** Estes dois endpoints são
+administrativos/backend-facing (registro/validação da conexão e leitura do catálogo persistido);
+o provider permanece `DISABLED` e não há execução. Nenhuma tela consome estas APIs ainda.
+
+| Endpoint v1 (aditivo) | Natureza | Permissão |
+| --- | --- | --- |
+| `POST …/connections/{id}/validate-configuration` | administrativo — validação **local** (`NOT_VERIFIED_WITH_PROVIDER`, sem segredo na response) | `connection.test` |
+| `GET /model-providers/{providerKey}/versions/{providerVersion}/models` | administrativo — catálogo persistido (modelos `DISABLED`, sem preço) | `model_provider.view` |

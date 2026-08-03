@@ -83,3 +83,23 @@ fato externo é assumido neste plano.
 UNKNOWN nunca viram sucesso; custo em inteiro (ausente≠zero); avaliação final determinística;
 multitenancy (sem cruzar tenant); nenhum segredo/prompt persistido; execução só via `agent.execute`
 (sem endpoint direto, sem chat). O provider comercial não relaxa nenhuma dessas invariantes.
+
+## Atualização 008.2
+
+**008.2A (gate de verificação oficial)** — pricing e governança de dados oficiais retornaram 403
+(Cloudflare): `PRICING_STATUS=UNVERIFIED`, `DATA_GOVERNANCE_STATUS=UNVERIFIED` (bloqueante) →
+**Resultado B (insuficiente)**. Consequência: prosseguir apenas com infraestrutura administrativa,
+sem rate cards comerciais, com provider/modelos `DISABLED`. Detalhe em
+`ARDEN_BE_008_EXTERNAL_VERIFICATION_GATE.md`.
+
+**008.2B (infraestrutura administrativa)** — entregue o ciclo administrativo reusando BE-006/BE-007:
+connector `system.anthropic` + connection + credencial no vault (AES-256-GCM, rotação/revogação) +
+catálogo de modelos persistido (`model_catalog_entries`, migração aditiva) + ciclo de vida de
+`ModelConfiguration` (DRAFT preparável, ativação bloqueada). Validação **local** de configuração
+(`NOT_VERIFIED_WITH_PROVIDER`, nunca contata o provider). Provider `anthropic.direct` e 3 modelos
+permanecem **`DISABLED`**; sem SDK, sem chamada real, sem endpoint de execução. Relatório em
+`ARDEN_BE_008_CONNECTIONS_REPORT.md`; evidência em `ARDEN_BE_008_CONNECTIONS_TEST_EVIDENCE.md`.
+
+**Próximo: 008.3** — instalação controlada do SDK + provider executável em ambiente restrito
+(structured output, Fatia 1), condicionado à reabertura do gate (verificação direta de pricing e
+governança).
