@@ -43,6 +43,7 @@ import type { AppConfig } from '../config/env.schema';
 import { AnthropicModelProvider } from './providers/anthropic/anthropic-model-provider';
 import { AnthropicProviderCredentialResolver } from './providers/anthropic/anthropic-provider-credential.resolver';
 import { AnthropicSdkTransport } from './providers/anthropic/sdk/anthropic-sdk-transport';
+import { FakeAnthropicTransport } from './providers/anthropic/anthropic-fake-transport';
 import { ANTHROPIC_TRANSPORT } from './providers/anthropic/anthropic-transport.port';
 import { AgentOutputValidatorV1 } from './runtime/agent-output-validator';
 import { AgentEvaluatorV1 } from './runtime/agent-evaluator';
@@ -104,10 +105,18 @@ import { AgentResultsController } from './governance/agent-results.controller';
     InternalTestModelProvider,
     // Provider comercial Anthropic (008.3): transporte real (SDK) por default; resolver de
     // credencial tenant-scoped; provider executável. Registrado no registry SÓ sob gate.
-    { provide: ANTHROPIC_TRANSPORT, useClass: AnthropicSdkTransport },
     AnthropicSdkTransport,
+    FakeAnthropicTransport,
     AnthropicProviderCredentialResolver,
     AnthropicModelProvider,
+    // Transporte por COMPOSIÇÃO de ambiente: fake OFFLINE em teste (nunca rede), SDK real
+    // caso contrário. Não é backdoor de header/query — é escolha de módulo (§21).
+    {
+      provide: ANTHROPIC_TRANSPORT,
+      inject: [APP_CONFIG, FakeAnthropicTransport, AnthropicSdkTransport],
+      useFactory: (config: AppConfig, fake: FakeAnthropicTransport, sdk: AnthropicSdkTransport) =>
+        config.NODE_ENV === 'test' ? fake : sdk,
+    },
     // Registry com registro CONDICIONAL do Anthropic: runtime gate ON e fora de produção.
     {
       provide: InMemoryModelProviderRegistry,
