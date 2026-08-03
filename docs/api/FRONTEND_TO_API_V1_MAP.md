@@ -129,3 +129,25 @@ endpoints nesta fase.
 Credencial de provider vive no cofre (BE-006.4), referenciada por conexão; nunca em
 resposta, storage do browser, prompt, job, log ou URL. A execução de agente ocorre só via
 etapa `agent.execute` do motor de operações — sem endpoint direto de run/chat.
+
+## ARDEN-BE-007.7 — Frontend funcional de agentes (implementado)
+
+No modo `api`, o domínio de agentes usa exclusivamente a API v1 via `ApiV1HttpClient` →
+`createApiV1AgentsRepository` (`src/services/api/v1-agents-repository.ts`, API-only) →
+use-cases (`src/application/agents/agents.ts`) → hooks (`src/hooks/use-agents.ts`). Tenant
+sempre da sessão; custo/avaliação/usage/governança nunca recalculados no cliente. Detalhe
+em `docs/frontend/AGENTS_UI_ARCHITECTURE.md` (+ docs irmãs).
+
+| Endpoint v1 | Cliente gerado | Hook | Tela | Permissão |
+| --- | --- | --- | --- | --- |
+| `GET/POST …/agents`, `…/agents/{id}` (get/update), `…/agents/{id}/suspend\|reactivate\|revoke` | `list/create/get/update/suspend/reactivate/revokeAgent` | `useAgents`/`useAgent` + mutations | `AgentsPage`, `AgentDetailPage` | `agent.view/create/edit/suspend/revoke` |
+| `…/agents/{id}/versions[...]` (list/create/get/update/publish/retire) | `list/create/get/update/publish/retireAgentVersion` | `useAgentVersions`/`useAgentVersion` + mutations | `AgentVersionEditorPage` | `agent.view/edit/publish` |
+| `GET /model-providers[...]` | `list/getModelProvider` | `useModelProviders` | `ModelConfigurationsPage` | `model_provider.view` |
+| `…/model-configurations[...]` (list/create/get/update/activate/suspend/revoke) | `list/create/get/update/activate/suspend/revokeModelConfiguration` | `useModelConfigurations`/`useModelConfiguration` + mutations | `ModelConfigurationsPage` | `model_configuration.view/create/edit/revoke` |
+| `GET …/agent-execution-results[...]` (lista + detalhe) | `list/getAgentResult` | `useAgentResults`/`useAgentResult` | `AgentResultsPage` | `agent.view` |
+| `GET …/agent-usage` (rollups por `groupBy`) | `getAgentUsage` | `useAgentUsage` | `AgentUsagePage` | `agent.cost.view` |
+| `GET …/executions/{runId}/agent-usage` | `getExecutionAgentUsage` | `useExecutionAgentUsage` | detalhe de execução | `agent.view` |
+
+Publicada imutável (sem PATCH; CTA "criar nova versão"); concorrência via `expectedRevision`;
+idempotência mintada por ação no repositório. `estimatedCostMinor: null` → "Custo não
+disponível", nunca "0,00". Sem segredo/prompt/instrução em storage/URL/log/analytics.

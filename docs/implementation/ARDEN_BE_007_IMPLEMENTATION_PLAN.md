@@ -119,3 +119,9 @@ editam migrations aplicadas.
 Aguardar autorização explícita para iniciar **007.1**. Esta auditoria **não** inicia código:
 não há PR de implementação, migration, alteração de OpenAPI nem dependência adicionada nesta
 etapa.
+
+## Status
+
+- **007.7 (frontend funcional de agentes): implementado** — ver
+  [`ARDEN_BE_007_FRONTEND_REPORT.md`](./ARDEN_BE_007_FRONTEND_REPORT.md) e
+  `docs/frontend/AGENTS_UI_ARCHITECTURE.md`.
