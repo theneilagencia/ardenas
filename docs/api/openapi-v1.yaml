@@ -10856,6 +10856,472 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ModelConfigurationCommandRequest'
+  /organizations/{organizationId}/agent-execution-results:
+    get:
+      operationId: agentResults.list
+      summary: Lista resultados operacionais de agentes
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: status
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - SUCCEEDED
+                  - FAILED
+                  - SUSPENDED
+                  - REQUIRES_APPROVAL
+                  - UNKNOWN
+        - name: evaluationStatus
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - PASSED
+                  - FAILED
+                  - PARTIAL
+                  - NOT_RUN
+        - name: governanceStatus
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                enum:
+                  - WITHIN_LIMITS
+                  - LIMIT_WARNING
+                  - LIMIT_EXCEEDED
+                  - BLOCKED
+        - name: agentDefinitionId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: uuid
+        - name: agentVersionId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: uuid
+        - name: operationId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: uuid
+        - name: executionRunId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: uuid
+        - name: createdFrom
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: date-time
+        - name: createdTo
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: date-time
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResultListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/agent-execution-results/{resultId}:
+    get:
+      operationId: agentResults.get
+      summary: Obtém um resultado operacional de agente
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: resultId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResultResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/agent-usage:
+    get:
+      operationId: agentUsage.summary
+      summary: Uso agregado de agentes por dimensão
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: periodFrom
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: periodTo
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+        - name: groupBy
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ORGANIZATION
+              - OPERATION
+              - OPERATION_VERSION
+              - AGENT_DEFINITION
+              - AGENT_VERSION
+              - MODEL_CONFIGURATION
+              - PROVIDER
+              - MODEL
+            default: ORGANIZATION
+        - name: agentDefinitionId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: uuid
+        - name: operationId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                format: uuid
+        - name: providerKey
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                minLength: 1
+                maxLength: 80
+                pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        - name: modelId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - not: {}
+              - type: string
+                minLength: 1
+                maxLength: 200
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentUsageResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.cost.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+  /organizations/{organizationId}/executions/{executionRunId}/agent-usage:
+    get:
+      operationId: agentUsage.execution
+      summary: Uso de agentes de uma execução
+      tags:
+        - Agents
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: executionRunId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionAgentUsageResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: agent.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
 components:
   securitySchemes:
     bearerAuth:
@@ -10987,6 +11453,9 @@ components:
                 - AGENT_CONTEXT_SOURCE_NOT_FOUND
                 - AGENT_CONTEXT_SOURCE_INVALID
                 - AGENT_CONTEXT_BUDGET_EXCEEDED
+                - AGENT_RESULT_NOT_FOUND
+                - AGENT_GOVERNANCE_BLOCKED
+                - AGENT_USAGE_INVALID
                 - RATE_LIMITED
                 - DEPENDENCY_UNAVAILABLE
                 - INTERNAL_ERROR
@@ -26102,4 +26571,1334 @@ components:
           minimum: 1
           maximum: 200
           default: 50
+      additionalProperties: false
+    AgentOperationalResult:
+      type: object
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        executionRunId:
+          type: string
+        executionStepId:
+          type: string
+        operationId:
+          type: string
+        operationVersionId:
+          type: string
+        agentDefinitionId:
+          type: string
+        agentVersionId:
+          type: string
+        status:
+          type: string
+          enum:
+            - SUCCEEDED
+            - FAILED
+            - SUSPENDED
+            - REQUIRES_APPROVAL
+            - UNKNOWN
+        outputValidationStatus:
+          type: string
+          enum:
+            - VALID
+            - INVALID
+            - NOT_AVAILABLE
+        evaluationStatus:
+          type: string
+          enum:
+            - PASSED
+            - FAILED
+            - PARTIAL
+            - NOT_RUN
+        governanceStatus:
+          type: string
+          enum:
+            - WITHIN_LIMITS
+            - LIMIT_WARNING
+            - LIMIT_EXCEEDED
+            - BLOCKED
+        usageSummary:
+          type: object
+          properties:
+            providerKey:
+              type: string
+              minLength: 1
+              maxLength: 80
+              pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+            modelId:
+              type: string
+              minLength: 1
+              maxLength: 200
+            modelCallCount:
+              type: integer
+              minimum: 0
+            toolCallCount:
+              type: integer
+              minimum: 0
+            turnCount:
+              type: integer
+              minimum: 0
+            repairAttemptCount:
+              type: integer
+              minimum: 0
+            approvalCount:
+              type: integer
+              minimum: 0
+            securitySignalCount:
+              type: integer
+              minimum: 0
+            inputTokens:
+              type: integer
+              minimum: 0
+            outputTokens:
+              type: integer
+              minimum: 0
+            cachedInputTokens:
+              type: integer
+              minimum: 0
+            cachedOutputTokens:
+              type: integer
+              minimum: 0
+            durationMs:
+              type: integer
+              minimum: 0
+          required:
+            - providerKey
+            - modelId
+            - modelCallCount
+            - toolCallCount
+            - turnCount
+            - repairAttemptCount
+            - approvalCount
+            - securitySignalCount
+            - inputTokens
+            - outputTokens
+            - cachedInputTokens
+            - cachedOutputTokens
+            - durationMs
+          additionalProperties: false
+        costSummary:
+          type: object
+          properties:
+            estimatedCostMinor:
+              type: integer
+              minimum: 0
+              nullable: true
+            currency:
+              type: string
+              pattern: ^[A-Z]{3}$
+              nullable: true
+            rateCardId:
+              type: string
+              maxLength: 64
+              nullable: true
+            warningCode:
+              type: string
+              maxLength: 120
+              nullable: true
+          required:
+            - estimatedCostMinor
+            - currency
+            - rateCardId
+            - warningCode
+          additionalProperties: false
+        evaluationSummary:
+          type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - PASSED
+                - FAILED
+                - PARTIAL
+                - NOT_RUN
+            policyHash:
+              type: string
+              maxLength: 128
+              nullable: true
+            checks:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                  status:
+                    type: string
+                    enum:
+                      - PASSED
+                      - FAILED
+                      - SKIPPED
+                  severity:
+                    type: string
+                    enum:
+                      - INFO
+                      - WARNING
+                      - ERROR
+                      - CRITICAL
+                  code:
+                    type: string
+                    maxLength: 120
+                  summary:
+                    type: string
+                    maxLength: 300
+                  evidenceReferenceIds:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                    maxItems: 100
+                required:
+                  - key
+                  - status
+                  - severity
+                  - evidenceReferenceIds
+                additionalProperties: false
+              maxItems: 100
+          required:
+            - status
+            - policyHash
+            - checks
+          additionalProperties: false
+        outputHash:
+          type: string
+          maxLength: 128
+          nullable: true
+        contextHash:
+          type: string
+          maxLength: 128
+          nullable: true
+        evidenceReferenceIds:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
+          maxItems: 200
+        startedAt:
+          type: string
+          nullable: true
+        completedAt:
+          type: string
+          nullable: true
+        durationMs:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+      required:
+        - id
+        - organizationId
+        - executionRunId
+        - executionStepId
+        - operationId
+        - operationVersionId
+        - agentDefinitionId
+        - agentVersionId
+        - status
+        - outputValidationStatus
+        - evaluationStatus
+        - governanceStatus
+        - usageSummary
+        - costSummary
+        - evaluationSummary
+        - outputHash
+        - contextHash
+        - evidenceReferenceIds
+        - startedAt
+        - completedAt
+        - durationMs
+        - createdAt
+      additionalProperties: false
+    AgentUsageBucket:
+      type: object
+      properties:
+        dimensionType:
+          type: string
+          enum:
+            - ORGANIZATION
+            - OPERATION
+            - OPERATION_VERSION
+            - AGENT_DEFINITION
+            - AGENT_VERSION
+            - MODEL_CONFIGURATION
+            - PROVIDER
+            - MODEL
+        dimensionId:
+          type: string
+        periodDate:
+          type: string
+        providerKey:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        modelId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+        executionCount:
+          type: integer
+          minimum: 0
+        succeededCount:
+          type: integer
+          minimum: 0
+        failedCount:
+          type: integer
+          minimum: 0
+        suspendedCount:
+          type: integer
+          minimum: 0
+        unknownCount:
+          type: integer
+          minimum: 0
+        modelCallCount:
+          type: integer
+          minimum: 0
+        toolCallCount:
+          type: integer
+          minimum: 0
+        inputTokens:
+          type: integer
+          minimum: 0
+        outputTokens:
+          type: integer
+          minimum: 0
+        estimatedCostMinor:
+          type: integer
+          minimum: 0
+        durationMs:
+          type: integer
+          minimum: 0
+        approvalCount:
+          type: integer
+          minimum: 0
+        criticalSignalCount:
+          type: integer
+          minimum: 0
+      required:
+        - dimensionType
+        - dimensionId
+        - periodDate
+        - providerKey
+        - modelId
+        - currency
+        - executionCount
+        - succeededCount
+        - failedCount
+        - suspendedCount
+        - unknownCount
+        - modelCallCount
+        - toolCallCount
+        - inputTokens
+        - outputTokens
+        - estimatedCostMinor
+        - durationMs
+        - approvalCount
+        - criticalSignalCount
+      additionalProperties: false
+    ListAgentResultsQuery:
+      type: object
+      properties:
+        cursor:
+          type: string
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+        status:
+          type: string
+          enum:
+            - SUCCEEDED
+            - FAILED
+            - SUSPENDED
+            - REQUIRES_APPROVAL
+            - UNKNOWN
+        evaluationStatus:
+          type: string
+          enum:
+            - PASSED
+            - FAILED
+            - PARTIAL
+            - NOT_RUN
+        governanceStatus:
+          type: string
+          enum:
+            - WITHIN_LIMITS
+            - LIMIT_WARNING
+            - LIMIT_EXCEEDED
+            - BLOCKED
+        agentDefinitionId:
+          type: string
+          format: uuid
+        agentVersionId:
+          type: string
+          format: uuid
+        operationId:
+          type: string
+          format: uuid
+        executionRunId:
+          type: string
+          format: uuid
+        createdFrom:
+          type: string
+          format: date-time
+        createdTo:
+          type: string
+          format: date-time
+      additionalProperties: false
+    AgentResultListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              organizationId:
+                type: string
+              executionRunId:
+                type: string
+              executionStepId:
+                type: string
+              operationId:
+                type: string
+              operationVersionId:
+                type: string
+              agentDefinitionId:
+                type: string
+              agentVersionId:
+                type: string
+              status:
+                type: string
+                enum:
+                  - SUCCEEDED
+                  - FAILED
+                  - SUSPENDED
+                  - REQUIRES_APPROVAL
+                  - UNKNOWN
+              outputValidationStatus:
+                type: string
+                enum:
+                  - VALID
+                  - INVALID
+                  - NOT_AVAILABLE
+              evaluationStatus:
+                type: string
+                enum:
+                  - PASSED
+                  - FAILED
+                  - PARTIAL
+                  - NOT_RUN
+              governanceStatus:
+                type: string
+                enum:
+                  - WITHIN_LIMITS
+                  - LIMIT_WARNING
+                  - LIMIT_EXCEEDED
+                  - BLOCKED
+              usageSummary:
+                type: object
+                properties:
+                  providerKey:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                    pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+                  modelId:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  modelCallCount:
+                    type: integer
+                    minimum: 0
+                  toolCallCount:
+                    type: integer
+                    minimum: 0
+                  turnCount:
+                    type: integer
+                    minimum: 0
+                  repairAttemptCount:
+                    type: integer
+                    minimum: 0
+                  approvalCount:
+                    type: integer
+                    minimum: 0
+                  securitySignalCount:
+                    type: integer
+                    minimum: 0
+                  inputTokens:
+                    type: integer
+                    minimum: 0
+                  outputTokens:
+                    type: integer
+                    minimum: 0
+                  cachedInputTokens:
+                    type: integer
+                    minimum: 0
+                  cachedOutputTokens:
+                    type: integer
+                    minimum: 0
+                  durationMs:
+                    type: integer
+                    minimum: 0
+                required:
+                  - providerKey
+                  - modelId
+                  - modelCallCount
+                  - toolCallCount
+                  - turnCount
+                  - repairAttemptCount
+                  - approvalCount
+                  - securitySignalCount
+                  - inputTokens
+                  - outputTokens
+                  - cachedInputTokens
+                  - cachedOutputTokens
+                  - durationMs
+                additionalProperties: false
+              costSummary:
+                type: object
+                properties:
+                  estimatedCostMinor:
+                    type: integer
+                    minimum: 0
+                    nullable: true
+                  currency:
+                    type: string
+                    pattern: ^[A-Z]{3}$
+                    nullable: true
+                  rateCardId:
+                    type: string
+                    maxLength: 64
+                    nullable: true
+                  warningCode:
+                    type: string
+                    maxLength: 120
+                    nullable: true
+                required:
+                  - estimatedCostMinor
+                  - currency
+                  - rateCardId
+                  - warningCode
+                additionalProperties: false
+              evaluationSummary:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - PASSED
+                      - FAILED
+                      - PARTIAL
+                      - NOT_RUN
+                  policyHash:
+                    type: string
+                    maxLength: 128
+                    nullable: true
+                  checks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          minLength: 1
+                          maxLength: 80
+                        status:
+                          type: string
+                          enum:
+                            - PASSED
+                            - FAILED
+                            - SKIPPED
+                        severity:
+                          type: string
+                          enum:
+                            - INFO
+                            - WARNING
+                            - ERROR
+                            - CRITICAL
+                        code:
+                          type: string
+                          maxLength: 120
+                        summary:
+                          type: string
+                          maxLength: 300
+                        evidenceReferenceIds:
+                          type: array
+                          items:
+                            type: string
+                            minLength: 1
+                            maxLength: 128
+                          maxItems: 100
+                      required:
+                        - key
+                        - status
+                        - severity
+                        - evidenceReferenceIds
+                      additionalProperties: false
+                    maxItems: 100
+                required:
+                  - status
+                  - policyHash
+                  - checks
+                additionalProperties: false
+              outputHash:
+                type: string
+                maxLength: 128
+                nullable: true
+              contextHash:
+                type: string
+                maxLength: 128
+                nullable: true
+              evidenceReferenceIds:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                maxItems: 200
+              startedAt:
+                type: string
+                nullable: true
+              completedAt:
+                type: string
+                nullable: true
+              durationMs:
+                type: integer
+                minimum: 0
+              createdAt:
+                type: string
+            required:
+              - id
+              - organizationId
+              - executionRunId
+              - executionStepId
+              - operationId
+              - operationVersionId
+              - agentDefinitionId
+              - agentVersionId
+              - status
+              - outputValidationStatus
+              - evaluationStatus
+              - governanceStatus
+              - usageSummary
+              - costSummary
+              - evaluationSummary
+              - outputHash
+              - contextHash
+              - evidenceReferenceIds
+              - startedAt
+              - completedAt
+              - durationMs
+              - createdAt
+            additionalProperties: false
+        pagination:
+          type: object
+          properties:
+            cursor:
+              type: string
+              nullable: true
+            nextCursor:
+              type: string
+              nullable: true
+            hasNextPage:
+              type: boolean
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 200
+          required:
+            - nextCursor
+            - hasNextPage
+            - limit
+          additionalProperties: false
+      required:
+        - data
+        - pagination
+      additionalProperties: false
+    AgentResultResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            organizationId:
+              type: string
+            executionRunId:
+              type: string
+            executionStepId:
+              type: string
+            operationId:
+              type: string
+            operationVersionId:
+              type: string
+            agentDefinitionId:
+              type: string
+            agentVersionId:
+              type: string
+            status:
+              type: string
+              enum:
+                - SUCCEEDED
+                - FAILED
+                - SUSPENDED
+                - REQUIRES_APPROVAL
+                - UNKNOWN
+            outputValidationStatus:
+              type: string
+              enum:
+                - VALID
+                - INVALID
+                - NOT_AVAILABLE
+            evaluationStatus:
+              type: string
+              enum:
+                - PASSED
+                - FAILED
+                - PARTIAL
+                - NOT_RUN
+            governanceStatus:
+              type: string
+              enum:
+                - WITHIN_LIMITS
+                - LIMIT_WARNING
+                - LIMIT_EXCEEDED
+                - BLOCKED
+            usageSummary:
+              type: object
+              properties:
+                providerKey:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                  pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+                modelId:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                modelCallCount:
+                  type: integer
+                  minimum: 0
+                toolCallCount:
+                  type: integer
+                  minimum: 0
+                turnCount:
+                  type: integer
+                  minimum: 0
+                repairAttemptCount:
+                  type: integer
+                  minimum: 0
+                approvalCount:
+                  type: integer
+                  minimum: 0
+                securitySignalCount:
+                  type: integer
+                  minimum: 0
+                inputTokens:
+                  type: integer
+                  minimum: 0
+                outputTokens:
+                  type: integer
+                  minimum: 0
+                cachedInputTokens:
+                  type: integer
+                  minimum: 0
+                cachedOutputTokens:
+                  type: integer
+                  minimum: 0
+                durationMs:
+                  type: integer
+                  minimum: 0
+              required:
+                - providerKey
+                - modelId
+                - modelCallCount
+                - toolCallCount
+                - turnCount
+                - repairAttemptCount
+                - approvalCount
+                - securitySignalCount
+                - inputTokens
+                - outputTokens
+                - cachedInputTokens
+                - cachedOutputTokens
+                - durationMs
+              additionalProperties: false
+            costSummary:
+              type: object
+              properties:
+                estimatedCostMinor:
+                  type: integer
+                  minimum: 0
+                  nullable: true
+                currency:
+                  type: string
+                  pattern: ^[A-Z]{3}$
+                  nullable: true
+                rateCardId:
+                  type: string
+                  maxLength: 64
+                  nullable: true
+                warningCode:
+                  type: string
+                  maxLength: 120
+                  nullable: true
+              required:
+                - estimatedCostMinor
+                - currency
+                - rateCardId
+                - warningCode
+              additionalProperties: false
+            evaluationSummary:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - PASSED
+                    - FAILED
+                    - PARTIAL
+                    - NOT_RUN
+                policyHash:
+                  type: string
+                  maxLength: 128
+                  nullable: true
+                checks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                        minLength: 1
+                        maxLength: 80
+                      status:
+                        type: string
+                        enum:
+                          - PASSED
+                          - FAILED
+                          - SKIPPED
+                      severity:
+                        type: string
+                        enum:
+                          - INFO
+                          - WARNING
+                          - ERROR
+                          - CRITICAL
+                      code:
+                        type: string
+                        maxLength: 120
+                      summary:
+                        type: string
+                        maxLength: 300
+                      evidenceReferenceIds:
+                        type: array
+                        items:
+                          type: string
+                          minLength: 1
+                          maxLength: 128
+                        maxItems: 100
+                    required:
+                      - key
+                      - status
+                      - severity
+                      - evidenceReferenceIds
+                    additionalProperties: false
+                  maxItems: 100
+              required:
+                - status
+                - policyHash
+                - checks
+              additionalProperties: false
+            outputHash:
+              type: string
+              maxLength: 128
+              nullable: true
+            contextHash:
+              type: string
+              maxLength: 128
+              nullable: true
+            evidenceReferenceIds:
+              type: array
+              items:
+                type: string
+                minLength: 1
+                maxLength: 128
+              maxItems: 200
+            startedAt:
+              type: string
+              nullable: true
+            completedAt:
+              type: string
+              nullable: true
+            durationMs:
+              type: integer
+              minimum: 0
+            createdAt:
+              type: string
+          required:
+            - id
+            - organizationId
+            - executionRunId
+            - executionStepId
+            - operationId
+            - operationVersionId
+            - agentDefinitionId
+            - agentVersionId
+            - status
+            - outputValidationStatus
+            - evaluationStatus
+            - governanceStatus
+            - usageSummary
+            - costSummary
+            - evaluationSummary
+            - outputHash
+            - contextHash
+            - evidenceReferenceIds
+            - startedAt
+            - completedAt
+            - durationMs
+            - createdAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    AgentUsageQuery:
+      type: object
+      properties:
+        periodFrom:
+          type: string
+        periodTo:
+          type: string
+        groupBy:
+          type: string
+          enum:
+            - ORGANIZATION
+            - OPERATION
+            - OPERATION_VERSION
+            - AGENT_DEFINITION
+            - AGENT_VERSION
+            - MODEL_CONFIGURATION
+            - PROVIDER
+            - MODEL
+          default: ORGANIZATION
+        agentDefinitionId:
+          type: string
+          format: uuid
+        operationId:
+          type: string
+          format: uuid
+        providerKey:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        modelId:
+          type: string
+          minLength: 1
+          maxLength: 200
+      additionalProperties: false
+    AgentUsageResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              dimensionType:
+                type: string
+                enum:
+                  - ORGANIZATION
+                  - OPERATION
+                  - OPERATION_VERSION
+                  - AGENT_DEFINITION
+                  - AGENT_VERSION
+                  - MODEL_CONFIGURATION
+                  - PROVIDER
+                  - MODEL
+              dimensionId:
+                type: string
+              periodDate:
+                type: string
+              providerKey:
+                type: string
+                minLength: 1
+                maxLength: 80
+                pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+              modelId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              currency:
+                type: string
+                pattern: ^[A-Z]{3}$
+              executionCount:
+                type: integer
+                minimum: 0
+              succeededCount:
+                type: integer
+                minimum: 0
+              failedCount:
+                type: integer
+                minimum: 0
+              suspendedCount:
+                type: integer
+                minimum: 0
+              unknownCount:
+                type: integer
+                minimum: 0
+              modelCallCount:
+                type: integer
+                minimum: 0
+              toolCallCount:
+                type: integer
+                minimum: 0
+              inputTokens:
+                type: integer
+                minimum: 0
+              outputTokens:
+                type: integer
+                minimum: 0
+              estimatedCostMinor:
+                type: integer
+                minimum: 0
+              durationMs:
+                type: integer
+                minimum: 0
+              approvalCount:
+                type: integer
+                minimum: 0
+              criticalSignalCount:
+                type: integer
+                minimum: 0
+            required:
+              - dimensionType
+              - dimensionId
+              - periodDate
+              - providerKey
+              - modelId
+              - currency
+              - executionCount
+              - succeededCount
+              - failedCount
+              - suspendedCount
+              - unknownCount
+              - modelCallCount
+              - toolCallCount
+              - inputTokens
+              - outputTokens
+              - estimatedCostMinor
+              - durationMs
+              - approvalCount
+              - criticalSignalCount
+            additionalProperties: false
+        meta:
+          type: object
+          properties:
+            groupBy:
+              type: string
+              enum:
+                - ORGANIZATION
+                - OPERATION
+                - OPERATION_VERSION
+                - AGENT_DEFINITION
+                - AGENT_VERSION
+                - MODEL_CONFIGURATION
+                - PROVIDER
+                - MODEL
+            periodFrom:
+              type: string
+              nullable: true
+            periodTo:
+              type: string
+              nullable: true
+          required:
+            - groupBy
+            - periodFrom
+            - periodTo
+          additionalProperties: false
+      required:
+        - data
+        - meta
+      additionalProperties: false
+    ExecutionAgentUsageResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            executionRunId:
+              type: string
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  organizationId:
+                    type: string
+                  executionRunId:
+                    type: string
+                  executionStepId:
+                    type: string
+                  operationId:
+                    type: string
+                  operationVersionId:
+                    type: string
+                  agentDefinitionId:
+                    type: string
+                  agentVersionId:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                      - SUCCEEDED
+                      - FAILED
+                      - SUSPENDED
+                      - REQUIRES_APPROVAL
+                      - UNKNOWN
+                  outputValidationStatus:
+                    type: string
+                    enum:
+                      - VALID
+                      - INVALID
+                      - NOT_AVAILABLE
+                  evaluationStatus:
+                    type: string
+                    enum:
+                      - PASSED
+                      - FAILED
+                      - PARTIAL
+                      - NOT_RUN
+                  governanceStatus:
+                    type: string
+                    enum:
+                      - WITHIN_LIMITS
+                      - LIMIT_WARNING
+                      - LIMIT_EXCEEDED
+                      - BLOCKED
+                  usageSummary:
+                    type: object
+                    properties:
+                      providerKey:
+                        type: string
+                        minLength: 1
+                        maxLength: 80
+                        pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+                      modelId:
+                        type: string
+                        minLength: 1
+                        maxLength: 200
+                      modelCallCount:
+                        type: integer
+                        minimum: 0
+                      toolCallCount:
+                        type: integer
+                        minimum: 0
+                      turnCount:
+                        type: integer
+                        minimum: 0
+                      repairAttemptCount:
+                        type: integer
+                        minimum: 0
+                      approvalCount:
+                        type: integer
+                        minimum: 0
+                      securitySignalCount:
+                        type: integer
+                        minimum: 0
+                      inputTokens:
+                        type: integer
+                        minimum: 0
+                      outputTokens:
+                        type: integer
+                        minimum: 0
+                      cachedInputTokens:
+                        type: integer
+                        minimum: 0
+                      cachedOutputTokens:
+                        type: integer
+                        minimum: 0
+                      durationMs:
+                        type: integer
+                        minimum: 0
+                    required:
+                      - providerKey
+                      - modelId
+                      - modelCallCount
+                      - toolCallCount
+                      - turnCount
+                      - repairAttemptCount
+                      - approvalCount
+                      - securitySignalCount
+                      - inputTokens
+                      - outputTokens
+                      - cachedInputTokens
+                      - cachedOutputTokens
+                      - durationMs
+                    additionalProperties: false
+                  costSummary:
+                    type: object
+                    properties:
+                      estimatedCostMinor:
+                        type: integer
+                        minimum: 0
+                        nullable: true
+                      currency:
+                        type: string
+                        pattern: ^[A-Z]{3}$
+                        nullable: true
+                      rateCardId:
+                        type: string
+                        maxLength: 64
+                        nullable: true
+                      warningCode:
+                        type: string
+                        maxLength: 120
+                        nullable: true
+                    required:
+                      - estimatedCostMinor
+                      - currency
+                      - rateCardId
+                      - warningCode
+                    additionalProperties: false
+                  evaluationSummary:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - PASSED
+                          - FAILED
+                          - PARTIAL
+                          - NOT_RUN
+                      policyHash:
+                        type: string
+                        maxLength: 128
+                        nullable: true
+                      checks:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                              minLength: 1
+                              maxLength: 80
+                            status:
+                              type: string
+                              enum:
+                                - PASSED
+                                - FAILED
+                                - SKIPPED
+                            severity:
+                              type: string
+                              enum:
+                                - INFO
+                                - WARNING
+                                - ERROR
+                                - CRITICAL
+                            code:
+                              type: string
+                              maxLength: 120
+                            summary:
+                              type: string
+                              maxLength: 300
+                            evidenceReferenceIds:
+                              type: array
+                              items:
+                                type: string
+                                minLength: 1
+                                maxLength: 128
+                              maxItems: 100
+                          required:
+                            - key
+                            - status
+                            - severity
+                            - evidenceReferenceIds
+                          additionalProperties: false
+                        maxItems: 100
+                    required:
+                      - status
+                      - policyHash
+                      - checks
+                    additionalProperties: false
+                  outputHash:
+                    type: string
+                    maxLength: 128
+                    nullable: true
+                  contextHash:
+                    type: string
+                    maxLength: 128
+                    nullable: true
+                  evidenceReferenceIds:
+                    type: array
+                    items:
+                      type: string
+                      minLength: 1
+                      maxLength: 128
+                    maxItems: 200
+                  startedAt:
+                    type: string
+                    nullable: true
+                  completedAt:
+                    type: string
+                    nullable: true
+                  durationMs:
+                    type: integer
+                    minimum: 0
+                  createdAt:
+                    type: string
+                required:
+                  - id
+                  - organizationId
+                  - executionRunId
+                  - executionStepId
+                  - operationId
+                  - operationVersionId
+                  - agentDefinitionId
+                  - agentVersionId
+                  - status
+                  - outputValidationStatus
+                  - evaluationStatus
+                  - governanceStatus
+                  - usageSummary
+                  - costSummary
+                  - evaluationSummary
+                  - outputHash
+                  - contextHash
+                  - evidenceReferenceIds
+                  - startedAt
+                  - completedAt
+                  - durationMs
+                  - createdAt
+                additionalProperties: false
+          required:
+            - executionRunId
+            - results
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
       additionalProperties: false

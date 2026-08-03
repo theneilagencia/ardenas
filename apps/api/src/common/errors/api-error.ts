@@ -269,3 +269,11 @@ export const agentContextSourceInvalid = (message = 'Conteúdo de fonte de conte
   new ApiException('AGENT_CONTEXT_SOURCE_INVALID', { message });
 export const agentContextBudgetExceeded = (message = 'Orçamento de contexto excedido após alocação e truncamento.') =>
   new ApiException('AGENT_CONTEXT_BUDGET_EXCEEDED', { message });
+
+// ── Resultado operacional e governança (ARDEN-BE-007.6) ──────────────────────────
+export const agentResultNotFound = (message = 'Resultado operacional de agente não encontrado.') =>
+  new ApiException('AGENT_RESULT_NOT_FOUND', { message });
+export const agentGovernanceBlocked = (message = 'Execução bloqueada pela governança operacional.') =>
+  new ApiException('AGENT_GOVERNANCE_BLOCKED', { message });
+export const agentUsageInvalid = (message = 'Consumo de agente inconsistente.') =>
+  new ApiException('AGENT_USAGE_INVALID', { message });

@@ -15,3 +15,6 @@ export * from './agent-definition.schema';
 export * from './agent-version.schema';
 export * from './agent-runtime.interfaces';
 export * from './agents.contract';
+export * from './agent-operational-result.schema';
+export * from './model-rate-card-catalog';
+export * from './agent-results.contract';
