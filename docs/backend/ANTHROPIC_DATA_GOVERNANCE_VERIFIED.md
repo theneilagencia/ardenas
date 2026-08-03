@@ -1,8 +1,14 @@
-# Governança de dados Anthropic — verificado (ARDEN-BE-008.1)
+# Governança de dados Anthropic — verificado (ARDEN-BE-008.1 · re-gate 008.2A)
 
 > O que a Arden controla (lado nosso, verificável) vs. o que depende da Anthropic (docs sob
 > 403 → **UNVERIFIED**). Provider `anthropic.direct` v`1`. Fonte de fatos:
 > `ANTHROPIC_OFFICIAL_SOURCE_REGISTER.md`. Nenhuma política é afirmada de memória.
+>
+> **Atualização 008.2A (2026-08-03):** o gate de verificação oficial bloqueante foi reexecutado
+> (privacy/legal/trust/docs oficiais) e **todas as páginas de governança retornaram 403**
+> (Cloudflare). `DATA_GOVERNANCE_STATUS = UNVERIFIED` em requisitos bloqueantes — confirmado, não
+> promovido. Ver `../implementation/ARDEN_BE_008_EXTERNAL_VERIFICATION_GATE.md` para o log de
+> tentativas. Nenhum item abaixo mudou de status.
 
 ## 1. O que É enviado ao provider (controle da Arden)
 

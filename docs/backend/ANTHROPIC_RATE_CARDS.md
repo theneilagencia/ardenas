@@ -34,16 +34,19 @@ tokens. Centavos-por-milhão (`BigInt`, minor units do BE-007.6) já representam
 perda — **não há necessidade de alterar o contrato de unidade** (nada de micro-unidades ou
 decimais). Mantém-se o padrão `model_rate_cards` existente.
 
-## 3. Preços — UNVERIFIED nesta fase (PENDING_DIRECT)
+## 3. Preços — UNVERIFIED (re-confirmado no gate 008.2A)
 
-Nenhum preço é autoritativo agora: a busca restrita a `anthropic.com` retornou a página de
-pricing mas **não pôde ser lida diretamente** (403), e o resumo misturou o mapeamento por
-família. Portanto:
+Nenhum preço é autoritativo. No gate 008.2A (2026-08-03) as páginas oficiais de pricing
+(`docs.anthropic.com/.../pricing`, `www.anthropic.com/pricing`) foram tentadas de novo e
+retornaram **403 (Cloudflare)** — ver `../implementation/ARDEN_BE_008_EXTERNAL_VERIFICATION_GATE.md`.
+**PRICING_STATUS = UNVERIFIED.** Portanto:
 
-- os campos de custo ficam **vazios/UNVERIFIED** — não baker preço de memória;
-- serão preenchidos em **008.2**, após leitura direta da tabela oficial, com `sourceUrl` +
-  `sourceAccessedAt` registrados;
-- `currency` também confirmada na leitura direta.
+- os campos de custo ficam **vazios/UNVERIFIED** — não bakear preço de memória nem por família;
+- o **catálogo persistido de rate cards Anthropic permanece VAZIO** (nenhuma linha em
+  `model_rate_cards` para `anthropic.direct`); nenhum placeholder `0 USD`;
+- serão preenchidos em fase futura, após leitura direta da tabela oficial, com `sourceUrl` +
+  `sourceAccessedAt` + vigência + `catalogHash` registrados;
+- `currency` também só é fixada na leitura direta.
 
 ## 4. Resolução e ausência
 

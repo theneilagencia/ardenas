@@ -84,6 +84,14 @@ modelo; limites de rate específicos; retenção de dados; uso de dados para tre
 zero-data-retention; regiões/data residency; DPA; sub-processadores; políticas enterprise.
 Nenhum destes é afirmado como atendido. Ver `ANTHROPIC_DATA_GOVERNANCE_VERIFIED.md`.
 
+## Re-gate 008.2A (2026-08-03) — verificação oficial bloqueante reexecutada
+
+Tentativas legítimas adicionais às páginas oficiais de preço e governança, todas **403
+(Cloudflare)**, exceto o README do SDK no GitHub (200, sem preço/governança). Log completo em
+`../implementation/ARDEN_BE_008_EXTERNAL_VERIFICATION_GATE.md`. Resultado:
+**PRICING_STATUS = UNVERIFIED**, **DATA_GOVERNANCE_STATUS = UNVERIFIED** (bloqueante). Nenhum
+preço/retenção promovido; rate cards permanecem vazios; provider permanece `DISABLED`.
+
 ## Fontes NÃO usadas como decisão
 
 Blogs, agregadores, Stack Overflow, Reddit, tutoriais, posts de terceiros, snippets não
