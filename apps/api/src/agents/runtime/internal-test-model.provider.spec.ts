@@ -38,7 +38,8 @@ describe('InternalTestModelProvider', () => {
   it('allowlist de modelIds', () => {
     expect(isInternalTestModelId('test/structured-success')).toBe(true);
     expect(isInternalTestModelId('gpt-4')).toBe(false);
-    expect(INTERNAL_TEST_MODEL_IDS.length).toBe(8);
+    expect(INTERNAL_TEST_MODEL_IDS.length).toBe(18);
+    expect(isInternalTestModelId('test/tool-read-success')).toBe(true);
   });
 
   it('success → structured output válido + usage determinística', async () => {

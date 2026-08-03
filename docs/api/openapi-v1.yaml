@@ -11822,6 +11822,9 @@ components:
                           - connector.test.echo
                           - connector.test.failure
                           - connector.test.timeout
+                          - connector.test.write
+                          - connector.test.unknown
+                          - connector.test.inject
                     required:
                       - alias
                       - actionKey
@@ -12108,6 +12111,9 @@ components:
                           - connector.test.echo
                           - connector.test.failure
                           - connector.test.timeout
+                          - connector.test.write
+                          - connector.test.unknown
+                          - connector.test.inject
                     required:
                       - alias
                       - actionKey
@@ -12310,6 +12316,9 @@ components:
                               - connector.test.echo
                               - connector.test.failure
                               - connector.test.timeout
+                              - connector.test.write
+                              - connector.test.unknown
+                              - connector.test.inject
                         required:
                           - alias
                           - actionKey
@@ -12813,6 +12822,9 @@ components:
                               - connector.test.echo
                               - connector.test.failure
                               - connector.test.timeout
+                              - connector.test.write
+                              - connector.test.unknown
+                              - connector.test.inject
                         required:
                           - alias
                           - actionKey
@@ -13122,6 +13134,9 @@ components:
                                 - connector.test.echo
                                 - connector.test.failure
                                 - connector.test.timeout
+                                - connector.test.write
+                                - connector.test.unknown
+                                - connector.test.inject
                           required:
                             - alias
                             - actionKey
@@ -13450,6 +13465,9 @@ components:
                                   - connector.test.echo
                                   - connector.test.failure
                                   - connector.test.timeout
+                                  - connector.test.write
+                                  - connector.test.unknown
+                                  - connector.test.inject
                             required:
                               - alias
                               - actionKey
@@ -20243,6 +20261,9 @@ components:
             - connector.test.echo
             - connector.test.failure
             - connector.test.timeout
+            - connector.test.write
+            - connector.test.unknown
+            - connector.test.inject
         inputSchema:
           type: object
           additionalProperties: {}
@@ -20667,6 +20688,9 @@ components:
                   - connector.test.echo
                   - connector.test.failure
                   - connector.test.timeout
+                  - connector.test.write
+                  - connector.test.unknown
+                  - connector.test.inject
               inputSchema:
                 type: object
                 additionalProperties: {}
@@ -22223,6 +22247,9 @@ components:
               - connector.test.echo
               - connector.test.failure
               - connector.test.timeout
+              - connector.test.write
+              - connector.test.unknown
+              - connector.test.inject
           minItems: 1
           maxItems: 20
         inputMapping:
@@ -22305,6 +22332,9 @@ components:
                   - connector.test.echo
                   - connector.test.failure
                   - connector.test.timeout
+                  - connector.test.write
+                  - connector.test.unknown
+                  - connector.test.inject
               minItems: 1
               maxItems: 20
             inputMapping:
@@ -22395,6 +22425,9 @@ components:
                     - connector.test.echo
                     - connector.test.failure
                     - connector.test.timeout
+                    - connector.test.write
+                    - connector.test.unknown
+                    - connector.test.inject
                 minItems: 1
                 maxItems: 20
               inputMapping:
@@ -22465,6 +22498,9 @@ components:
               - connector.test.echo
               - connector.test.failure
               - connector.test.timeout
+              - connector.test.write
+              - connector.test.unknown
+              - connector.test.inject
           minItems: 1
           maxItems: 20
         inputMapping:
@@ -22497,6 +22533,9 @@ components:
               - connector.test.echo
               - connector.test.failure
               - connector.test.timeout
+              - connector.test.write
+              - connector.test.unknown
+              - connector.test.inject
           minItems: 1
           maxItems: 20
         inputMapping:

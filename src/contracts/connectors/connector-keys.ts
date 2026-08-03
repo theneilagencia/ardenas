@@ -35,6 +35,9 @@ export const externalActionKey = z.enum([
   'connector.test.echo',
   'connector.test.failure',
   'connector.test.timeout',
+  'connector.test.write',
+  'connector.test.unknown',
+  'connector.test.inject',
 ]);
 export type ExternalActionKey = z.infer<typeof externalActionKey>;
 
