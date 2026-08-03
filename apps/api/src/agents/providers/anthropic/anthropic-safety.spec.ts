@@ -59,19 +59,21 @@ describe('Anthropic — guard de dependências (só o SDK oficial fixado é perm
   });
 });
 
-describe('Anthropic — guard de rede (adapter puro, sem chamada real)', () => {
-  it('nenhum arquivo do adapter faz fetch/http/axios nem importa SDK', () => {
+describe('Anthropic — guard de rede (fora da borda do SDK: sem fetch/http/axios/SDK)', () => {
+  it('nenhum arquivo do TOPO do adapter faz fetch/http/axios nem importa SDK', () => {
+    // `readDirTs(HERE)` é NÃO recursivo: o SDK real vive só em sdk/ (não varrido aqui).
     const files = readDirTs(HERE);
     const joined = files.join('\n');
     expect(/\bfetch\s*\(/.test(joined)).toBe(false);
     expect(/from ['"](node:)?https?['"]/.test(joined)).toBe(false);
     expect(/require\(['"](node:)?https?['"]\)/.test(joined)).toBe(false);
     expect(/from ['"]axios['"]/.test(joined)).toBe(false);
-    expect(/@anthropic-ai\/sdk/.test(joined)).toBe(false);
+    expect(/@anthropic-ai\/sdk/.test(joined)).toBe(false); // SDK só na borda sdk/.
   });
-  it('adapter NÃO expõe um provider executável (sem client HTTP/SDK)', () => {
+  it('provider persistido permanece DISABLED (executável só sob feature gate, ARDEN-BE-008.3)', () => {
+    // O adapter agora TEM um provider executável (anthropic-model-provider.ts), mas o
+    // provider persistido/canônico continua DISABLED — a execução exige gate + override de teste.
     const names = readdirSync(HERE);
-    expect(names).not.toContain('anthropic-model-provider.ts');
     expect(names).not.toContain('anthropic-http-client.ts');
     expect(names).not.toContain('anthropic-sdk-client.ts');
     expect(ANTHROPIC_PROVIDER_DEFINITION_CONTRACT.status).toBe('DISABLED');
