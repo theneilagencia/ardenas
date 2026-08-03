@@ -9,6 +9,27 @@
 
 import type { ApiClient } from '../api-client';
 import type {
+  AgentDefinition,
+  CreateAgentRequest,
+  UpdateAgentRequest,
+  AgentCommandRequest,
+  ListAgentsQuery,
+  AgentVersion,
+  CreateAgentVersionRequest,
+  UpdateAgentVersionRequest,
+  PublishAgentVersionRequest,
+  RetireAgentVersionRequest,
+  ListAgentVersionsQuery,
+  ModelProviderDefinition,
+  ModelConfiguration,
+  CreateModelConfigurationRequest,
+  UpdateModelConfigurationRequest,
+  ModelConfigurationCommandRequest,
+  ListModelConfigurationsQuery,
+  AgentOperationalResult,
+  AgentUsageBucket,
+  ListAgentResultsQuery,
+  AgentUsageQuery,
   AuditEvent,
   ListAuditEventsQuery,
   ListOperationsQuery,
@@ -462,5 +483,93 @@ export class ApiV1HttpClient implements ArdenApiV1Client {
   }
   revokeWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
     return this.send<WebhookEndpoint>('POST', `${this.base(organizationId)}/webhook-endpoints/${webhookEndpointId}/revoke`, body, opts);
+  }
+
+  // ── Agentes: definições (ARDEN-BE-007.1) ─────────────────────────────────────
+  listAgents(organizationId: string, q: ListAgentsQuery, opts?: CallOptions) {
+    return this.list<AgentDefinition>(`${this.base(organizationId)}/agents${query(q as Record<string, unknown>)}`, opts);
+  }
+  getAgent(organizationId: string, agentId: string, opts?: CallOptions) {
+    return this.get<AgentDefinition>(`${this.base(organizationId)}/agents/${agentId}`, opts);
+  }
+  createAgent(organizationId: string, body: CreateAgentRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<AgentDefinition>('POST', `${this.base(organizationId)}/agents`, body, opts);
+  }
+  updateAgent(organizationId: string, agentId: string, body: UpdateAgentRequest, opts?: CallOptions) {
+    return this.send<AgentDefinition>('PATCH', `${this.base(organizationId)}/agents/${agentId}`, body, opts);
+  }
+  suspendAgent(organizationId: string, agentId: string, body: AgentCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<AgentDefinition>('POST', `${this.base(organizationId)}/agents/${agentId}/suspend`, body, opts);
+  }
+  reactivateAgent(organizationId: string, agentId: string, body: AgentCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<AgentDefinition>('POST', `${this.base(organizationId)}/agents/${agentId}/reactivate`, body, opts);
+  }
+  revokeAgent(organizationId: string, agentId: string, body: AgentCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<AgentDefinition>('POST', `${this.base(organizationId)}/agents/${agentId}/revoke`, body, opts);
+  }
+
+  // ── Agentes: versões ─────────────────────────────────────────────────────────
+  listAgentVersions(organizationId: string, agentId: string, q: ListAgentVersionsQuery, opts?: CallOptions) {
+    return this.list<AgentVersion>(`${this.base(organizationId)}/agents/${agentId}/versions${query(q as Record<string, unknown>)}`, opts);
+  }
+  getAgentVersion(organizationId: string, agentId: string, agentVersionId: string, opts?: CallOptions) {
+    return this.get<AgentVersion>(`${this.base(organizationId)}/agents/${agentId}/versions/${agentVersionId}`, opts);
+  }
+  createAgentVersion(organizationId: string, agentId: string, body: CreateAgentVersionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<AgentVersion>('POST', `${this.base(organizationId)}/agents/${agentId}/versions`, body, opts);
+  }
+  updateAgentVersion(organizationId: string, agentId: string, agentVersionId: string, body: UpdateAgentVersionRequest, opts?: CallOptions) {
+    return this.send<AgentVersion>('PATCH', `${this.base(organizationId)}/agents/${agentId}/versions/${agentVersionId}`, body, opts);
+  }
+  publishAgentVersion(organizationId: string, agentId: string, agentVersionId: string, body: PublishAgentVersionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<AgentVersion>('POST', `${this.base(organizationId)}/agents/${agentId}/versions/${agentVersionId}/publish`, body, opts);
+  }
+  retireAgentVersion(organizationId: string, agentId: string, agentVersionId: string, body: RetireAgentVersionRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<AgentVersion>('POST', `${this.base(organizationId)}/agents/${agentId}/versions/${agentVersionId}/retire`, body, opts);
+  }
+
+  // ── Providers de modelo (público, não tenant-scoped) ─────────────────────────
+  listModelProviders(opts?: CallOptions) {
+    return this.get<ModelProviderDefinition[]>('/model-providers', opts);
+  }
+  getModelProvider(providerKey: string, opts?: CallOptions) {
+    return this.get<ModelProviderDefinition>(`/model-providers/${providerKey}`, opts);
+  }
+
+  // ── Configurações de modelo (tenant-scoped) ──────────────────────────────────
+  listModelConfigurations(organizationId: string, q: ListModelConfigurationsQuery, opts?: CallOptions) {
+    return this.list<ModelConfiguration>(`${this.base(organizationId)}/model-configurations${query(q as Record<string, unknown>)}`, opts);
+  }
+  getModelConfiguration(organizationId: string, configurationId: string, opts?: CallOptions) {
+    return this.get<ModelConfiguration>(`${this.base(organizationId)}/model-configurations/${configurationId}`, opts);
+  }
+  createModelConfiguration(organizationId: string, body: CreateModelConfigurationRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ModelConfiguration>('POST', `${this.base(organizationId)}/model-configurations`, body, opts);
+  }
+  updateModelConfiguration(organizationId: string, configurationId: string, body: UpdateModelConfigurationRequest, opts?: CallOptions) {
+    return this.send<ModelConfiguration>('PATCH', `${this.base(organizationId)}/model-configurations/${configurationId}`, body, opts);
+  }
+  activateModelConfiguration(organizationId: string, configurationId: string, body: ModelConfigurationCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ModelConfiguration>('POST', `${this.base(organizationId)}/model-configurations/${configurationId}/activate`, body, opts);
+  }
+  suspendModelConfiguration(organizationId: string, configurationId: string, body: ModelConfigurationCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ModelConfiguration>('POST', `${this.base(organizationId)}/model-configurations/${configurationId}/suspend`, body, opts);
+  }
+  revokeModelConfiguration(organizationId: string, configurationId: string, body: ModelConfigurationCommandRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<ModelConfiguration>('POST', `${this.base(organizationId)}/model-configurations/${configurationId}/revoke`, body, opts);
+  }
+
+  // ── Resultados operacionais + uso (ARDEN-BE-007.6, somente leitura) ───────────
+  listAgentResults(organizationId: string, q: ListAgentResultsQuery, opts?: CallOptions) {
+    return this.list<AgentOperationalResult>(`${this.base(organizationId)}/agent-execution-results${query(q as Record<string, unknown>)}`, opts);
+  }
+  getAgentResult(organizationId: string, resultId: string, opts?: CallOptions) {
+    return this.get<AgentOperationalResult>(`${this.base(organizationId)}/agent-execution-results/${resultId}`, opts);
+  }
+  getAgentUsage(organizationId: string, q: AgentUsageQuery, opts?: CallOptions) {
+    return this.get<AgentUsageBucket[]>(`${this.base(organizationId)}/agent-usage${query(q as Record<string, unknown>)}`, opts);
+  }
+  getExecutionAgentUsage(organizationId: string, executionRunId: string, opts?: CallOptions) {
+    return this.get<{ executionRunId: string; results: AgentOperationalResult[] }>(`${this.base(organizationId)}/executions/${executionRunId}/agent-usage`, opts);
   }
 }

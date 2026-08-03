@@ -9,6 +9,27 @@
  */
 
 import type {
+  AgentDefinition,
+  CreateAgentRequest,
+  UpdateAgentRequest,
+  AgentCommandRequest,
+  ListAgentsQuery,
+  AgentVersion,
+  CreateAgentVersionRequest,
+  UpdateAgentVersionRequest,
+  PublishAgentVersionRequest,
+  RetireAgentVersionRequest,
+  ListAgentVersionsQuery,
+  ModelProviderDefinition,
+  ModelConfiguration,
+  CreateModelConfigurationRequest,
+  UpdateModelConfigurationRequest,
+  ModelConfigurationCommandRequest,
+  ListModelConfigurationsQuery,
+  AgentOperationalResult,
+  AgentUsageBucket,
+  ListAgentResultsQuery,
+  AgentUsageQuery,
   AuditEvent,
   ListAuditEventsQuery,
   ListOperationsQuery,
@@ -331,8 +352,39 @@ export interface ArdenApiV1Client {
   reactivateWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
   revokeWebhookEndpoint(organizationId: string, webhookEndpointId: string, body: WebhookCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<WebhookEndpoint>;
 
-  // Agentes/modelos (ARDEN-BE-007): APIs administrativas contratadas em OpenAPI. As
-  // assinaturas tipadas do cliente serão adicionadas na fase que implementar o
-  // transporte/persistência (007.2+) — evita métodos mortos contra endpoints ainda
-  // inexistentes e mantém o cliente funcional inalterado nesta fase de contratos.
+  // ── Agentes: definições (ARDEN-BE-007.1) ────────────────────────────────────
+  listAgents(organizationId: string, query: ListAgentsQuery, opts?: CallOptions): Promise<ClientPage<AgentDefinition>>;
+  getAgent(organizationId: string, agentId: string, opts?: CallOptions): Promise<AgentDefinition>;
+  createAgent(organizationId: string, body: CreateAgentRequest, opts: CallOptions & { idempotencyKey: string }): Promise<AgentDefinition>;
+  updateAgent(organizationId: string, agentId: string, body: UpdateAgentRequest, opts?: CallOptions): Promise<AgentDefinition>;
+  suspendAgent(organizationId: string, agentId: string, body: AgentCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<AgentDefinition>;
+  reactivateAgent(organizationId: string, agentId: string, body: AgentCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<AgentDefinition>;
+  revokeAgent(organizationId: string, agentId: string, body: AgentCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<AgentDefinition>;
+
+  // ── Agentes: versões (DRAFT→PUBLISHED→RETIRED) ──────────────────────────────
+  listAgentVersions(organizationId: string, agentId: string, query: ListAgentVersionsQuery, opts?: CallOptions): Promise<ClientPage<AgentVersion>>;
+  getAgentVersion(organizationId: string, agentId: string, agentVersionId: string, opts?: CallOptions): Promise<AgentVersion>;
+  createAgentVersion(organizationId: string, agentId: string, body: CreateAgentVersionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<AgentVersion>;
+  updateAgentVersion(organizationId: string, agentId: string, agentVersionId: string, body: UpdateAgentVersionRequest, opts?: CallOptions): Promise<AgentVersion>;
+  publishAgentVersion(organizationId: string, agentId: string, agentVersionId: string, body: PublishAgentVersionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<AgentVersion>;
+  retireAgentVersion(organizationId: string, agentId: string, agentVersionId: string, body: RetireAgentVersionRequest, opts: CallOptions & { idempotencyKey: string }): Promise<AgentVersion>;
+
+  // ── Providers de modelo (público, não tenant-scoped) ────────────────────────
+  listModelProviders(opts?: CallOptions): Promise<ModelProviderDefinition[]>;
+  getModelProvider(providerKey: string, opts?: CallOptions): Promise<ModelProviderDefinition>;
+
+  // ── Configurações de modelo (tenant-scoped) ─────────────────────────────────
+  listModelConfigurations(organizationId: string, query: ListModelConfigurationsQuery, opts?: CallOptions): Promise<ClientPage<ModelConfiguration>>;
+  getModelConfiguration(organizationId: string, configurationId: string, opts?: CallOptions): Promise<ModelConfiguration>;
+  createModelConfiguration(organizationId: string, body: CreateModelConfigurationRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ModelConfiguration>;
+  updateModelConfiguration(organizationId: string, configurationId: string, body: UpdateModelConfigurationRequest, opts?: CallOptions): Promise<ModelConfiguration>;
+  activateModelConfiguration(organizationId: string, configurationId: string, body: ModelConfigurationCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ModelConfiguration>;
+  suspendModelConfiguration(organizationId: string, configurationId: string, body: ModelConfigurationCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ModelConfiguration>;
+  revokeModelConfiguration(organizationId: string, configurationId: string, body: ModelConfigurationCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ModelConfiguration>;
+
+  // ── Resultados operacionais + uso (ARDEN-BE-007.6, somente leitura) ──────────
+  listAgentResults(organizationId: string, query: ListAgentResultsQuery, opts?: CallOptions): Promise<ClientPage<AgentOperationalResult>>;
+  getAgentResult(organizationId: string, resultId: string, opts?: CallOptions): Promise<AgentOperationalResult>;
+  getAgentUsage(organizationId: string, query: AgentUsageQuery, opts?: CallOptions): Promise<AgentUsageBucket[]>;
+  getExecutionAgentUsage(organizationId: string, executionRunId: string, opts?: CallOptions): Promise<{ executionRunId: string; results: AgentOperationalResult[] }>;
 }

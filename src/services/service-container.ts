@@ -29,6 +29,8 @@ import { SnapshotFilesRepository } from './repositories/files-snapshot';
 import { ApiFilesRepository } from './repositories/files-api';
 import { createApiV1ConnectorsRepository } from './api/v1-connectors-repository';
 import { createUnavailableConnectorsRepository } from './repositories/connectors-unavailable';
+import { createApiV1AgentsRepository } from './api/v1-agents-repository';
+import { createUnavailableAgentsRepository } from './repositories/agents-unavailable';
 
 export type ProviderKind = 'mock' | 'indexeddb' | 'api';
 
@@ -93,6 +95,8 @@ export function getServices(): ArdenServices {
       files: new ApiFilesRepository(client),
       // Conectores/conexões/credenciais/vínculos/webhooks (ARDEN-BE-006.8).
       connectors: createApiV1ConnectorsRepository(v1),
+      // Agentes/modelos/resultados/uso (ARDEN-BE-007) — API v1 é a fonte de verdade.
+      agents: createApiV1AgentsRepository(v1),
     };
   } else {
     const store = getSnapshotStore();
@@ -103,6 +107,8 @@ export function getServices(): ArdenServices {
       files: new SnapshotFilesRepository(store),
       // Integrações são API-only: sem fallback local, mas sem quebrar o app.
       connectors: createUnavailableConnectorsRepository(),
+      // Agentes são API-only: sem fallback local, mas sem quebrar o app.
+      agents: createUnavailableAgentsRepository(),
     };
   }
   return services;
