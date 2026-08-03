@@ -28,7 +28,7 @@ import { AgentToolExecutor } from './tools/agent-tool-executor';
 import { AgentToolApprovalService } from './tools/agent-tool-approval.service';
 import { AgentRuntimeCheckpointRepository, type CompletedToolCallMap } from './tools/agent-runtime-checkpoint.repository';
 import type { ResolvedAgentToolDefinition, AgentToolCallHistoryEntry } from './tools/agent-tool.types';
-import type { AgentRuntime, AgentRuntimeExecutionInput, AgentRuntimeOutcome, AgentLifecycleEvent, ResolvedAgentRuntime } from './agent-runtime.types';
+import type { AgentRuntime, AgentRuntimeExecutionInput, AgentRuntimeOutcome, AgentLifecycleEvent, ResolvedAgentRuntime, AgentModelCallRecord, AgentToolCallRecord } from './agent-runtime.types';
 
 function addUsage(a: AgentUsage, b: ModelGenerationResult['usage']): AgentUsage {
   return {
@@ -89,11 +89,13 @@ export class AgentRuntimeService implements AgentRuntime {
           { action: 'agent.execution_started', outcome: 'SUCCESS', metadata: { agentVersionId: input.agentVersionId } },
           { action: 'agent.execution_failed', outcome: 'FAILURE', metadata: { errorCode: code } },
         ],
+        modelCalls: [],
+        toolCalls: [],
       };
     }
 
     let usage = zeroAgentUsage(resolved.providerKey, resolved.modelId);
-    const base: RuntimeBase = { resolved, events, push, input };
+    const base: RuntimeBase = { resolved, events, push, input, modelCalls: [], toolCalls: [] };
 
     // §7.19 + §16: valida input contra inputSchema.
     const inputViolations = validateAgainstSchema(input.input, resolved.inputSchema);
@@ -173,6 +175,7 @@ export class AgentRuntimeService implements AgentRuntime {
     let toolCallCount = cp?.toolCallCount ?? 0;
     let turnCount = 0;
     let repairAttemptCount = 0;
+    let modelCallPurpose: AgentModelCallRecord['purpose'] = 'PRIMARY';
     let lastValidationErrors: { path: string; code: string; message: string }[] | undefined;
 
     for (;;) {
@@ -188,9 +191,12 @@ export class AgentRuntimeService implements AgentRuntime {
       try {
         result = await provider.generate(request);
       } catch (err) {
+        base.modelCalls.push({ callIndex: base.modelCalls.length, purpose: modelCallPurpose, status: 'FAILED', finishReason: null, inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, cachedOutputTokens: 0, durationMs: 0, requestHash: null, responseHash: null });
         return this.handleProviderError(base, usage, err, context.securitySignals);
       }
       usage = addUsage(usage, result.usage);
+      base.modelCalls.push({ callIndex: base.modelCalls.length, purpose: modelCallPurpose, status: 'SUCCEEDED', finishReason: result.finishReason, inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, cachedInputTokens: result.usage.cachedInputTokens ?? 0, cachedOutputTokens: result.usage.cachedOutputTokens ?? 0, durationMs: result.usage.durationMs, requestHash: null, responseHash: null });
+      modelCallPurpose = 'PRIMARY';
       push('agent.output_received', { finishReason: result.finishReason });
 
       if (result.finishReason === 'CONTENT_FILTER') {
@@ -222,10 +228,12 @@ export class AgentRuntimeService implements AgentRuntime {
         toolCallCount++;
         toolHistory.push({ alias: step.alias, toolCallId: step.toolCallId, status: step.status, inputHash: step.inputHash });
         completed[step.idempotencyKey] = { alias: step.alias, actionKey: step.actionKey, status: step.status, outputHash: step.outputHash, evidenceReferenceId: step.evidenceReferenceId, errorCode: step.errorCode };
+        base.toolCalls.push({ toolCallId: step.toolCallId, alias: step.alias, actionKey: step.actionKey, riskLevel: step.riskLevel, decision: step.decision, status: step.status, authorizationId: step.authorizationId ?? null, approvalRequestId: null, inputHash: step.inputHash, outputHash: step.outputHash ?? null, durationMs: 0, retryCount: 0 });
         if (!step.replayed) {
           await this.checkpoints.recordCompleted(input.executionStepId, step.idempotencyKey, { alias: step.alias, actionKey: step.actionKey, status: step.status, outputHash: step.outputHash, evidenceReferenceId: step.evidenceReferenceId, errorCode: step.errorCode }, { turnCount, modelCallCount: usage.modelCallCount, toolCallCount });
         }
         messages.push(step.message);
+        modelCallPurpose = 'TOOL_CONTINUATION';
         continue;
       }
 
@@ -250,6 +258,7 @@ export class AgentRuntimeService implements AgentRuntime {
       push('agent.output_invalid', { errors: (validation.validationErrors ?? []).length, repairAttemptCount });
       if (repairAttemptCount < maxRepairs) {
         repairAttemptCount++;
+        modelCallPurpose = 'OUTPUT_REPAIR';
         push('agent.output_repair_started', { attempt: repairAttemptCount });
         messages.push({ role: 'USER', content: [{ type: 'TEXT', text: `${REPAIR_MARKER} corrija a saída para satisfazer o schema. Erros: ${JSON.stringify(validation.validationErrors ?? [])}` }] });
         continue;
@@ -299,7 +308,7 @@ export class AgentRuntimeService implements AgentRuntime {
     const prior = completed[idempotencyKey];
     if (prior) {
       push('agent.tool_result_isolated', { alias: tool.alias, replayed: true });
-      return { kind: 'CONTINUE', replayed: true, toolCallId: toolCall.id, alias: tool.alias, actionKey: tool.actionKey, status: prior.status, inputHash: payloadHash, idempotencyKey, outputHash: prior.outputHash, evidenceReferenceId: prior.evidenceReferenceId, errorCode: prior.errorCode, message: { role: 'TOOL', toolCallId: toolCall.id, content: [{ type: 'TOOL_RESULT', data: { alias: tool.alias, status: prior.status, replayed: true } }] } };
+      return { kind: 'CONTINUE', replayed: true, toolCallId: toolCall.id, alias: tool.alias, actionKey: tool.actionKey, riskLevel: tool.riskLevel, decision: 'REPLAY', status: prior.status, inputHash: payloadHash, idempotencyKey, outputHash: prior.outputHash, evidenceReferenceId: prior.evidenceReferenceId, errorCode: prior.errorCode, message: { role: 'TOOL', toolCallId: toolCall.id, content: [{ type: 'TOOL_RESULT', data: { alias: tool.alias, status: prior.status, replayed: true } }] } };
     }
 
     // Avaliação de autoridade (política do agente + gradiente + ActionAuthorization).
@@ -321,7 +330,7 @@ export class AgentRuntimeService implements AgentRuntime {
     if (decision.decision === 'DENY') {
       const outcome = await this.toolExecutor.deniedOutcome(execInput, 'AGENT_TOOL_DENIED', `Tool negada (${decision.reasonCode}).`, 'DENIED');
       push('agent.tool_execution_failed', { alias: tool.alias, status: 'DENIED', reasonCode: decision.reasonCode });
-      return this.continueFrom(outcome, idempotencyKey, payloadHash);
+      return this.continueFrom(outcome, idempotencyKey, payloadHash, decision.decision);
     }
 
     if (decision.decision === 'REQUIRE_APPROVAL') {
@@ -337,7 +346,7 @@ export class AgentRuntimeService implements AgentRuntime {
       if (approval.status === 'REJECTED' || approval.status === 'CANCELLED' || approval.status === 'EXPIRED') {
         push('agent.tool_approval_denied', { alias: tool.alias, approvalRequestId: approval.approvalRequestId, status: approval.status });
         const outcome = await this.toolExecutor.deniedOutcome(execInput, 'AGENT_TOOL_DENIED', 'Aprovação negada.', 'DENIED');
-        return this.continueFrom(outcome, idempotencyKey, payloadHash);
+        return this.continueFrom(outcome, idempotencyKey, payloadHash, decision.decision);
       }
       // APPROVED sem autorização ativa consumível (janela rara de crash) → incerto.
       return { kind: 'UNKNOWN' };
@@ -351,13 +360,14 @@ export class AgentRuntimeService implements AgentRuntime {
     else push('agent.tool_execution_failed', { alias: tool.alias, status: outcome.status });
     push('agent.tool_result_isolated', { alias: tool.alias, isolated: outcome.meta.isolated, signals: outcome.meta.securitySignalCount });
     if (decision.authorizationId) push('agent.tool_authorization_consumed', { alias: tool.alias });
-    return this.continueFrom(outcome, idempotencyKey, payloadHash);
+    return this.continueFrom(outcome, idempotencyKey, payloadHash, decision.decision);
   }
 
   /** Converte um `AgentToolCallOutcome` executado num passo CONTINUE. */
-  private continueFrom(outcome: import('./tools/agent-tool.types').AgentToolCallOutcome, idempotencyKey: string, inputHash: string): ToolStep {
+  private continueFrom(outcome: import('./tools/agent-tool.types').AgentToolCallOutcome, idempotencyKey: string, inputHash: string, decision: string): ToolStep {
     return {
       kind: 'CONTINUE', replayed: false, toolCallId: outcome.toolCallId, alias: outcome.alias, actionKey: outcome.meta.actionKey,
+      riskLevel: outcome.meta.riskLevel, decision, authorizationId: outcome.meta.authorizationId,
       status: outcome.status, inputHash, idempotencyKey, outputHash: outcome.meta.outputHash,
       evidenceReferenceId: outcome.evidenceReferenceIds[0], errorCode: outcome.errorCode,
       message: outcome.toolMessage ?? { role: 'TOOL', toolCallId: outcome.toolCallId, content: [{ type: 'TOOL_RESULT', data: { status: outcome.status } }] },
@@ -476,6 +486,7 @@ export class AgentRuntimeService implements AgentRuntime {
       agentVersionId: resolved.agentVersionId,
       agentKey: resolved.agentKey,
       versionNumber: resolved.versionNumber,
+      modelConfigurationId: resolved.modelConfigurationId,
       contentHash: resolved.contentHash,
       providerKey: resolved.providerKey,
       providerVersion: resolved.providerVersion,
@@ -497,6 +508,18 @@ export class AgentRuntimeService implements AgentRuntime {
       contextTruncated: base.context?.truncated ?? false,
       includedSources: base.context?.includedSources ?? [],
       excludedSources: base.context?.excludedSources ?? [],
+      // Limites/flags para governança e avaliação operacional (007.6) — sem segredo.
+      governance: {
+        maxTurns: resolved.executionPolicy.maximumTurns,
+        maxToolCalls: resolved.executionPolicy.maximumToolCalls,
+        maxDurationMs: resolved.executionPolicy.maximumDurationMs,
+        maximumInputTokens: resolved.costPolicy.maximumInputTokens,
+        maximumEstimatedCostMinor: resolved.costPolicy.maximumEstimatedCostMinor ?? null,
+        costCurrency: resolved.costPolicy.currency ?? null,
+        actionOnLimit: resolved.costPolicy.actionOnLimit,
+        requireEvidenceReferences: resolved.evaluationPolicy.requireEvidenceReferences,
+        policyHash: stableHash({ evaluation: resolved.evaluationPolicy, cost: resolved.costPolicy, execution: resolved.executionPolicy }),
+      },
       ...extra,
     };
 
@@ -516,6 +539,8 @@ export class AgentRuntimeService implements AgentRuntime {
         { action: 'agent.execution_started', outcome: 'SUCCESS', metadata: { agentVersionId: resolved.agentVersionId, contentHash: resolved.contentHash, providerKey: resolved.providerKey, modelId: resolved.modelId } },
         { action: finalAction, outcome: safeResult.status === 'SUCCEEDED' ? 'SUCCESS' : 'FAILURE', metadata: { status: safeResult.status, errorCode: safeResult.errorCode ?? null, modelCallCount: safeResult.modelCallCount, repairAttemptCount, usage: safeResult.usage } },
       ],
+      modelCalls: base.modelCalls,
+      toolCalls: base.toolCalls,
     };
   }
 }
@@ -527,6 +552,9 @@ interface RuntimeBase {
   input: AgentRuntimeExecutionInput;
   /** Contexto montado (metadados sanitizados) — enriquece a evidência final. */
   context?: AgentContextAssemblyResult;
+  /** Uso por chamada de modelo/tool (007.6) — persistido pelo executor. */
+  modelCalls: AgentModelCallRecord[];
+  toolCalls: AgentToolCallRecord[];
 }
 
 /** Resultado do processamento de UMA tool call dentro do loop do runtime. */
@@ -537,6 +565,9 @@ type ToolStep =
       toolCallId: string;
       alias: string;
       actionKey: string;
+      riskLevel: string;
+      decision: string;
+      authorizationId?: string;
       status: string;
       inputHash: string;
       idempotencyKey: string;

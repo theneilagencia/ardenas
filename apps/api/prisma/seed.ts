@@ -15,6 +15,7 @@ import {
   runModelProviderCatalogProjection,
   type ModelProviderDbClient,
 } from '../src/agents/providers/project-model-providers';
+import { runRateCardProjection, type RateCardDbClient } from '../src/agents/governance/rate-card.projector';
 
 /** Nomes legíveis dos papéis de sistema (chaves = catálogo do frontend). */
 export const SYSTEM_ROLE_NAMES: Record<RoleKey, string> = {
@@ -90,11 +91,16 @@ async function main(): Promise<void> {
     const providers = await prisma.$transaction((tx) =>
       runModelProviderCatalogProjection(tx as unknown as ModelProviderDbClient),
     );
+    // Projeta o catálogo INTERNO de rate cards estimados (007.6): internal.test-model = 0 USD.
+    const rateCards = await prisma.$transaction((tx) =>
+      runRateCardProjection(tx as unknown as RateCardDbClient),
+    );
     // eslint-disable-next-line no-console
     console.log(
       `Seed do catálogo concluído: ${result.permissions} permissões, ${result.roles} papéis, ` +
         `conectores (+${catalog.connectorsCreated}/~${catalog.connectorsUnchanged}), ferramentas (+${catalog.toolsCreated}/~${catalog.toolsUnchanged}), ` +
-        `providers (+${providers.providersCreated}/~${providers.providersUnchanged}).`,
+        `providers (+${providers.providersCreated}/~${providers.providersUnchanged}), ` +
+        `rate cards (+${rateCards.created}/~${rateCards.unchanged}).`,
     );
   } finally {
     await prisma.$disconnect();

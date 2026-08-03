@@ -77,6 +77,37 @@ export interface AgentLifecycleEvent {
   payload: Record<string, unknown>;
 }
 
+/** Uso SANITIZADO de UMA chamada ao provider de modelo (ARDEN-BE-007.6). */
+export interface AgentModelCallRecord {
+  callIndex: number;
+  purpose: 'PRIMARY' | 'OUTPUT_REPAIR' | 'TOOL_CONTINUATION' | 'EVALUATION';
+  status: string;
+  finishReason: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+  cachedOutputTokens: number;
+  durationMs: number;
+  requestHash: string | null;
+  responseHash: string | null;
+}
+
+/** Metadados SANITIZADOS de UMA tool call (ARDEN-BE-007.6). */
+export interface AgentToolCallRecord {
+  toolCallId: string;
+  alias: string;
+  actionKey: string;
+  riskLevel: string;
+  decision: string;
+  status: string;
+  authorizationId: string | null;
+  approvalRequestId: string | null;
+  inputHash: string | null;
+  outputHash: string | null;
+  durationMs: number;
+  retryCount: number;
+}
+
 /** Entrada de auditoria de negócio (audit_events) para início/fim da execução. */
 export interface AgentAuditEntry {
   action: string;
@@ -99,6 +130,10 @@ export interface AgentRuntimeOutcome {
   events: AgentLifecycleEvent[];
   /** Auditoria de negócio (início + classificação final). */
   audit: AgentAuditEntry[];
+  /** Uso por chamada de modelo (sanitizado) — para persistência de usage (007.6). */
+  modelCalls: AgentModelCallRecord[];
+  /** Metadados por tool call (sanitizado) — para persistência de usage (007.6). */
+  toolCalls: AgentToolCallRecord[];
 }
 
 export interface AgentRuntime {

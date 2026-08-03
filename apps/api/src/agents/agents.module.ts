@@ -58,6 +58,17 @@ import { AgentToolExecutor } from './runtime/tools/agent-tool-executor';
 import { AgentToolApprovalService } from './runtime/tools/agent-tool-approval.service';
 import { AgentRuntimeCheckpointRepository } from './runtime/tools/agent-runtime-checkpoint.repository';
 
+// Avaliação final, usage, custo, governança e observabilidade (ARDEN-BE-007.6).
+import { AgentUsageAggregator } from './governance/agent-usage-aggregator';
+import { AgentCostEstimator } from './governance/agent-cost-estimator';
+import { AgentEvaluationEngine } from './governance/agent-evaluation-engine';
+import { AgentGovernanceEvaluator } from './governance/agent-governance-evaluator';
+import { AgentMetrics } from './governance/agent-metrics';
+import { RateCardCatalogProjector, ModelRateCardsRepository } from './governance/rate-card.projector';
+import { AgentOperationalResultRecorder } from './governance/agent-operational-result.recorder';
+import { AgentResultsService } from './governance/agent-results.service';
+import { AgentResultsController } from './governance/agent-results.controller';
+
 @Module({
   imports: [AuthzModule, AuditModule, IdempotencyModule, ConnectorsModule, EnforcementModule, ApprovalsModule],
   controllers: [
@@ -65,6 +76,7 @@ import { AgentRuntimeCheckpointRepository } from './runtime/tools/agent-runtime-
     ModelConfigurationsController,
     AgentsController,
     AgentVersionsController,
+    AgentResultsController,
   ],
   providers: [
     ModelProviderDefinitionsRepository,
@@ -100,13 +112,25 @@ import { AgentRuntimeCheckpointRepository } from './runtime/tools/agent-runtime-
     AgentRuntimeCheckpointRepository,
     AgentRuntimeService,
     { provide: AGENT_RUNTIME, useExisting: AgentRuntimeService },
+    // Avaliação/usage/custo/governança/observabilidade (007.6).
+    AgentUsageAggregator,
+    AgentCostEstimator,
+    AgentEvaluationEngine,
+    AgentGovernanceEvaluator,
+    AgentMetrics,
+    RateCardCatalogProjector,
+    ModelRateCardsRepository,
+    AgentOperationalResultRecorder,
+    AgentResultsService,
   ],
   exports: [
     ModelProviderCatalogProjector,
+    RateCardCatalogProjector,
     // Expostos ao motor de execução (ExecutionsModule) — sem ciclo (AgentsModule não
     // importa ExecutionsModule).
     AGENT_RUNTIME,
     AgentDefinitionsRepository,
+    AgentOperationalResultRecorder,
   ],
 })
 export class AgentsModule {}

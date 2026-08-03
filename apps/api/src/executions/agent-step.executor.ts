@@ -12,6 +12,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AGENT_RUNTIME } from '@arden/contracts';
 import { AuditRecorder } from '../audit/audit.recorder';
 import { PrismaService } from '../database/prisma.service';
+import { AgentOperationalResultRecorder } from '../agents/governance/agent-operational-result.recorder';
 import { ExecutionsRepository } from './executions.repository';
 import { ExecutionRecorder } from './execution.recorder';
 import { StepExecutionError, StepSuspendedError, type StepExecutionContext, type StepExecutionResult } from './executors';
@@ -51,6 +52,7 @@ export class AgentStepExecutor {
     @Inject(AGENT_RUNTIME) private readonly runtime: AgentRuntime,
     private readonly recorder: ExecutionRecorder,
     private readonly audit: AuditRecorder,
+    private readonly results: AgentOperationalResultRecorder,
   ) {}
 
   async execute(ctx: StepExecutionContext): Promise<StepExecutionResult> {
@@ -79,6 +81,13 @@ export class AgentStepExecutor {
     });
 
     await this.persistTrail(run.organizationId, run.correlationId, ctx.executionRunId, ctx.executionStepId, outcome);
+
+    // §5/§8: resultado operacional consolidado (usage/custo/avaliação/governança), idempotente.
+    await this.results.record({
+      organizationId: run.organizationId, executionRunId: ctx.executionRunId, executionStepId: ctx.executionStepId,
+      operationId: run.operationId, operationVersionId: run.operationVersionId, correlationId: run.correlationId,
+      startedAt: ctx.now, now: ctx.now, outcome,
+    });
 
     if (outcome.result.status === 'SUCCEEDED') {
       return {
