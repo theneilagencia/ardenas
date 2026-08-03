@@ -80,4 +80,11 @@ export interface AnthropicTransportError {
   httpStatus: number | null;
   /** Retry-After em ms, quando fornecido pelo provider. */
   retryAfterMs?: number | null;
+  /**
+   * Fase da falha (ARDEN-BE-008.3): `BEFORE_SEND` = a requisição comprovadamente NÃO
+   * foi enviada (conexão nunca estabelecida) → seguro retriar (não incerto). `AFTER_SEND`
+   * ou ausente = a requisição pode ter sido processada → INCERTO (não retria). O SDK real
+   * não distingue com segurança, então reporta `AFTER_SEND` (conservador).
+   */
+  phase?: 'BEFORE_SEND' | 'AFTER_SEND';
 }

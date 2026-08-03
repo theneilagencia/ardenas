@@ -64,6 +64,7 @@ function resolved(modelId: string, over: Partial<ResolvedAgentRuntime> = {}): Re
   return {
     agentDefinitionId: 'a1', agentVersionId: 'v1', agentKey: 'k', versionNumber: 1, contentHash: 'h',
     modelConfigurationId: 'c1', providerKey: 'internal.test-model', providerVersion: '1', modelId,
+    credentialConnectionId: null,
     providerProductionAllowed: false,
     objective: 'classificar', systemInstructions: 'instruções',
     inputSchema: { type: 'object', properties: { lead: { type: 'string' } }, required: ['lead'] },

@@ -56,6 +56,15 @@ export const envSchema = z
     // Keyring opcional (JSON { "<version>": "<base64-32-bytes>" }) para decifrar
     // versões antigas após rotação de master key.
     CONNECTOR_KEYRING_JSON: z.string().optional().default(''),
+
+    // ── Provider comercial Anthropic (ARDEN-BE-008.3) ────────────────────────
+    // Gate de RUNTIME: registra o AnthropicModelProvider no registry. Default false.
+    // Nesta fase só é honrado fora de produção (ver ANTHROPIC_PROVIDER_RUNTIME_ENABLED
+    // no wiring do registry). Habilitar não implica chamada externa.
+    ANTHROPIC_PROVIDER_RUNTIME_ENABLED: booleanish.default(false),
+    // Gate de CHAMADA EXTERNA: autoriza o transporte real (SDK) a alcançar a Anthropic.
+    // Default false. Com false, o transporte real NUNCA chama a rede (erro seguro).
+    ANTHROPIC_PROVIDER_EXTERNAL_CALLS_ENABLED: booleanish.default(false),
   })
   .transform((env) => ({
     ...env,

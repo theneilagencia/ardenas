@@ -37,6 +37,13 @@ import { AgentVersionsController } from './versions/agent-versions.controller';
 import { AGENT_RUNTIME } from '@arden/contracts';
 import { InternalTestModelProvider } from './runtime/internal-test-model.provider';
 import { InMemoryModelProviderRegistry } from './runtime/model-provider-registry';
+// Provider comercial Anthropic executável sob gate (ARDEN-BE-008.3).
+import { APP_CONFIG } from '../config/config.module';
+import type { AppConfig } from '../config/env.schema';
+import { AnthropicModelProvider } from './providers/anthropic/anthropic-model-provider';
+import { AnthropicProviderCredentialResolver } from './providers/anthropic/anthropic-provider-credential.resolver';
+import { AnthropicSdkTransport } from './providers/anthropic/sdk/anthropic-sdk-transport';
+import { ANTHROPIC_TRANSPORT } from './providers/anthropic/anthropic-transport.port';
 import { AgentOutputValidatorV1 } from './runtime/agent-output-validator';
 import { AgentEvaluatorV1 } from './runtime/agent-evaluator';
 import { AgentRuntimeResolverService } from './runtime/agent-runtime-resolver';
@@ -95,7 +102,23 @@ import { AgentResultsController } from './governance/agent-results.controller';
     AgentVersionsService,
     // Runtime determinístico + provider interno + registry + validador/avaliador/resolver.
     InternalTestModelProvider,
-    InMemoryModelProviderRegistry,
+    // Provider comercial Anthropic (008.3): transporte real (SDK) por default; resolver de
+    // credencial tenant-scoped; provider executável. Registrado no registry SÓ sob gate.
+    { provide: ANTHROPIC_TRANSPORT, useClass: AnthropicSdkTransport },
+    AnthropicSdkTransport,
+    AnthropicProviderCredentialResolver,
+    AnthropicModelProvider,
+    // Registry com registro CONDICIONAL do Anthropic: runtime gate ON e fora de produção.
+    {
+      provide: InMemoryModelProviderRegistry,
+      inject: [InternalTestModelProvider, AnthropicModelProvider, APP_CONFIG],
+      useFactory: (test: InternalTestModelProvider, anthropic: AnthropicModelProvider, config: AppConfig) => {
+        const registry = new InMemoryModelProviderRegistry(test);
+        const enabled = config.ANTHROPIC_PROVIDER_RUNTIME_ENABLED && config.NODE_ENV !== 'production';
+        if (enabled) registry.register(anthropic);
+        return registry;
+      },
+    },
     AgentOutputValidatorV1,
     AgentEvaluatorV1,
     AgentRuntimeResolverService,

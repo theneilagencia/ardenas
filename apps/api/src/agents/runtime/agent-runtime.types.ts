@@ -45,6 +45,8 @@ export interface ResolvedAgentRuntime {
   providerKey: string;
   providerVersion: string;
   modelId: string;
+  /** Conexão que guarda a credencial no cofre (ARDEN-BE-008.3); null quando não exigida. */
+  credentialConnectionId: string | null;
   /** Se o provider é permitido em produção (o de teste não é). */
   providerProductionAllowed: boolean;
 

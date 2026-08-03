@@ -104,6 +104,7 @@ export class AgentRuntimeResolverService implements AgentRuntimeResolver {
       providerKey: provider.key,
       providerVersion: provider.version,
       modelId: config.modelId,
+      credentialConnectionId: config.credentialConnectionId ?? null,
       providerProductionAllowed: provider.productionAllowed,
       objective: version.objective,
       systemInstructions: version.systemInstructions,

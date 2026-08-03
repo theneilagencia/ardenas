@@ -51,10 +51,18 @@ export class AnthropicResponseMapper {
       }
     }
 
+    // Structured output via tool sintética forçada: `stop_reason=tool_use` significa
+    // "saída estruturada completa", NÃO uma tool call de execução. Nesse caso o finish é
+    // STOP (sem tools reais) — não roteia para o pipeline de tools do runtime (008.3).
+    let finishReason = mapAnthropicStopReason(response.stop_reason);
+    if (structuredOutput !== undefined && toolCalls.length === 0 && finishReason === 'TOOL_CALL') {
+      finishReason = 'STOP';
+    }
+
     const u = response.usage;
     return {
       providerRequestId: response.id, // interno; runtime persiste apenas hash.
-      finishReason: mapAnthropicStopReason(response.stop_reason),
+      finishReason,
       text,
       structuredOutput,
       toolCalls,
