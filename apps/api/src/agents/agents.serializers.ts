@@ -12,6 +12,7 @@ import type {
   AgentVersion as DbAgentVersion,
   ModelConfiguration as DbModelConfiguration,
   ModelProviderDefinition as DbModelProviderDefinition,
+  ModelCatalogEntry as DbModelCatalogEntry,
 } from '@prisma/client';
 import type {
   AgentDefinition,
@@ -19,6 +20,7 @@ import type {
   ModelConfiguration,
   ModelProviderDefinition,
   ModelProviderCapability,
+  ModelCatalogEntry,
 } from '@arden/contracts';
 
 const iso = (d: Date | null): string | null => (d ? d.toISOString() : null);
@@ -97,5 +99,27 @@ export function toModelProviderContract(row: DbModelProviderDefinition): ModelPr
     capabilities: row.capabilities as ModelProviderCapability[],
     productionAllowed: row.productionAllowed,
     systemManaged: row.systemManaged,
+  };
+}
+
+/** Catálogo de modelos persistido → contrato (sem segredo, sem preço). */
+export function toModelCatalogEntryContract(row: DbModelCatalogEntry): ModelCatalogEntry {
+  return {
+    providerKey: row.providerKey,
+    providerVersion: row.providerVersion,
+    modelId: row.modelId,
+    displayName: row.displayName,
+    status: row.status,
+    productionAllowed: row.productionAllowed,
+    capabilities: row.capabilities as ModelProviderCapability[],
+    maximumInputTokens: row.maximumInputTokens,
+    maximumOutputTokens: row.maximumOutputTokens,
+    supportsStructuredOutput: row.supportsStructuredOutput,
+    supportsToolCalling: row.supportsToolCalling,
+    supportsPromptCaching: row.supportsPromptCaching,
+    supportsVision: row.supportsVision,
+    supportsStreaming: row.supportsStreaming,
+    rateCardKey: row.rateCardKey,
+    sourceReferences: row.sourceReferences as string[],
   };
 }

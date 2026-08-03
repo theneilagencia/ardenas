@@ -33,7 +33,10 @@ function providerData(def: ModelProviderDefinition) {
     version: def.version,
     name: def.name,
     description: def.description ?? null,
-    status: 'ACTIVE',
+    // Honra o status canônico: providers comerciais entram DISABLED (ex.: anthropic.direct,
+    // ARDEN-BE-008.2) enquanto verificação/execução estão pendentes. `internal.test-model`
+    // permanece ACTIVE. Nunca inferir ACTIVE por conveniência.
+    status: def.status,
     capabilities: def.capabilities,
     productionAllowed: def.productionAllowed,
     systemManaged: def.systemManaged,
@@ -62,7 +65,7 @@ export async function runModelProviderCatalogProjection(
     if (!existing) {
       await db.modelProviderDefinition.create({ data });
       result.providersCreated++;
-    } else if (existing.catalogHash === data.catalogHash && existing.status === 'ACTIVE') {
+    } else if (existing.catalogHash === data.catalogHash && existing.status === data.status) {
       result.providersUnchanged++;
     } else {
       await db.modelProviderDefinition.update({ where: { id: existing.id }, data });

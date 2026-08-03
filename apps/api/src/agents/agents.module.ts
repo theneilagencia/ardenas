@@ -18,9 +18,11 @@ import { ModelProviderDefinitionsRepository } from './providers/model-providers.
 import { ModelProvidersService } from './providers/model-providers.service';
 import { ModelProvidersController } from './providers/model-providers.controller';
 import { ModelProviderCatalogProjector } from './providers/model-provider-catalog.projector';
+import { ModelCatalogProjector, ModelCatalogRepository } from './providers/project-model-catalog';
 
 import { ModelConfigurationsRepository } from './model-configurations/model-configurations.repository';
 import { ModelConfigurationsService } from './model-configurations/model-configurations.service';
+import { AnthropicConfigurationValidationService } from './model-configurations/anthropic-configuration-validation.service';
 import { ModelConfigurationsController } from './model-configurations/model-configurations.controller';
 
 import { AgentDefinitionsRepository } from './agents/agent-definitions.repository';
@@ -82,8 +84,11 @@ import { AgentResultsController } from './governance/agent-results.controller';
     ModelProviderDefinitionsRepository,
     ModelProvidersService,
     ModelProviderCatalogProjector,
+    ModelCatalogProjector,
+    ModelCatalogRepository,
     ModelConfigurationsRepository,
     ModelConfigurationsService,
+    AnthropicConfigurationValidationService,
     AgentDefinitionsRepository,
     AgentsService,
     AgentVersionsRepository,
@@ -125,6 +130,7 @@ import { AgentResultsController } from './governance/agent-results.controller';
   ],
   exports: [
     ModelProviderCatalogProjector,
+    ModelCatalogProjector,
     RateCardCatalogProjector,
     // Expostos ao motor de execução (ExecutionsModule) — sem ciclo (AgentsModule não
     // importa ExecutionsModule).

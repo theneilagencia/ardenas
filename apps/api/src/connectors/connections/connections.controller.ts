@@ -9,6 +9,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   createConnectionRequest, updateConnectionRequest, testConnectionRequest, connectionCommandRequest, listConnectionsQuery,
+  validateConnectionConfigurationRequest,
   type CreateConnectionRequest, type UpdateConnectionRequest, type ConnectionCommandRequest, type ListConnectionsQuery,
 } from '@arden/contracts';
 import { RequireOrganization, RequirePermission } from '../../authz/decorators';
@@ -57,6 +58,16 @@ export class ConnectionsController {
   @RequirePermission('connection.test')
   test(@Param('connectionId') id: string, @Body(new ZodValidationPipe(testConnectionRequest)) _body: unknown, @CurrentContext() ctx: AuthenticatedRequestContext) {
     return this.connections.test(ctx, id);
+  }
+
+  // Validação LOCAL de configuração (ARDEN-BE-008.2 §17). NÃO contata o provider/rede;
+  // declara NOT_VERIFIED_WITH_PROVIDER. Distinta de `test` (que faz rede em conectores HTTP).
+  @Post(':connectionId/validate-configuration')
+  @HttpCode(200)
+  @RequireOrganization()
+  @RequirePermission('connection.test')
+  validateConfiguration(@Param('connectionId') id: string, @Body(new ZodValidationPipe(validateConnectionConfigurationRequest)) _body: unknown, @CurrentContext() ctx: AuthenticatedRequestContext) {
+    return this.connections.validateConfiguration(ctx, id);
   }
 
   @Post(':connectionId/activate')

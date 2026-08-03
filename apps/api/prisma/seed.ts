@@ -15,6 +15,10 @@ import {
   runModelProviderCatalogProjection,
   type ModelProviderDbClient,
 } from '../src/agents/providers/project-model-providers';
+import {
+  runModelCatalogProjection,
+  type ModelCatalogDbClient,
+} from '../src/agents/providers/project-model-catalog';
 import { runRateCardProjection, type RateCardDbClient } from '../src/agents/governance/rate-card.projector';
 
 /** Nomes legíveis dos papéis de sistema (chaves = catálogo do frontend). */
@@ -91,7 +95,12 @@ async function main(): Promise<void> {
     const providers = await prisma.$transaction((tx) =>
       runModelProviderCatalogProjection(tx as unknown as ModelProviderDbClient),
     );
+    // Projeta o catálogo persistido de modelos (008.2): Anthropic DISABLED / não executável.
+    const models = await prisma.$transaction((tx) =>
+      runModelCatalogProjection(tx as unknown as ModelCatalogDbClient),
+    );
     // Projeta o catálogo INTERNO de rate cards estimados (007.6): internal.test-model = 0 USD.
+    // Rate cards comerciais Anthropic NÃO são projetados (preço UNVERIFIED — 008.2A).
     const rateCards = await prisma.$transaction((tx) =>
       runRateCardProjection(tx as unknown as RateCardDbClient),
     );
@@ -100,6 +109,7 @@ async function main(): Promise<void> {
       `Seed do catálogo concluído: ${result.permissions} permissões, ${result.roles} papéis, ` +
         `conectores (+${catalog.connectorsCreated}/~${catalog.connectorsUnchanged}), ferramentas (+${catalog.toolsCreated}/~${catalog.toolsUnchanged}), ` +
         `providers (+${providers.providersCreated}/~${providers.providersUnchanged}), ` +
+        `modelos (+${models.created}/~${models.unchanged}), ` +
         `rate cards (+${rateCards.created}/~${rateCards.unchanged}).`,
     );
   } finally {

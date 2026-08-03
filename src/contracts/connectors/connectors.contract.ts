@@ -19,6 +19,8 @@ import {
   testConnectionResult,
   connectionCommandRequest,
   listConnectionsQuery,
+  validateConnectionConfigurationRequest,
+  connectionConfigurationValidationResult,
 } from './connection.schema';
 import {
   createConnectionCredentialRequest,
@@ -64,6 +66,9 @@ export const connectorsSchemas = {
   TestConnectionRequest: testConnectionRequest,
   TestConnectionResult: testConnectionResult,
   TestConnectionResponse: apiResponse(testConnectionResult),
+  ValidateConnectionConfigurationRequest: validateConnectionConfigurationRequest,
+  ConnectionConfigurationValidationResult: connectionConfigurationValidationResult,
+  ConnectionConfigurationValidationResponse: apiResponse(connectionConfigurationValidationResult),
   ConnectionCommandRequest: connectionCommandRequest,
   ListConnectionsQuery: listConnectionsQuery,
 
@@ -136,6 +141,7 @@ export const connectorsEndpoints: EndpointContract[] = [
   { id: 'connections.get', method: 'GET', path: `${ORG}/connections/{connectionId}`, summary: 'Consulta uma conexão', tag: TAG, permission: 'connection.view', idempotent: false, optimisticConcurrency: false, pathParams: ['organizationId', 'connectionId'], successStatus: 200, responseSchema: 'ConnectionResponse' },
   { id: 'connections.update', method: 'PATCH', path: `${ORG}/connections/{connectionId}`, summary: 'Edita metadados/config/política da conexão', tag: TAG, permission: 'connection.edit', idempotent: false, optimisticConcurrency: true, requestSchema: 'UpdateConnectionRequest', pathParams: ['organizationId', 'connectionId'], successStatus: 200, responseSchema: 'ConnectionResponse', description: 'PATCH não altera status (transição só por comando dedicado).' },
   { id: 'connections.test', method: 'POST', path: `${ORG}/connections/{connectionId}/test`, summary: 'Testa a conexão (sem revelar segredo)', tag: TAG, permission: 'connection.test', idempotent: true, optimisticConcurrency: false, requestSchema: 'TestConnectionRequest', pathParams: ['organizationId', 'connectionId'], successStatus: 200, responseSchema: 'TestConnectionResponse' },
+  { id: 'connections.validateConfiguration', method: 'POST', path: `${ORG}/connections/{connectionId}/validate-configuration`, summary: 'Valida a configuração localmente (sem contatar o provider)', tag: TAG, permission: 'connection.test', idempotent: false, optimisticConcurrency: false, requestSchema: 'ValidateConnectionConfigurationRequest', pathParams: ['organizationId', 'connectionId'], successStatus: 200, responseSchema: 'ConnectionConfigurationValidationResponse', description: 'Validação LOCAL: schema de configuração, presença/decifrabilidade da credencial no cofre e compatibilidade provider/conector. NÃO faz chamada ao provider; declara NOT_VERIFIED_WITH_PROVIDER. Nunca devolve segredo.' },
   command('connections.activate', `${ORG}/connections/{connectionId}/activate`, 'connection.edit', 'Ativa a conexão', 'ConnectionCommandRequest'),
   command('connections.suspend', `${ORG}/connections/{connectionId}/suspend`, 'connection.edit', 'Suspende a conexão', 'ConnectionCommandRequest'),
   command('connections.reactivate', `${ORG}/connections/{connectionId}/reactivate`, 'connection.edit', 'Reativa a conexão', 'ConnectionCommandRequest'),

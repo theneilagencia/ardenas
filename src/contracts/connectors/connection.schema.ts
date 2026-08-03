@@ -96,6 +96,42 @@ export const connectionCommandRequest = z.object({
 });
 export type ConnectionCommandRequest = z.infer<typeof connectionCommandRequest>;
 
+/**
+ * Status de verificação COM O PROVIDER REAL (ARDEN-BE-008.2 §17). Nesta fase o Arden
+ * NUNCA contata o provider — validação é sempre local. Por isso o único valor produzido
+ * é `NOT_VERIFIED_WITH_PROVIDER`; `VERIFIED_WITH_PROVIDER` fica reservado para 008.3+.
+ */
+export const providerVerificationStatus = z.enum([
+  'NOT_VERIFIED_WITH_PROVIDER',
+  'VERIFIED_WITH_PROVIDER',
+]);
+export type ProviderVerificationStatus = z.infer<typeof providerVerificationStatus>;
+
+/** Requisição de VALIDAÇÃO LOCAL de configuração — nunca contata a rede/o provider. */
+export const validateConnectionConfigurationRequest = z.object({
+  note: z.string().max(200).optional(),
+});
+export type ValidateConnectionConfigurationRequest = z.infer<typeof validateConnectionConfigurationRequest>;
+
+/**
+ * Resultado da validação LOCAL (§17): schema de configuração válido, presença e
+ * decifrabilidade da credencial no cofre, compatibilidade provider/conector — SEM
+ * chamada ao provider. `providerVerificationStatus` é sempre `NOT_VERIFIED_WITH_PROVIDER`.
+ * Nunca devolve segredo (somente fingerprint sanitizado).
+ */
+export const connectionConfigurationValidationResult = z.object({
+  connectionId,
+  configurationValid: z.boolean(),
+  credentialPresent: z.boolean(),
+  credentialDecryptable: z.boolean(),
+  providerCompatible: z.boolean(),
+  providerVerificationStatus,
+  credentialFingerprint: z.string().nullable(),
+  issues: z.array(z.string().max(200)).max(20),
+  validatedAt: isoUtcDateTime,
+});
+export type ConnectionConfigurationValidationResult = z.infer<typeof connectionConfigurationValidationResult>;
+
 export const listConnectionsQuery = z.object({
   connectorKey: connectorKey.optional(),
   status: connectionStatus.optional(),
