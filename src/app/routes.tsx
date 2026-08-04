@@ -19,6 +19,7 @@ import { RolesPage } from '@/features/roles/RolesPage';
 import { GovernancePage } from '@/features/governance/GovernancePage';
 import { AuthorityPage } from '@/features/authority/AuthorityPage';
 import { IntegrationsPage } from '@/features/integrations/IntegrationsPage';
+import { AnthropicAdminPage } from '@/features/anthropic/AnthropicAdminPage';
 import { ContextPage } from '@/features/context/ContextPage';
 import { WorkUnitsPage } from '@/features/work-units/WorkUnitsPage';
 import { BudgetPage } from '@/features/budget/BudgetPage';
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
       { path: 'risk', element: guard('risk.view', <RiskPage />) },
       { path: 'context', element: guard('context.view', <ContextPage />) },
       { path: 'integrations', element: guard('integration.view', <IntegrationsPage />) },
+      { path: 'anthropic', element: guard('model_provider.view', <AnthropicAdminPage />) },
       { path: 'files', element: guard('file.view', <FilesPage />) },
 
       // AGENTES (ARDEN-BE-007)
