@@ -210,6 +210,14 @@ Detalhe em `docs/implementation/ARDEN_BE_008_ANTHROPIC_FRONTEND_REPORT.md` (+ ev
 `ARDEN_BE_008_ANTHROPIC_FRONTEND_TEST_EVIDENCE.md`) e docs de frontend
 `docs/frontend/ANTHROPIC_*`.
 
-**Próximo: 008.7** — telas dedicadas DEFERIDAS acima (wizards de connection/model-config,
-rotação, painel de smoke, badges de execução) e envelopamento dos endpoints pendentes no cliente
-gerado; produção segue **BLOCKED** até reabertura do gate de pricing/governança (hoje UNVERIFIED).
+**008.7 — CONCLUÍDO (encerramento do milestone).** Auditoria independente completa
+(`ARDEN_BE_008_MILESTONE_AUDIT.md`, `ARDEN_BE_008_SECURITY_AUDIT.md`); guard da fixture
+`CONNECTOR_MASTER_KEY` (production recusa iniciar com fixture de teste conhecida —
+`env.schema.ts` + `env.schema.spec.ts`); vertical slices offline automático/supervisionado +
+matriz de falhas (`ARDEN_BE_008_VERTICAL_SLICE_EVIDENCE.md`); gates integrais verdes
+(`ARDEN_BE_008_FINAL_TEST_EVIDENCE.md`: 271 frontend + 512 backend unit + 264 integração + 4
+E2E = 1051, 0 falhas; 11 migrations; seed idempotente; OpenAPI sem drift). Portões de produção
+DEFERIDOS em `ARDEN_BE_008_DEFERRED_PRODUCTION_GATES.md`. Produção segue **BLOCKED**; pricing e
+governança **UNVERIFIED**; live smoke e live tool calling **NOT EXECUTED**.
+
+**Próximo milestone: ARDEN-PRD-001 — Production Readiness** (não ampliar providers).
