@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { ModelProviderStatusBadge } from '@/features/agents/AgentStatusBadge';
 import { AnthropicModelCatalog } from './AnthropicModelCatalog';
 import { AnthropicConnections } from './AnthropicConnections';
+import { AnthropicModelConfiguration } from './AnthropicModelConfiguration';
 
 /** Linha de estado acessível: texto + ícone (nunca só cor). */
 function StatusRow({ icon, label, value, tone = 'warn' }: { icon: React.ReactNode; label: string; value: string; tone?: 'warn' | 'info' | 'danger' }) {
@@ -112,6 +113,9 @@ export function AnthropicAdminPage() {
 
       {/* Conexões Anthropic seguras (criar, validar, rotacionar, lifecycle). §7–§12 */}
       <AnthropicConnections />
+
+      {/* Configuração de modelo guiada + elegibilidade/bloqueio de ativação. §13–§15 */}
+      <AnthropicModelConfiguration />
     </div>
   );
 }
