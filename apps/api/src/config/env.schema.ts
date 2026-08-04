@@ -10,6 +10,19 @@ import { z } from 'zod';
 
 const nodeEnv = z.enum(['development', 'test', 'production']);
 
+/**
+ * Chaves-mestras de FIXTURE de teste, conhecidas e públicas (ARDEN-BE-008.7 §6).
+ * NÃO são segredos — existem só para os testes/E2E poderem exercitar o cofre. A
+ * aplicação em `production` DEVE recusar iniciar com qualquer uma delas: são
+ * bloqueadas explicitamente para impossibilitar "production starts with fixture key".
+ * `Buffer.alloc(32, 7)` é a fixture usada por `test/setup-env.ts` e por
+ * `playwright.api.config.ts`.
+ */
+export const WELL_KNOWN_TEST_MASTER_KEYS: readonly string[] = Object.freeze([
+  Buffer.alloc(32, 7).toString('base64'),
+  Buffer.alloc(32, 0).toString('base64'),
+]);
+
 const booleanish = z
   .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
   .transform((v) => v === true || v === 'true' || v === '1');
@@ -151,6 +164,15 @@ export const envSchema = z
             code: z.ZodIssueCode.custom,
             path: ['CONNECTOR_MASTER_KEY'],
             message: 'CONNECTOR_MASTER_KEY deve ser Base64 de exatamente 32 bytes.',
+          });
+        }
+        // Guard: nenhuma fixture de teste conhecida pode iniciar a aplicação em
+        // production (ARDEN-BE-008.7 §6.3). Fora de production é permitida (testes).
+        if (env.NODE_ENV === 'production' && WELL_KNOWN_TEST_MASTER_KEYS.includes(key)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['CONNECTOR_MASTER_KEY'],
+            message: 'CONNECTOR_MASTER_KEY é uma fixture de teste conhecida e não pode ser usada em production.',
           });
         }
       }

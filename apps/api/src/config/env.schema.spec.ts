@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadConfig } from './env.schema';
+import { loadConfig, WELL_KNOWN_TEST_MASTER_KEYS } from './env.schema';
 
 const base = {
   NODE_ENV: 'development',
@@ -67,5 +67,36 @@ describe('loadConfig', () => {
     const cfg = loadConfig(supabaseBase);
     expect(cfg.AUTH_PROVIDER).toBe('supabase');
     expect(cfg.SUPABASE_JWKS_URL).toContain('jwks.json');
+  });
+
+  // ── Guard da fixture CONNECTOR_MASTER_KEY (ARDEN-BE-008.7 §6.3) ─────────────────
+  describe('guard da chave-mestra de fixture de teste', () => {
+    const prodBase = {
+      ...supabaseBase,
+      NODE_ENV: 'production',
+      CORS_ORIGINS: 'https://app.test',
+      CONNECTOR_VAULT_PROVIDER: 'app-aes-gcm',
+    };
+
+    it('a aplicação em production RECUSA iniciar com a fixture de teste conhecida', () => {
+      for (const fixture of WELL_KNOWN_TEST_MASTER_KEYS) {
+        expect(() => loadConfig({ ...prodBase, CONNECTOR_MASTER_KEY: fixture })).toThrow(
+          /fixture de teste conhecida|não pode ser usada em production/i,
+        );
+      }
+    });
+
+    it('fora de production (test) a fixture é aceita — é só para os testes', () => {
+      const fixture = WELL_KNOWN_TEST_MASTER_KEYS[0];
+      const cfg = loadConfig({ ...base, NODE_ENV: 'test', CONNECTOR_VAULT_PROVIDER: 'app-aes-gcm', CONNECTOR_MASTER_KEY: fixture });
+      expect(cfg.CONNECTOR_MASTER_KEY).toBe(fixture);
+    });
+
+    it('em production, uma chave real (não fixture) de 32 bytes é aceita', () => {
+      const realKey = Buffer.from('an-operationally-provisioned-32b', 'utf8').toString('base64');
+      expect(Buffer.from(realKey, 'base64').length).toBe(32);
+      const cfg = loadConfig({ ...prodBase, CONNECTOR_MASTER_KEY: realKey });
+      expect(cfg.NODE_ENV).toBe('production');
+    });
   });
 });
