@@ -54,3 +54,21 @@ recusa em `ANTHROPIC_PRODUCTION_BLOCK.md`.
 - promover o provider persistido para `ENABLED`/`productionAllowed=true`;
 - permitir execução normal de agente com versão de credencial **sem** smoke `PASSED`;
 - rodar o non-prod gate quando o gate de chamadas externas está OFF (isso é o caminho offline).
+
+## 6. Atualização 008.5 — gate de tool calling (não produção)
+
+O tool calling da Anthropic (Fatia 2) adiciona um gate **separado e específico**,
+`ANTHROPIC_TOOL_CALLING_ENABLED`, honrado **apenas fora de produção**:
+
+- `toolCallingEnabled() = ANTHROPIC_TOOL_CALLING_ENABLED && !isProduction()` — lê `NODE_ENV`
+  **ao vivo** (defense in depth), igual ao restante do gating;
+- default do env: **false**;
+- request com tools sem esse gate (ou em produção) → recusado (`PROVIDER_ERROR` fora do bloqueio
+  de produção; `MODEL_PROVIDER_DISABLED` em produção, antes de mapear tools/resolver
+  credencial/tocar transporte);
+- é independente do gate de chamadas externas: a Fatia 2 foi **validada OFFLINE** com
+  `FakeAnthropicTransport`, sem chamada real.
+
+O status persistido do provider **permanece** `DISABLED` / `productionAllowed=false`. Tool
+calling implementation: **OFFLINE VERIFIED**. Live Anthropic tool calling: **NOT EXECUTED**.
+Production: **BLOCKED**. Detalhe em `ANTHROPIC_TOOL_CALLING_RUNTIME.md`.

@@ -70,3 +70,23 @@ tools. Ver `ANTHROPIC_RESPONSE_SECURITY.md`.
 
 Provider executável: **SIM**, atrás de gate de teste/desenvolvimento. Chamada externa real:
 **NÃO**. Disponibilidade em produção: **NÃO**. Ver `ANTHROPIC_RUNTIME_FEATURE_GATES.md`.
+
+## 8. Atualização 008.5 — tool calling (OFFLINE)
+
+O bloqueio duro de tool da Fatia 1 (§5) é **substituído**: o provider agora **traduz** tools
+reais, sempre atrás de gate e reutilizando o runtime provider-neutro — mas **ainda não executa
+tool** e não faz chamada real.
+
+- **Gate:** request com tools exige não produção + `ANTHROPIC_TOOL_CALLING_ENABLED`
+  (`toolCallingEnabled() = ANTHROPIC_TOOL_CALLING_ENABLED && !isProduction()`, `NODE_ENV` ao
+  vivo; default false, honrado só fora de produção); senão `PROVIDER_ERROR`. Produção sempre
+  `MODEL_PROVIDER_DISABLED` **antes** de mapear tools / resolver credencial / tocar o transporte.
+- **Capability:** modelos Anthropic declaram `['STRUCTURED_OUTPUT','TOOL_CALLING']`, mas seguem
+  `DISABLED` / `productionAllowed=false` (capability IMPLEMENTADA, não disponível em produção).
+- **Provider NUNCA executa tool** — o único executor é `ExternalToolExecutor` (BE-006) no runtime;
+  o provider só faz threading do codec por request no request/response mapping. Custo `null`
+  (`COST_RATE_CARD_NOT_AVAILABLE`).
+
+Tool calling implementation: **OFFLINE VERIFIED**. Live Anthropic tool calling: **NOT EXECUTED**.
+Production: **BLOCKED**. Detalhe em `ANTHROPIC_TOOL_CALLING_RUNTIME.md` e
+`ARDEN_BE_008_ANTHROPIC_TOOL_CALLING_REPORT.md`.

@@ -147,3 +147,31 @@ Detalhe em `ARDEN_BE_008_NON_PROD_ENABLEMENT_REPORT.md` + evidência em
 `tool_use`, integração com authority-gradient/aprovações/`ExternalToolExecutor` (BE-004/005/006).
 Produção continua **bloqueada**; rate cards comerciais e `productionAllowed=true` dependem de
 reabrir o gate 008.4A (pricing e governança hoje UNVERIFIED).
+
+## Atualização 008.5
+
+Tool calling da Anthropic (Fatia 2) — **validado OFFLINE apenas**. O provider passa a
+**traduzir** definições de tools e `tool_use`, reutilizando integralmente o runtime
+provider-neutro 007.5 (validação, binding, autoridade ALLOW/REQUIRE_APPROVAL/DENY, aprovação via
+`agent_runtime_checkpoints`, `ActionAuthorization` single-use, idempotência, `ExternalToolExecutor`
+como único executor, isolamento 007.4, usage por propósito, limites). O provider **nunca** resolve
+credencial de tool, cria aprovação, emite autorização ou executa tool.
+
+- **Tool calling implementation: OFFLINE VERIFIED** (exclusivamente via `FakeAnthropicTransport`).
+- **Live Anthropic tool calling: NOT EXECUTED.**
+- **Production: BLOCKED** — request com tools exige não produção + `ANTHROPIC_TOOL_CALLING_ENABLED`
+  (default false, só honrado fora de produção); produção sempre `MODEL_PROVIDER_DISABLED` antes de
+  mapear tools/resolver credencial/tocar transporte.
+- Novos mappers puros na borda (codec de nome, guard de descrição, definition/result mappers) +
+  request/response mappers estendidos; **sem migração**, sem endpoint novo, OpenAPI diff-free,
+  frontend intocado; provider persistido segue `DISABLED`.
+- Capabilities do catálogo agora declaram `['STRUCTURED_OUTPUT','TOOL_CALLING']` (IMPLEMENTADA, não
+  disponível em produção); custo `null` (`COST_RATE_CARD_NOT_AVAILABLE`); pricing/governança
+  seguem **UNVERIFIED**.
+
+Detalhe em `ARDEN_BE_008_ANTHROPIC_TOOL_CALLING_REPORT.md` + evidência em
+`ARDEN_BE_008_ANTHROPIC_TOOL_CALLING_TEST_EVIDENCE.md`.
+
+**Próximo: 008.6** — chamada real da Anthropic com tools + streaming + tool calls paralelas +
+server-side tools + MCP + subagentes; dependem de reabrir o gate 008.4A (pricing/governança hoje
+UNVERIFIED) antes de rate cards comerciais e `productionAllowed=true`.
