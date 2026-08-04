@@ -130,6 +130,24 @@ Foram ligados **aditivamente** por todas as camadas:
 Suite de frontend: **271 testes verdes** (unit + a11y). Typecheck, lint, build e diff de
 OpenAPI: verdes.
 
+### 7.1 Integração (backend real, HTTP + Postgres)
+
+`apps/api/test/anthropic-connection.integration.spec.ts` — **8 testes verdes** contra o backend
+real que o frontend consome: catálogos persistidos (§42), credencial write-only + canário de
+cofre (§43), validação local `NOT_VERIFIED_WITH_PROVIDER` sem segredo (§17), rotação
+supersede/ativa sem retornar segredo (§44), ModelConfiguration DRAFT com ativação bloqueada por
+`MODEL_PROVIDER_DISABLED` e rejeição de modelId fora da allowlist (§45), **cross-tenant 404**
+(§46) e seed idempotente (§38).
+
+### 7.2 E2E offline (navegador ↔ backend real, provider FAKE)
+
+`e2e/api/anthropic-admin-api.spec.ts` — **4 testes verdes** dirigindo o frontend construído em
+modo `api` contra o backend real: (1) fixture não produtiva (produção bloqueada + catálogo real
+sem preço verificado); (2) connection segura com **canário de segredo no DOM real** + validação
+`NOT_VERIFIED_WITH_PROVIDER`; (3) rotação de credencial invalida o smoke; (4) ModelConfiguration
+guiada em DRAFT com ativação bloqueada. O `playwright.api.config.ts` passou a fornecer
+`CONNECTOR_MASTER_KEY` (somente teste) para o cofre operar ponta a ponta.
+
 ## 8. Conclusão
 
 Os fluxos administrativos da Anthropic estão completos no frontend, consumindo a API v1 real,
