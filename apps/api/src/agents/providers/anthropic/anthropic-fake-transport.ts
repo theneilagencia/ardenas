@@ -29,7 +29,14 @@ export type FakeAnthropicScenario =
   | 'timeout_after_send'
   | 'connection_reset'
   | 'malformed_response'
-  | 'aborted';
+  | 'aborted'
+  // ── Tool calling (ARDEN-BE-008.5 §40) ────────────────────────────────────────
+  | 'tool_use_then_output'
+  | 'tool_invalid_alias'
+  | 'tool_invalid_input'
+  | 'tool_multiple_calls'
+  | 'tool_repeat_forever'
+  | 'model_unknown_after_tool';
 
 const REPAIR_MARKER = '[arden:repair]';
 
@@ -39,6 +46,17 @@ function messageText(content: import('./anthropic-transport.types').AnthropicTra
   return content
     .map((b) => (b.type === 'text' ? b.text : b.type === 'tool_result' ? b.content : ''))
     .join('\n');
+}
+
+/** Continuação = já existe um bloco tool_result no histórico (o segundo turno do modelo). */
+function isContinuation(request: AnthropicTransportRequest): boolean {
+  return request.messages.some((m) => Array.isArray(m.content) && m.content.some((b) => b.type === 'tool_result'));
+}
+
+/** Nome do provider da primeira tool REAL da requisição (ignora a tool sintética de output). */
+function realToolName(request: AnthropicTransportRequest): string {
+  const real = (request.tools ?? []).find((t) => t.name !== ANTHROPIC_STRUCTURED_OUTPUT_TOOL);
+  return real?.name ?? 'arden_tool';
 }
 
 @Injectable()
@@ -124,7 +142,42 @@ export class FakeAnthropicTransport implements AnthropicTransport {
         throw new AnthropicTransportException({ providerErrorClass: 'MalformedResponse', httpStatus: null }, 'Resposta malformada.');
       case 'aborted':
         throw new AnthropicTransportException({ providerErrorClass: 'APIUserAbortError', httpStatus: null }, 'Cancelado.');
+      // ── Tool calling ─────────────────────────────────────────────────────────
+      case 'tool_use_then_output':
+        return isContinuation(request) ? this.structured(this.validOutput(request)) : this.toolUse(realToolName(request), { id: 'c-1' });
+      case 'tool_invalid_alias':
+        // Nome NÃO presente na requisição (o servidor rejeita como AGENT_TOOL_NOT_ALLOWED).
+        return this.toolUse('admin.delete', { id: 'c-1' });
+      case 'tool_invalid_input':
+        // Input que viola o inputSchema (o AgentToolCallValidator rejeita server-side).
+        return this.toolUse(realToolName(request), { unexpected: true });
+      case 'tool_multiple_calls':
+        return this.multiToolUse(realToolName(request));
+      case 'tool_repeat_forever':
+        // Sempre tool_use → o runtime encerra por limite (turnos/tool calls).
+        return this.toolUse(realToolName(request), { id: 'c-loop' });
+      case 'model_unknown_after_tool':
+        // Continuação INCERTA após a tool ter executado (não retria; não vira sucesso).
+        if (isContinuation(request)) throw new AnthropicTransportException({ providerErrorClass: 'APIConnectionError', httpStatus: null, phase: 'AFTER_SEND' }, 'Incerto após a tool.');
+        return this.toolUse(realToolName(request), { id: 'c-1' });
     }
+  }
+
+  /** Bloco de resposta com UMA tool_use real (nome do provider vindo da requisição). */
+  private toolUse(name: string, input: unknown): AnthropicTransportResponse {
+    return { id: 'msg_fake', stop_reason: 'tool_use', content: [{ type: 'tool_use', id: `toolu_${name}`, name, input }], usage: { input_tokens: 30, output_tokens: 12 } };
+  }
+
+  /** Duas tool_use no mesmo turno (o runtime processa só a primeira / rejeita paralelo). */
+  private multiToolUse(name: string): AnthropicTransportResponse {
+    return {
+      id: 'msg_fake', stop_reason: 'tool_use',
+      content: [
+        { type: 'tool_use', id: `toolu_${name}_a`, name, input: { id: 'a' } },
+        { type: 'tool_use', id: `toolu_${name}_b`, name, input: { id: 'b' } },
+      ],
+      usage: { input_tokens: 30, output_tokens: 18 },
+    };
   }
 
   private structured(input: unknown): AnthropicTransportResponse {
