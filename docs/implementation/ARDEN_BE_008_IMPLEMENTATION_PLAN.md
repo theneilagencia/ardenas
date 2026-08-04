@@ -175,3 +175,41 @@ Detalhe em `ARDEN_BE_008_ANTHROPIC_TOOL_CALLING_REPORT.md` + evidência em
 **Próximo: 008.6** — chamada real da Anthropic com tools + streaming + tool calls paralelas +
 server-side tools + MCP + subagentes; dependem de reabrir o gate 008.4A (pricing/governança hoje
 UNVERIFIED) antes de rate cards comerciais e `productionAllowed=true`.
+
+## Atualização 008.6
+
+<!-- Milestone: ARDEN-BE-008.6 -->
+
+Entregue como **FATIA FOCADA**: página de administração do provider Anthropic (`/anthropic`),
+**somente leitura / status-only**, consumindo a API v1 real (`GET /model-providers` via
+`useModelProviders`, sem mock). Localiza `anthropic.direct` e renderiza banner permanente de
+produção bloqueada, resumo real do provider e estados de verificação em texto + ícone (preço
+NÃO VERIFICADO, governança de dados NÃO VERIFICADA, smoke NÃO EXECUTADO, tool calling validado
+OFFLINE, disponibilidade apenas não produtiva). Rota guardada por `model_provider.view`; nav no
+grupo `control`; namespace i18n `anthropic` em pt-BR e en-US. As ações enlaçam para as telas
+provider-neutras já existentes (Integrações → connections; ModelConfigurations) — **reuso, não
+reconstrução**.
+
+- **Delivered (OFFLINE, status-only):** página read-only + visibilidade de status; 5 testes
+  unit + 1 a11y verdes; suíte de frontend 255 unit + 3 a11y; typecheck/lint limpos; build ok;
+  OpenAPI diff-free.
+- **DEFERIDO:** wizard dedicado de criação de connection Anthropic; diálogo de rotação; painel
+  de smoke conectado a auditoria; wizard de ModelConfiguration com allowlist de modelos da API;
+  badges de elegibilidade no editor de AgentVersion; linhas de execução com provider/modelo;
+  envelopamento no cliente gerado dos endpoints de catálogo por modelo e validate-configuration;
+  matriz completa de testes (~46 unit / ~20 integração / E2E offline / canário de segredo-no-DOM
+  / cross-tenant-404).
+- **Restrições de backend refletidas na UI:** smoke é CLI-only (sem endpoint HTTP; metadados
+  removidos pelo serializer) — sem botão funcional, só status + instruções; sem endpoint de
+  elegibilidade/bloqueadores (aflora via `MODEL_PROVIDER_DISABLED` no `activate`); permissões
+  reais (`connection.edit`, `connection.test`, `model_configuration.edit`, `model_provider.view`).
+- **Live smoke: NOT EXECUTED. Live tool calling: NOT EXECUTED. Production: BLOCKED. Pricing:
+  UNVERIFIED. Data governance: UNVERIFIED.**
+
+Detalhe em `docs/implementation/ARDEN_BE_008_ANTHROPIC_FRONTEND_REPORT.md` (+ evidência em
+`ARDEN_BE_008_ANTHROPIC_FRONTEND_TEST_EVIDENCE.md`) e docs de frontend
+`docs/frontend/ANTHROPIC_*`.
+
+**Próximo: 008.7** — telas dedicadas DEFERIDAS acima (wizards de connection/model-config,
+rotação, painel de smoke, badges de execução) e envelopamento dos endpoints pendentes no cliente
+gerado; produção segue **BLOCKED** até reabertura do gate de pricing/governança (hoje UNVERIFIED).

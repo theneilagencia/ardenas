@@ -162,3 +162,26 @@ o provider permanece `DISABLED` e não há execução. Nenhuma tela consome esta
 | --- | --- | --- |
 | `POST …/connections/{id}/validate-configuration` | administrativo — validação **local** (`NOT_VERIFIED_WITH_PROVIDER`, sem segredo na response) | `connection.test` |
 | `GET /model-providers/{providerKey}/versions/{providerVersion}/models` | administrativo — catálogo persistido (modelos `DISABLED`, sem preço) | `model_provider.view` |
+
+## ARDEN-BE-008.6 — Frontend administrativo da Anthropic (fatia focada)
+
+<!-- Milestone: ARDEN-BE-008.6 -->
+
+Entregue como **fatia focada**: uma página read-only de administração do provider Anthropic
+(`/anthropic`) que consome a API v1 real, **sem mock**. Production: BLOCKED. Live smoke: NOT
+EXECUTED. Live tool calling: NOT EXECUTED. Pricing/Data governance: UNVERIFIED.
+
+| UI | Cliente gerado | Hook | Endpoint v1 | Permissão |
+| --- | --- | --- | --- | --- |
+| `AnthropicAdminPage` (`src/features/anthropic/AnthropicAdminPage.tsx`) — localiza o provider `anthropic.direct` | `list/getModelProvider` | `useModelProviders` | `GET /model-providers` | `model_provider.view` |
+
+As ações da página apenas enlaçam para telas provider-neutras já existentes:
+`/integrations?tab=connections` (connection segura + credencial write-only via `SecretField`)
+e `/model-configurations` (criação de configuração). Nenhuma tela dedicada de wizard/rotação
+foi construída (DEFERIDO).
+
+**Endpoints existentes no OpenAPI, ainda NÃO envelopados pelo cliente gerado do frontend**
+(portanto ainda não consumidos por nenhuma tela):
+
+- `GET /model-providers/{providerKey}/versions/{providerVersion}/models` (catálogo por modelo).
+- `POST …/connections/{id}/validate-configuration` (validação de configuração).
