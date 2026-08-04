@@ -18,8 +18,10 @@ import {
 import { ModelProviderInvocationError } from '../../runtime/model-provider.errors';
 import { AgentMetrics } from '../../governance/agent-metrics';
 import { PrismaService } from '../../../database/prisma.service';
-import { AnthropicRequestMapper, type AnthropicRequestMapperOptions } from './anthropic-request-mapper';
+import { AnthropicRequestMapper, type AnthropicRequestMapperOptions, ANTHROPIC_STRUCTURED_OUTPUT_TOOL } from './anthropic-request-mapper';
 import { AnthropicResponseMapper } from './anthropic-response-mapper';
+import { AnthropicToolDefinitionMapper } from './anthropic-tool-definition-mapper';
+import type { AnthropicToolNameCodec } from './anthropic-tool-name-codec';
 import { AnthropicErrorMapper, type AnthropicMappedError } from './anthropic-error-mapper';
 import { decideAnthropicRetry, computeAnthropicBackoffMs, ANTHROPIC_RETRY_DEFAULT } from './anthropic-retry-policy';
 import { ANTHROPIC_TRANSPORT, AnthropicTransportException, type AnthropicTransport } from './anthropic-transport.port';
@@ -45,6 +47,7 @@ export class AnthropicModelProvider implements ModelProvider {
   private readonly requestMapper = new AnthropicRequestMapper();
   private readonly responseMapper = new AnthropicResponseMapper();
   private readonly errorMapper = new AnthropicErrorMapper();
+  private readonly toolDefMapper = new AnthropicToolDefinitionMapper();
 
   constructor(
     @Inject(ANTHROPIC_TRANSPORT) private readonly transport: AnthropicTransport,
@@ -61,9 +64,13 @@ export class AnthropicModelProvider implements ModelProvider {
 
   async generate(request: ModelGenerationRequest, context?: ModelGenerationContext): Promise<ModelGenerationResult> {
     if (!context) throw new ModelProviderInvocationError('PROVIDER_ERROR', 'Contexto de execução ausente.');
-    // §26: tool calling Anthropic NÃO é suportado nesta fase (tools reais rejeitadas).
-    if ((request.tools?.length ?? 0) > 0) {
-      throw new ModelProviderInvocationError('PROVIDER_ERROR', 'Tool calling Anthropic não suportado nesta fase.');
+    const hasTools = (request.tools?.length ?? 0) > 0;
+    // §37/§39: tool calling só fora de produção e sob o gate dedicado. Produção sempre bloqueia
+    // ANTES de mapear tools/resolver credencial/tocar o transporte. Sem o gate → tools rejeitadas
+    // (structured output continua funcionando).
+    if (hasTools) {
+      if (this.nonProdGate.isProduction()) throw modelProviderDisabled('Provider Anthropic bloqueado em produção.');
+      if (!this.nonProdGate.toolCallingEnabled()) throw new ModelProviderInvocationError('PROVIDER_ERROR', 'Tool calling Anthropic desabilitado (gate).');
     }
     if (!isAllowedAnthropicModelId(request.modelId)) {
       throw new ModelProviderInvocationError('UNSUPPORTED_MODEL', 'modelId não allowlisted para anthropic.direct.');
@@ -95,6 +102,16 @@ export class AnthropicModelProvider implements ModelProvider {
         throw modelProviderDisabled('Versão de credencial sem smoke test válido (ARDEN-BE-008.4).');
       }
       const opts = await this.parameterOptions(context.organizationId, context.modelConfigurationId);
+      // §8/§12: mapeia as tools allowlisted (interseção server-side do 007.5) e mantém o codec
+      // per-request para o reverse-lookup do tool_use e a síntese da continuação.
+      let codec: AnthropicToolNameCodec | undefined;
+      if (hasTools) {
+        const mapping = this.toolDefMapper.map(request.tools ?? [], [ANTHROPIC_STRUCTURED_OUTPUT_TOOL]);
+        opts.toolDefinitions = mapping.definitions;
+        opts.toolCodec = mapping.codec;
+        opts.toolChoice = 'AUTO';
+        codec = mapping.codec;
+      }
       const transportRequest = this.requestMapper.map(request, opts);
       if (realCall) {
         // Quota de tokens de saída (denial-of-wallet) não produtiva.
@@ -103,7 +120,7 @@ export class AnthropicModelProvider implements ModelProvider {
         acquired = true;
       }
       const timeoutMs = this.effectiveTimeout(context.deadlineMs, credential.timeoutMs);
-      const result = await this.callWithRetry(request, transportRequest, credential.apiKey, timeoutMs, context, labels);
+      const result = await this.callWithRetry(request, transportRequest, credential.apiKey, timeoutMs, context, labels, codec);
       if (realCall) this.nonProdGate.recordSuccess();
       return result;
     } catch (err) {
@@ -124,6 +141,7 @@ export class AnthropicModelProvider implements ModelProvider {
     timeoutMs: number,
     context: ModelGenerationContext,
     labels: { provider: string; model: string },
+    codec?: AnthropicToolNameCodec,
   ): Promise<ModelGenerationResult> {
     const startedAtAll = Date.now();
     const deadlineAt = context.deadlineMs && context.deadlineMs > 0 ? startedAtAll + context.deadlineMs : Number.MAX_SAFE_INTEGER;
@@ -140,7 +158,7 @@ export class AnthropicModelProvider implements ModelProvider {
         });
         clearTimeout(timer);
         const durationMs = Date.now() - startedAt;
-        const result = this.responseMapper.map(response, request.modelId);
+        const result = this.responseMapper.map(response, request.modelId, codec);
         // Duração medida pelo provider; modelCallCount = tentativas realizadas.
         result.usage = { ...result.usage, durationMs, modelCallCount: attempt };
         this.metrics.increment(M_REQUESTS, { ...labels, status: 'succeeded' });

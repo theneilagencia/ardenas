@@ -11,6 +11,10 @@ import type { ModelGenerationResult, ModelToolCall } from '@arden/contracts';
 import { ANTHROPIC_PROVIDER_KEY } from '@arden/contracts';
 import type { AnthropicTransportResponse, AnthropicStopReason } from './anthropic-transport.types';
 import { ANTHROPIC_STRUCTURED_OUTPUT_TOOL } from './anthropic-request-mapper';
+import type { AnthropicToolNameCodec } from './anthropic-tool-name-codec';
+
+/** Limite defensivo do id de tool_use (o contrato canônico exige ≤120). */
+const MAX_TOOL_USE_ID = 120;
 
 type CanonicalFinish = ModelGenerationResult['finishReason'];
 
@@ -34,7 +38,12 @@ export function mapAnthropicStopReason(stop: AnthropicStopReason | null): Canoni
 }
 
 export class AnthropicResponseMapper {
-  map(response: AnthropicTransportResponse, modelId: string): ModelGenerationResult {
+  /**
+   * @param codec (008.5) reverse-lookup do nome do provider → alias canônico. Nome não
+   *   reconhecido mantém o valor bruto (o `AgentToolCallValidator` do runtime rejeita como
+   *   AGENT_TOOL_NOT_ALLOWED — o provider NÃO decide autoridade).
+   */
+  map(response: AnthropicTransportResponse, modelId: string, codec?: AnthropicToolNameCodec): ModelGenerationResult {
     let text: string | undefined;
     let structuredOutput: unknown;
     const toolCalls: ModelToolCall[] = [];
@@ -46,7 +55,11 @@ export class AnthropicResponseMapper {
         if (block.name === ANTHROPIC_STRUCTURED_OUTPUT_TOOL) {
           structuredOutput = block.input;
         } else {
-          toolCalls.push({ id: block.id, alias: block.name, input: block.input });
+          // §14: alias reversível via codec; id limitado; input passado como veio (o runtime
+          // valida contra o inputSchema). Nome desconhecido → alias bruto (runtime rejeita).
+          const alias = codec?.resolve(block.name) ?? block.name;
+          const id = typeof block.id === 'string' ? block.id.slice(0, MAX_TOOL_USE_ID) : '';
+          toolCalls.push({ id, alias, input: block.input });
         }
       }
     }

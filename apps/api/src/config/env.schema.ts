@@ -65,6 +65,10 @@ export const envSchema = z
     // Gate de CHAMADA EXTERNA: autoriza o transporte real (SDK) a alcançar a Anthropic.
     // Default false. Com false, o transporte real NUNCA chama a rede (erro seguro).
     ANTHROPIC_PROVIDER_EXTERNAL_CALLS_ENABLED: booleanish.default(false),
+    // Gate de TOOL CALLING (ARDEN-BE-008.5): habilita o mapeamento/loop de ferramentas
+    // Anthropic. Default false; só honrado fora de produção e sob o gate de runtime. Com
+    // false, structured output continua funcionando e request com tools é rejeitado.
+    ANTHROPIC_TOOL_CALLING_ENABLED: booleanish.default(false),
 
     // ── Smoke test real controlado (ARDEN-BE-008.4) ──────────────────────────
     // Habilita o comando de smoke test (nunca em suíte normal/CI). Default false.

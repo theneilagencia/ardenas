@@ -23,7 +23,7 @@ function makeProvider(transport: FakeAnthropicTransport, metrics = new AgentMetr
   };
   const prisma = { modelConfiguration: { findFirst: async () => ({ parameters: { maximumOutputTokens: 512, temperature: 0.2 } }) } };
   // Gate não produtivo: chamadas externas DESLIGADAS nos testes unitários (caminho offline).
-  const gate = { externalCallsEnabled: () => false } as never;
+  const gate = { externalCallsEnabled: () => false, isProduction: () => false, toolCallingEnabled: () => false } as never;
   return new AnthropicModelProvider(transport, credentials as never, prisma as never, metrics, gate);
 }
 

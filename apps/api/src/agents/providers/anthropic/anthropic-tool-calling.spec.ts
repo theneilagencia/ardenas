@@ -12,7 +12,10 @@ import { AnthropicToolNameCodec, AnthropicToolMappingError, ANTHROPIC_TOOL_NAME_
 import { AnthropicToolDefinitionMapper } from './anthropic-tool-definition-mapper';
 import { AnthropicToolDescriptionGuard } from './anthropic-tool-description-guard';
 import { AnthropicToolResultMapper } from './anthropic-tool-result-mapper';
-import { ANTHROPIC_STRUCTURED_OUTPUT_TOOL } from './anthropic-request-mapper';
+import { AnthropicRequestMapper, ANTHROPIC_STRUCTURED_OUTPUT_TOOL } from './anthropic-request-mapper';
+import { AnthropicResponseMapper } from './anthropic-response-mapper';
+import type { ModelGenerationRequest } from '@arden/contracts';
+import type { AnthropicTransportResponse } from './anthropic-transport.types';
 
 const CANARY = 'ARDEN_BE008_ANTHROPIC_TOOL_SECRET_CANARY_7f3a';
 
@@ -124,5 +127,72 @@ describe('AnthropicToolResultMapper — §22/§23/§24', () => {
   it('limita o tamanho do conteúdo', () => {
     const block = mapper.map({ toolCallId: 'toolu_6', status: 'SUCCEEDED', output: { blob: 'y'.repeat(20000) } });
     expect(block.content.length).toBeLessThanOrEqual(8000);
+  });
+});
+
+const MODEL = 'claude-haiku-4-5-20251001';
+function genRequest(over: Partial<ModelGenerationRequest> = {}): ModelGenerationRequest {
+  return {
+    providerKey: 'anthropic.direct', providerVersion: '1', modelId: MODEL,
+    systemInstructions: 'sys', messages: [{ role: 'USER', content: [{ type: 'TEXT', text: 'hi' }] }],
+    tools: [], outputSchema: { type: 'object', additionalProperties: false, required: ['status'], properties: { status: { type: 'string' } } },
+    maximumInputTokens: 1000, maximumOutputTokens: 256, correlationId: 'c1',
+    ...over,
+  } as ModelGenerationRequest;
+}
+
+describe('AnthropicRequestMapper — tools + tool_choice (§12/§13)', () => {
+  const mapper = new AnthropicRequestMapper();
+  it('sem tools: força a tool sintética de structured output', () => {
+    const out = mapper.map(genRequest());
+    expect(out.tool_choice).toEqual({ type: 'tool', name: ANTHROPIC_STRUCTURED_OUTPUT_TOOL });
+  });
+  it('com tools reais: tool_choice AUTO e ambas as tools presentes', () => {
+    const { definitions, codec } = new AnthropicToolDefinitionMapper().map([tool()], [ANTHROPIC_STRUCTURED_OUTPUT_TOOL]);
+    const out = mapper.map(genRequest(), { toolDefinitions: definitions, toolCodec: codec, toolChoice: 'AUTO' });
+    expect(out.tool_choice).toEqual({ type: 'auto' });
+    expect((out.tools ?? []).map((t) => t.name).sort()).toEqual(['arden_structured_output', 'read_customer']);
+  });
+  it('tool_choice NONE quando estratégia NONE', () => {
+    const { definitions, codec } = new AnthropicToolDefinitionMapper().map([tool()]);
+    const noSchema = genRequest({ outputSchema: undefined as never });
+    const out = mapper.map(noSchema, { toolDefinitions: definitions, toolCodec: codec, toolChoice: 'NONE' });
+    expect(out.tool_choice).toEqual({ type: 'none' });
+  });
+  it('continuação: mensagem TOOL vira assistant tool_use + user tool_result (preserva id)', () => {
+    const { codec } = new AnthropicToolDefinitionMapper().map([tool()]);
+    const req = genRequest({
+      messages: [
+        { role: 'USER', content: [{ type: 'TEXT', text: 'hi' }] },
+        { role: 'TOOL', toolCallId: 'toolu_abc', content: [{ type: 'TOOL_RESULT', data: { alias: 'read_customer', status: 'SUCCEEDED', name: 'Ada' } }] },
+      ] as never,
+    });
+    const out = mapper.map(req, { toolCodec: codec });
+    const asst = out.messages.find((m) => m.role === 'assistant');
+    const user = out.messages.filter((m) => m.role === 'user').at(-1);
+    expect(Array.isArray(asst?.content) && asst?.content[0]).toMatchObject({ type: 'tool_use', id: 'toolu_abc', name: 'read_customer' });
+    expect(Array.isArray(user?.content) && user?.content[0]).toMatchObject({ type: 'tool_result', tool_use_id: 'toolu_abc', is_error: false });
+  });
+});
+
+describe('AnthropicResponseMapper — tool_use (§14/§16)', () => {
+  const mapper = new AnthropicResponseMapper();
+  function resp(name: string, id = 'toolu_1'): AnthropicTransportResponse {
+    return { id: 'msg_1', stop_reason: 'tool_use', content: [{ type: 'tool_use', id, name, input: { id: '42' } }], usage: { input_tokens: 5, output_tokens: 3 } };
+  }
+  it('reverse-alias via codec + finishReason TOOL_CALL', () => {
+    const codec = new AnthropicToolNameCodec();
+    const name = codec.register('acme:read customer!');
+    const out = mapper.map(resp(name), MODEL, codec);
+    expect(out.finishReason).toBe('TOOL_CALL');
+    expect(out.toolCalls[0].alias).toBe('acme:read customer!');
+  });
+  it('nome desconhecido: mantém bruto (runtime rejeita como AGENT_TOOL_NOT_ALLOWED)', () => {
+    const out = mapper.map(resp('admin.delete'), MODEL, new AnthropicToolNameCodec());
+    expect(out.toolCalls[0].alias).toBe('admin.delete');
+  });
+  it('preserva o tool_use id', () => {
+    const out = mapper.map(resp('read_customer', 'toolu_xyz'), MODEL, new AnthropicToolNameCodec().register('read_customer') ? undefined : undefined);
+    expect(out.toolCalls[0].id).toBe('toolu_xyz');
   });
 });

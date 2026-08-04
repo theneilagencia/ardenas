@@ -61,7 +61,9 @@ function entry(modelId: string, displayName: string): CommercialModelCatalogEntr
     displayName,
     status: 'DISABLED',
     productionAllowed: false,
-    capabilities: ['STRUCTURED_OUTPUT'],
+    // Capability = suporte técnico IMPLEMENTADO (ARDEN-BE-008.5), não disponibilidade de
+    // produção. Modelos permanecem DISABLED / productionAllowed=false.
+    capabilities: ['STRUCTURED_OUTPUT', 'TOOL_CALLING'],
     maximumInputTokens: null,
     maximumOutputTokens: null,
     supportsStructuredOutput: true,

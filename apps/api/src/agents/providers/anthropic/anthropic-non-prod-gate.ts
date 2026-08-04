@@ -36,6 +36,11 @@ export class AnthropicNonProdGate {
     return this.config.ANTHROPIC_PROVIDER_EXTERNAL_CALLS_ENABLED;
   }
 
+  /** Se o tool calling Anthropic está habilitado (ARDEN-BE-008.5). Produção nunca honra. */
+  toolCallingEnabled(): boolean {
+    return this.config.ANTHROPIC_TOOL_CALLING_ENABLED && !this.isProduction();
+  }
+
   isOrgAllowed(organizationId: string): boolean {
     return this.config.anthropicNonProdAllowedOrganizationIds.includes(organizationId);
   }
