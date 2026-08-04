@@ -156,32 +156,36 @@ disponível", nunca "0,00". Sem segredo/prompt/instrução em storage/URL/log/an
 
 **O frontend funcional NÃO foi alterado nesta fase.** Estes dois endpoints são
 administrativos/backend-facing (registro/validação da conexão e leitura do catálogo persistido);
-o provider permanece `DISABLED` e não há execução. Nenhuma tela consome estas APIs ainda.
+o provider permanece `DISABLED` e não há execução. Estes endpoints passaram a ser consumidos
+pelas telas administrativas Anthropic na fase 008.6 (ver seção abaixo).
 
 | Endpoint v1 (aditivo) | Natureza | Permissão |
 | --- | --- | --- |
 | `POST …/connections/{id}/validate-configuration` | administrativo — validação **local** (`NOT_VERIFIED_WITH_PROVIDER`, sem segredo na response) | `connection.test` |
 | `GET /model-providers/{providerKey}/versions/{providerVersion}/models` | administrativo — catálogo persistido (modelos `DISABLED`, sem preço) | `model_provider.view` |
 
-## ARDEN-BE-008.6 — Frontend administrativo da Anthropic (fatia focada)
+## ARDEN-BE-008.6 — Frontend administrativo da Anthropic (concluído)
 
 <!-- Milestone: ARDEN-BE-008.6 -->
 
-Entregue como **fatia focada**: uma página read-only de administração do provider Anthropic
-(`/anthropic`) que consome a API v1 real, **sem mock**. Production: BLOCKED. Live smoke: NOT
-EXECUTED. Live tool calling: NOT EXECUTED. Pricing/Data governance: UNVERIFIED.
+Fluxos administrativos completos na página `/anthropic`, consumindo a API v1 real, **sem
+mock**. Production: BLOCKED. Live smoke: NOT EXECUTED. Live tool calling: NOT EXECUTED.
+Pricing/Data governance: UNVERIFIED.
 
-| UI | Cliente gerado | Hook | Endpoint v1 | Permissão |
+| UI | Método do cliente | Hook | Endpoint v1 | Permissão |
 | --- | --- | --- | --- | --- |
-| `AnthropicAdminPage` (`src/features/anthropic/AnthropicAdminPage.tsx`) — localiza o provider `anthropic.direct` | `list/getModelProvider` | `useModelProviders` | `GET /model-providers` | `model_provider.view` |
+| `AnthropicAdminPage` — resumo do provider `anthropic.direct` | `list/getModelProvider` | `useModelProviders` | `GET /model-providers` | `model_provider.view` |
+| `AnthropicModelCatalog` — catálogo por modelo (allowlist) | `listModelCatalog` | `useModelCatalog` | `GET /model-providers/{key}/versions/{ver}/models` | `model_provider.view` |
+| `AnthropicConnections` — criar conexão + credencial write-only | `createConnection` + `createCredential` | `useCreateConnection` + `useCreateCredential` | `POST …/connections` + `POST …/credentials` | `connection.create` + `connection.rotate_credentials` |
+| `AnthropicConnections` — validação local | `validateConnectionConfiguration` | `useValidateConnectionConfiguration` | `POST …/connections/{id}/validate-configuration` | `connection.test` |
+| `AnthropicConnections` — rotação | `rotateCredential` | `useRotateCredential` | `POST …/credentials/rotate` | `connection.rotate_credentials` |
+| `AnthropicConnections` — lifecycle | `activate/suspend/reactivate/revokeConnection` | `useActivate/Suspend/Reactivate/RevokeConnection` | `POST …/connections/{id}/{command}` | `connection.edit` / `connection.revoke` |
+| `AnthropicModelConfiguration` — criação guiada (DRAFT) | `createModelConfiguration` | `useCreateModelConfiguration` | `POST …/model-configurations` | `model_configuration.create` |
+| `AgentVersionEditorPage` — aviso offline + bloqueio de publicação Anthropic | — | `useModelConfigurations` | `GET …/model-configurations` | `agent.view` |
+| `ExecutionAgentUsagePanel` — provider/modelo + custo | `getExecutionAgentUsage` | `useExecutionAgentUsage` | `GET …/executions/{id}/agent-usage` | `agent.cost.view` |
 
-As ações da página apenas enlaçam para telas provider-neutras já existentes:
-`/integrations?tab=connections` (connection segura + credencial write-only via `SecretField`)
-e `/model-configurations` (criação de configuração). Nenhuma tela dedicada de wizard/rotação
-foi construída (DEFERIDO).
-
-**Endpoints existentes no OpenAPI, ainda NÃO envelopados pelo cliente gerado do frontend**
-(portanto ainda não consumidos por nenhuma tela):
-
-- `GET /model-providers/{providerKey}/versions/{providerVersion}/models` (catálogo por modelo).
-- `POST …/connections/{id}/validate-configuration` (validação de configuração).
+Os dois endpoints antes não expostos agora estão envelopados de forma **aditiva** por toda a
+cadeia (interface do cliente contract-derived, `ApiV1HttpClient`, contratos de repositório,
+repos v1, stubs unavailable, fakes, use-cases e hooks). Ver §3 do relatório
+`ARDEN_BE_008_ANTHROPIC_FRONTEND_REPORT.md` para a justificativa §35 (o `api-v1-client.ts` é
+manuscrito e contract-derived, não um artefato de codegen).
