@@ -21,6 +21,7 @@ import type {
   RetireAgentVersionRequest,
   ListAgentVersionsQuery,
   ModelProviderDefinition,
+  ModelCatalogEntry,
   ModelConfiguration,
   CreateModelConfigurationRequest,
   UpdateModelConfigurationRequest,
@@ -92,6 +93,8 @@ import type {
   ConnectorDefinition,
   ConnectorToolDefinition,
   Connection,
+  ConnectionConfigurationValidationResult,
+  ValidateConnectionConfigurationRequest,
   CreateConnectionRequest,
   UpdateConnectionRequest,
   TestConnectionRequest,
@@ -323,6 +326,7 @@ export interface ArdenApiV1Client {
   suspendConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
   reactivateConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
   revokeConnection(organizationId: string, connectionId: string, body: ConnectionCommandRequest, opts: CallOptions & { idempotencyKey: string }): Promise<Connection>;
+  validateConnectionConfiguration(organizationId: string, connectionId: string, body: ValidateConnectionConfigurationRequest, opts: CallOptions & { idempotencyKey: string }): Promise<ConnectionConfigurationValidationResult>;
 
   // ── Credenciais (request sensível; response só metadados) ─────────────────────
   listCredentials(organizationId: string, connectionId: string, opts?: CallOptions): Promise<ClientPage<CredentialMetadata>>;
@@ -372,6 +376,7 @@ export interface ArdenApiV1Client {
   // ── Providers de modelo (público, não tenant-scoped) ────────────────────────
   listModelProviders(opts?: CallOptions): Promise<ModelProviderDefinition[]>;
   getModelProvider(providerKey: string, opts?: CallOptions): Promise<ModelProviderDefinition>;
+  listModelCatalog(providerKey: string, providerVersion: string, opts?: CallOptions): Promise<ModelCatalogEntry[]>;
 
   // ── Configurações de modelo (tenant-scoped) ─────────────────────────────────
   listModelConfigurations(organizationId: string, query: ListModelConfigurationsQuery, opts?: CallOptions): Promise<ClientPage<ModelConfiguration>>;

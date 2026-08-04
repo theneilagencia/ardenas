@@ -65,6 +65,7 @@ export class FakeAgentsRepository implements AgentsRepository {
   versions: AgentVersion[] = [makeVersion()];
   configs: ModelConfiguration[] = [makeConfig()];
   providers: ModelProviderDefinition[] = [makeProvider()];
+  catalog: import('@arden/contracts').ModelCatalogEntry[] = [];
   results: AgentOperationalResult[] = [makeResult()];
   usage: AgentUsageBucket[] = [];
   failListResults = false;
@@ -93,6 +94,7 @@ export class FakeAgentsRepository implements AgentsRepository {
 
   async listModelProviders() { return this.providers; }
   async getModelProvider(k: string) { return makeProvider({ key: k }); }
+  async listModelCatalog() { return this.catalog; }
 
   async listModelConfigurations() { return page(this.configs); }
   async getModelConfiguration(id: string) { return makeConfig({ id }); }

@@ -221,6 +221,12 @@ export function createApiV1ConnectorsRepository(client: ArdenApiV1Client): Conne
       }
     },
 
+    async validateConnectionConfiguration(connectionId, body = {}): Promise<import('@arden/contracts').ConnectionConfigurationValidationResult> {
+      const orgId = requireOrg();
+      try {
+        return await client.validateConnectionConfiguration(orgId, connectionId, body, { idempotencyKey: idem() });
+      } catch (err) { throw toRepositoryError(err); }
+    },
     async revokeCredential(connectionId, credentialVersionId): Promise<CredentialMetadata> {
       const orgId = requireOrg();
       try {

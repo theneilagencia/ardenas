@@ -40,6 +40,7 @@ export function createUnavailableAgentsRepository(): AgentsRepository {
 
     listModelProviders: async () => [],
     getModelProvider: async () => unavailable('modelProviders.get'),
+    listModelCatalog: async () => [],
 
     listModelConfigurations: async () => emptyPage,
     getModelConfiguration: async () => unavailable('modelConfigurations.get'),

@@ -46,6 +46,8 @@ import type {
   TestConnectionResult,
   ConnectionCommandRequest,
   CredentialMetadata,
+  ConnectionConfigurationValidationResult,
+  ValidateConnectionConfigurationRequest,
   CreateConnectionCredentialRequest,
   RotateConnectionCredentialRequest,
   OrganizationToolBinding,
@@ -71,6 +73,7 @@ import type {
   PublishAgentVersionRequest,
   RetireAgentVersionRequest,
   ModelProviderDefinition,
+  ModelCatalogEntry,
   ModelConfiguration,
   CreateModelConfigurationRequest,
   UpdateModelConfigurationRequest,
@@ -279,6 +282,7 @@ export interface ConnectorsRepository {
   createCredential(connectionId: string, body: CreateConnectionCredentialRequest): Promise<CredentialMetadata>;
   rotateCredential(connectionId: string, body: RotateConnectionCredentialRequest): Promise<CredentialMetadata>;
   revokeCredential(connectionId: string, credentialVersionId: string): Promise<CredentialMetadata>;
+  validateConnectionConfiguration(connectionId: string, body?: ValidateConnectionConfigurationRequest): Promise<ConnectionConfigurationValidationResult>;
 
   // Vínculos de ferramenta (organização).
   listToolBindings(input?: ListToolBindingsInput): Promise<CursorPage<OrganizationToolBinding>>;
@@ -385,6 +389,7 @@ export interface AgentsRepository {
   // Providers de modelo (catálogo público, somente leitura).
   listModelProviders(signal?: AbortSignal): Promise<ModelProviderDefinition[]>;
   getModelProvider(providerKey: string, signal?: AbortSignal): Promise<ModelProviderDefinition>;
+  listModelCatalog(providerKey: string, providerVersion: string, signal?: AbortSignal): Promise<ModelCatalogEntry[]>;
 
   // Configurações de modelo (tenant-scoped).
   listModelConfigurations(input?: ListModelConfigurationsInput): Promise<CursorPage<ModelConfiguration>>;
