@@ -10,9 +10,21 @@
 /** Papel de mensagem no formato Messages (subset seguro). */
 export type AnthropicRole = 'user' | 'assistant';
 
+/**
+ * Bloco de conteúdo de REQUEST (ARDEN-BE-008.5). Espelha o protocolo Anthropic de tool use:
+ * `text`, `tool_use` (turno assistant sintetizado), `tool_result` (turno user de continuação).
+ * NUNCA carrega segredo/credencial. O `tool_use` sintetizado usa input mínimo (o input bruto
+ * do modelo não é repersistido — §19/§20); serve só para casar `tool_use_id` na continuação.
+ */
+export type AnthropicRequestContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean };
+
 export interface AnthropicTransportMessage {
   role: AnthropicRole;
-  content: string;
+  /** String simples (texto) OU blocos (tool_use/tool_result) para turns com ferramentas. */
+  content: string | AnthropicRequestContentBlock[];
 }
 
 /** Definição de tool no formato Anthropic (só schema/descrição — nunca segredo). */

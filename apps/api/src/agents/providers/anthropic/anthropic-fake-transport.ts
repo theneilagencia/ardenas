@@ -33,6 +33,14 @@ export type FakeAnthropicScenario =
 
 const REPAIR_MARKER = '[arden:repair]';
 
+/** Extrai o texto de um conteúdo de mensagem (string simples OU blocos de request). */
+function messageText(content: import('./anthropic-transport.types').AnthropicTransportMessage['content']): string {
+  if (typeof content === 'string') return content;
+  return content
+    .map((b) => (b.type === 'text' ? b.text : b.type === 'tool_result' ? b.content : ''))
+    .join('\n');
+}
+
 @Injectable()
 export class FakeAnthropicTransport implements AnthropicTransport {
   private queue: FakeAnthropicScenario[] = [];
@@ -76,7 +84,7 @@ export class FakeAnthropicTransport implements AnthropicTransport {
     }
 
     const scenario = this.queue.shift() ?? this.fallback;
-    const repairing = request.messages.some((m) => m.content.includes(REPAIR_MARKER));
+    const repairing = request.messages.some((m) => messageText(m.content).includes(REPAIR_MARKER));
     return this.run(scenario, request, repairing);
   }
 
