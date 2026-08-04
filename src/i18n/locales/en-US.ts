@@ -223,6 +223,9 @@ export const enUS = {
       editor: {
         title: 'Version editor',
         publishedReadOnly: 'Published version — immutable. Create a new version to change it.',
+        anthropicOfflineTitle: 'Anthropic configuration — validated offline',
+        anthropicOfflineWarning: 'Structured output and tool calling were validated offline. The real call and live tool calling have not yet been proven.',
+        anthropicPublishBlocked: 'Publication blocked in this phase: the Anthropic provider remains disabled in production.',
         createNewVersion: 'Create new version',
         sections: {
           overview: 'Overview', instructions: 'Instructions', model: 'Model',
@@ -332,7 +335,7 @@ export const enUS = {
         unknown: 'Uncertain', provider: 'Provider', model: 'Model',
         totalCost: 'Total cost', empty: 'No usage in the period.',
       },
-      execUsage: { title: 'Agent usage for this execution', empty: 'No agent results in this execution.' },
+      execUsage: { title: 'Agent usage for this execution', empty: 'No agent results in this execution.', provider: 'Provider', model: 'Model', offlineValidated: 'Validated offline' },
       loadMore: 'Load more',
     },
     data: {

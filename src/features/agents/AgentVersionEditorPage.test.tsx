@@ -15,7 +15,8 @@ import { setSessionRepository, setSnapshotStore, setServices, getServices } from
 import { MemorySnapshotStore } from '@/services/data/snapshot-store';
 import { MockSessionRepository } from '@/services/session/mock-session-repository';
 import { buildSeed } from '@/domain/seed';
-import { FakeAgentsRepository, makeVersion } from './fake-agents-repository';
+import { FakeAgentsRepository, makeVersion, makeConfig } from './fake-agents-repository';
+import { ANTHROPIC_PROVIDER_KEY } from '@/contracts';
 import '@/i18n';
 
 const CANARY = 'ARDEN_BE007_FRONTEND_INSTRUCTION_CANARY_9f2c';
@@ -74,5 +75,20 @@ describe('AgentVersionEditorPage — versão publicada é somente leitura (§53)
 
     const dump = JSON.stringify({ ls: { ...localStorage }, ss: { ...sessionStorage } });
     expect(dump.includes(CANARY)).toBe(false);
+  });
+
+  it('versão Anthropic (DRAFT) mostra aviso offline e bloqueia publicação (§16)', async () => {
+    setSessionRepository(new MockSessionRepository('many_orgs'));
+    const fake = new FakeAgentsRepository();
+    fake.configs = [makeConfig({ id: 'cfg1', providerKey: ANTHROPIC_PROVIDER_KEY, status: 'DRAFT', name: 'Anthropic cfg' })];
+    fake.versions = [makeVersion({ id: 'v1', status: 'DRAFT', modelConfigurationId: 'cfg1' })];
+    install(fake);
+    wrap('/agents/ag1/versions/v1');
+
+    await waitFor(() => expect(screen.getByText(/validados offline/i)).toBeInTheDocument(), { timeout: 3000 });
+    expect(screen.getByText(/A chamada real e o tool calling ao vivo ainda não foram comprovados/i)).toBeInTheDocument();
+    // Botão publicar existe, porém desabilitado (bloqueado).
+    const publishBtn = screen.getByRole('button', { name: /^Publicar$|^Publish$/ });
+    expect(publishBtn).toBeDisabled();
   });
 });

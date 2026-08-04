@@ -223,6 +223,9 @@ export const ptBR = {
       editor: {
         title: 'Editor de versão',
         publishedReadOnly: 'Versão publicada — imutável. Crie uma nova versão para alterar.',
+        anthropicOfflineTitle: 'Configuração Anthropic — validada offline',
+        anthropicOfflineWarning: 'Structured output e tool calling foram validados offline. A chamada real e o tool calling ao vivo ainda não foram comprovados.',
+        anthropicPublishBlocked: 'Publicação bloqueada nesta fase: o provider Anthropic permanece desabilitado em produção.',
         createNewVersion: 'Criar nova versão',
         sections: {
           overview: 'Visão geral', instructions: 'Instruções', model: 'Modelo',
@@ -332,7 +335,7 @@ export const ptBR = {
         unknown: 'Incertas', provider: 'Provider', model: 'Modelo',
         totalCost: 'Custo total', empty: 'Sem uso no período.',
       },
-      execUsage: { title: 'Uso de agentes desta execução', empty: 'Nenhum resultado de agente nesta execução.' },
+      execUsage: { title: 'Uso de agentes desta execução', empty: 'Nenhum resultado de agente nesta execução.', provider: 'Provider', model: 'Modelo', offlineValidated: 'Validado offline' },
       loadMore: 'Carregar mais',
     },
     data: {
