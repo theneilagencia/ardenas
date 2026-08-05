@@ -45,3 +45,15 @@ critério de aceite.
 
 **Piloto NÃO depende de Anthropic** (usa `internal.test-model`, só teste). Produção
 comercial Anthropic permanece bloqueada até os gates deferidos próprios.
+
+---
+## Atualização ARDEN-PRD-001.1 (gap status)
+- **#1 Secret manager + injeção em runtime:** PARTIALLY_CLOSED — fronteira neutra + fail-closed
+  implementados (`security/platform-secret-source.ts`); adapter de produção
+  BLOCKED_BY_EXTERNAL_DECISION.
+- **#2 Backup da master key + keyring versionado + DR de chave:** PARTIALLY_CLOSED — keyring
+  versionado + backup cifrado + restore verify + drill offline (`security/*`); backup/restore
+  em infra real STILL_OPEN (PRD-001.2/1.3).
+- **#4 Backup automatizado + restore drill:** PARTIALLY_CLOSED (keyring) — drill offline PASS;
+  DATABASE restore drill UNVERIFIED / STILL_OPEN.
+- Demais itens P0/P1/P2/P3: STILL_OPEN (inalterados nesta fase).

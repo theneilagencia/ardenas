@@ -28,3 +28,11 @@ escala · **P3** melhoria posterior.
 
 Riscos R-18/R-19 são herdados e permanecem **fora** do escopo de resolução deste milestone
 (apenas registrados; produção Anthropic segue bloqueada).
+
+---
+## Atualização ARDEN-PRD-001.1
+- **R-01** (perda master key): PARTIALLY_CLOSED (keyring versionado + backup cifrado + restore
+  verify + drill offline PASS; infra real STILL_OPEN).
+- **R-05** (secrets sem manager): PARTIALLY_CLOSED (fronteira + fail-closed de produção; adapter
+  externo BLOCKED_BY_EXTERNAL_DECISION).
+- Demais riscos: STILL_OPEN.
