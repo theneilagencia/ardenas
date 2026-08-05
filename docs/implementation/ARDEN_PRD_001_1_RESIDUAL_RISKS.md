@@ -25,3 +25,14 @@
 ## Invariantes mantidas
 Anthropic DISABLED/bloqueado; nenhuma master key no banco; nenhum endpoint de secret;
 nenhum secret real no repositório; migrations anteriores intactas.
+
+---
+## Atualização ARDEN-PRD-001.1D (fechamento operacional)
+Fechados: pipeline PostgreSQL de recriptografia (CAS/batch/idempotência/retomada/
+concorrência), CLI operacional, preflight compartilhado, readiness fail-closed (API),
+worker fail-closed, testes unit + integração PostgreSQL. Ver `ARDEN_PRD_001_1_CLOSEOUT_REPORT.md`.
+
+Ainda abertos (STILL_OPEN): métricas externas nomeadas (obs. in-memory — PRD-001.4),
+eventos de auditoria dedicados de recriptografia, teste HTTP end-to-end de missing-key via
+`/ready`, gate de CI de recuperação offline. BLOCKED_BY_EXTERNAL_DECISION: secret manager
+de produção; DATABASE_BACKUP/PITR/restore real (PRD-001.2).

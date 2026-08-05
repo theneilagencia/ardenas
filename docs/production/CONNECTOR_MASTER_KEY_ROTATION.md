@@ -31,3 +31,10 @@ automaticamente.**
 `master-key:status` · `master-key:verify` · `master-key:reencrypt` · `master-key:backup` ·
 `master-key:restore:verify` · `master-key:drill` · `secrets:verify`. **Sem endpoint HTTP de
 rotação.** Runbook: `docs/runbooks/CONNECTOR_MASTER_KEY_ROTATION.md`.
+
+---
+## Atualização ARDEN-PRD-001.1D (CLOSED)
+Recriptografia sobre PostgreSQL ENTREGUE (`connector-credential-reencryption.service.ts`):
+CAS, batching, dry-run, idempotência, retomada, concorrência. CLI `master-key:reencrypt`
+(`--dry-run`, `--batch-size`, `--maximum-batches`, `--source-version`). Remoção de chave
+antiga permanece report-only.

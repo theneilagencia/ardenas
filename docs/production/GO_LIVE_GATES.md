@@ -31,3 +31,12 @@ Nenhuma produção comercial sem todos os `BLOCKING` + `REQUIRED BEFORE COMMERCI
 PRODUCTION`. Nenhum piloto sem os `REQUIRED BEFORE PILOT` + `BLOCKING`. Anthropic
 permanece bloqueado independentemente destes gates (gates próprios em
 `ANTHROPIC_PRODUCTION_DEFERRED_GATES.md`).
+
+---
+## Atualização ARDEN-PRD-001.1D
+- **Secrets managed:** PARTIALLY_CLOSED — fronteira + fail-closed + keyring versionado +
+  recriptografia + preflight readiness entregues; **secret manager de produção**
+  BLOCKED_BY_EXTERNAL_DECISION.
+- **Backups enabled / Restore drill:** keyring: PARTIALLY_CLOSED (backup cifrado + restore
+  verify + drill offline); **DATABASE** backup/PITR/restore: STILL_OPEN / UNVERIFIED (PRD-001.2).
+- Demais gates: inalterados.

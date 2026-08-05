@@ -57,3 +57,11 @@ comercial Anthropic permanece bloqueada até os gates deferidos próprios.
 - **#4 Backup automatizado + restore drill:** PARTIALLY_CLOSED (keyring) — drill offline PASS;
   DATABASE restore drill UNVERIFIED / STILL_OPEN.
 - Demais itens P0/P1/P2/P3: STILL_OPEN (inalterados nesta fase).
+
+---
+## Atualização ARDEN-PRD-001.1D
+- **#2 master key lifecycle / recriptografia:** recriptografia PostgreSQL + CLI + preflight
+  readiness → CLOSED (nível de aplicação); backup/restore em **infra real** STILL_OPEN (PRD-001.2).
+- **#1 Secret manager:** PARTIALLY_CLOSED (fronteira/fail-closed/keyring/preflight); adapter de
+  produção BLOCKED_BY_EXTERNAL_DECISION.
+- Métricas externas + auditoria dedicada de recriptografia + gate de CI de recuperação: STILL_OPEN.
