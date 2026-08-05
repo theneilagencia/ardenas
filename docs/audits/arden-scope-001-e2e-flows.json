@@ -1,0 +1,230 @@
+{
+ "commit": "756b244",
+ "count": 32,
+ "flows": [
+  {
+   "flowId": "FLOW-01",
+   "flow": "autenticação",
+   "status": "PASS",
+   "evidence": "identity-authz.integration.spec.ts + e2e/api/session-api.spec.ts",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-02",
+   "flow": "seleção de tenant",
+   "status": "PASS",
+   "evidence": "multitenancy.spec + session/switch-organization + e2e/session-tenant.spec.ts",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-03",
+   "flow": "criação de operação",
+   "status": "PASS",
+   "evidence": "operations-flow.spec + e2e/api/operations-api.spec.ts",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-04",
+   "flow": "criação de versão",
+   "status": "PASS",
+   "evidence": "operations-lifecycle.spec + version-diff.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-05",
+   "flow": "configuração de autoridade",
+   "status": "PASS",
+   "evidence": "enforcement-flow.spec + authority-evaluation.spec (backend)",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-06",
+   "flow": "configuração de policy",
+   "status": "PASS",
+   "evidence": "policies-flow.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-07",
+   "flow": "solicitação de aprovação",
+   "status": "PASS",
+   "evidence": "enforcement-flow.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-08",
+   "flow": "aprovação humana",
+   "status": "PASS",
+   "evidence": "enforcement-flow.spec + approval-concurrency.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-09",
+   "flow": "publicação",
+   "status": "PASS",
+   "evidence": "operations-flow + operations-rollback + e2e/api/operations-api.spec.ts",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-10",
+   "flow": "criação de connector",
+   "status": "PASS",
+   "evidence": "connections-api.spec + connectors-persistence.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-11",
+   "flow": "armazenamento de credential",
+   "status": "PASS",
+   "evidence": "credential-vault.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-12",
+   "flow": "rotação de credential",
+   "status": "PASS",
+   "evidence": "credential-vault(+critical).spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-13",
+   "flow": "criação de agent",
+   "status": "PASS",
+   "evidence": "agents-persistence.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-14",
+   "flow": "criação de ModelConfiguration",
+   "status": "PASS",
+   "evidence": "agents-persistence.spec + ModelConfigurationsPage.test.tsx",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-15",
+   "flow": "criação/publicação de AgentVersion",
+   "status": "PASS",
+   "evidence": "agents-persistence.spec + agents-critical.spec §32/§33",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-16",
+   "flow": "criação de Work Unit",
+   "status": "PARTIAL",
+   "evidence": "execution-flow.spec (workUnitCost em ExecutionStep; sem entidade dedicada)",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-17",
+   "flow": "início de ExecutionRun",
+   "status": "PASS",
+   "evidence": "execution-flow + execution-critical.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-18",
+   "flow": "processamento pelo worker",
+   "status": "PASS",
+   "evidence": "execution-flow.spec + webhook-inbound.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-19",
+   "flow": "execução de agent",
+   "status": "PASS",
+   "evidence": "agent-runtime.integration.spec §35",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-20",
+   "flow": "execução de tool",
+   "status": "PASS",
+   "evidence": "agent-tool-calling.spec + external-tool.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-21",
+   "flow": "retomada após aprovação",
+   "status": "PASS",
+   "evidence": "agent-tool-calling.spec §38 + execution-critical.spec §42",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-22",
+   "flow": "persistência do resultado",
+   "status": "PASS",
+   "evidence": "agent-governance.spec + execution-flow.spec",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-23",
+   "flow": "auditoria",
+   "status": "PASS",
+   "evidence": "operations-multitenancy.spec + e2e/api/operations-api.spec.ts",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-24",
+   "flow": "evidence",
+   "status": "PASS",
+   "evidence": "execution-flow.spec + agent-runtime.spec §35",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-25",
+   "flow": "usage",
+   "status": "PASS",
+   "evidence": "agent-governance.spec §42",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-26",
+   "flow": "custo (ou ausência explícita)",
+   "status": "PASS",
+   "evidence": "agent-governance.spec §42 (rate-card ausente → null, nunca zero)",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-27",
+   "flow": "retry",
+   "status": "PASS",
+   "evidence": "execution-flow.spec + external-tool.spec + anthropic-runtime.spec §51",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-28",
+   "flow": "timeout",
+   "status": "PASS",
+   "evidence": "secure-http-client.spec + external-tool.spec + anthropic-runtime.spec §52",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-29",
+   "flow": "restart do worker",
+   "status": "PASS",
+   "evidence": "execution-critical.spec §41 (lease expirado → recuperado)",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-30",
+   "flow": "recuperação de job preso",
+   "status": "PASS",
+   "evidence": "execution-critical.spec §41 (mesmo mecanismo de lease)",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-31",
+   "flow": "cross-tenant denial",
+   "status": "PASS",
+   "evidence": "multitenancy + operations-multitenancy + 20+ specs (404/403) + e2e/api",
+   "executed": true
+  },
+  {
+   "flowId": "FLOW-32",
+   "flow": "Anthropic live call",
+   "status": "BLOCKED_BY_EXTERNAL_PROVIDER",
+   "evidence": "NÃO executado; fake transport em teste; produção bloqueada",
+   "executed": false
+  }
+ ]
+}
