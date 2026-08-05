@@ -80,6 +80,8 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
+      # Conexão direta (ARDEN-PRD-001.2A.2): sem pooler em CI, igual à DATABASE_URL.
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
       APP_VERSION: 0.1.0-ci
       # CORS_ORIGINS NÃO é fixado aqui: os testes de integração definem o valor
       # esperado (`http://allowed.test`) via test/setup-env.ts. Fixá-lo no job
@@ -155,6 +157,8 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
+      # Conexão direta (ARDEN-PRD-001.2A.2): sem pooler em CI, igual à DATABASE_URL.
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/arden_test?schema=public
       AUTH_PROVIDER: fake
     steps:
       - uses: actions/checkout@v4
@@ -201,3 +205,48 @@ jobs:
             echo "::error::possible secret found"; exit 1
           fi
           echo "no obvious secrets"
+
+  infrastructure:
+    name: Infrastructure preparation (offline gates — ARDEN-PRD-001.2A.2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Offline e provider-neutro: sem login de nuvem, sem secret real, sem deploy.
+      - name: Infra unit tests + validators
+        run: npm run test -- --project infra
+
+      - name: Infra contracts validate
+        run: npm run infrastructure:contracts:validate
+
+      - name: Environments validate
+        run: npm run infrastructure:environments:validate
+
+      - name: Alerts validate
+        run: npm run infrastructure:alerts:validate
+
+      - name: Runbooks validate
+        run: npm run infrastructure:runbooks:validate
+
+      - name: IAM least-privilege validate
+        run: npm run infrastructure:iam:validate
+
+      - name: Artifact manifest build + verify (by SHA, no secret)
+        run: |
+          npm run artifact:build
+          npm run artifact:verify
+
+      - name: Decision manifest MUST remain blocked (entry gate FAIL)
+        run: |
+          if npm run --silent infrastructure:decision:validate; then
+            echo "::error::decision manifest passou sem decisão humana — bypass proibido"; exit 1
+          fi
+          echo "entry gate corretamente bloqueado (FAIL controlado por pendências)"
