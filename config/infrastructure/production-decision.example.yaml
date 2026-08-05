@@ -1,0 +1,53 @@
+# ARDEN-PRD-001.2A.2 — Manifesto de decisão de infraestrutura de produção (EXEMPLO).
+#
+# NÃO FUNCIONAL. Todos os campos bloqueantes usam sentinelas de pendência
+# (TBD / REQUIRES_APPROVAL / REQUIRES_QUOTE / REQUIRES_LEGAL_REVIEW). Enquanto qualquer
+# campo bloqueante for sentinela e/ou adrStatus != ACCEPTED, o gate de entrada do
+# ARDEN-PRD-001.2B permanece FAIL. Nenhum valor padrão é assumido para provider, região,
+# orçamento, SLA, produto de banco, secret manager, RPO, RTO ou aprovadores.
+#
+# Copie para production-decision.yaml (git-ignored) e preencha APENAS com decisão humana
+# registrada + evidência anexada. Nunca colocar segredo real aqui.
+
+# Provider: "GCP" | "AWS" | "SPECIALIZED_PAAS" (nenhum default)
+provider: TBD
+
+# Regiões (residência de dados — REQUIRES_LEGAL_REVIEW)
+primaryRegion: REQUIRES_LEGAL_REVIEW
+recoveryRegion: REQUIRES_LEGAL_REVIEW   # ou null se recuperação single-region for aprovada
+
+# Orçamento mensal (menor unidade monetária, string — nunca inventar número)
+stagingMonthlyBudgetMinor: REQUIRES_QUOTE
+pilotMonthlyBudgetMinor: REQUIRES_QUOTE
+productionMonthlyBudgetMinor: REQUIRES_QUOTE
+currency: TBD
+
+# SLA e suporte
+minimumSlaPercent: REQUIRES_QUOTE
+supportPlan: REQUIRES_QUOTE
+
+# RPO/RTO aprovados (minutos) — sentinela enquanto não aprovado
+approvedRpoMinutes: REQUIRES_APPROVAL
+approvedRtoMinutes: REQUIRES_APPROVAL
+
+# Produtos selecionados (consequência do provider — não escolher aqui sem decisão)
+managedPostgresProduct: TBD
+platformSecretManagerProduct: TBD
+apiComputeProduct: TBD
+workerComputeProduct: TBD
+containerRegistryProduct: TBD
+observabilityProduct: TBD
+
+# Referências de aprovação (IDs/links de evidência — nunca segredo)
+legalApprovalReference: REQUIRES_LEGAL_REVIEW
+dpaApprovalReference: REQUIRES_LEGAL_REVIEW
+businessApprovalReference: REQUIRES_APPROVAL
+technicalApprovalReference: REQUIRES_APPROVAL
+operationsOwner: TBD
+
+# Estado da ADR — deve ser ACCEPTED (por aprovação autorizada) para o gate passar
+adrStatus: PROPOSED
+
+# Datas (UTC, ISO-8601)
+decisionDate: TBD
+reviewDate: TBD

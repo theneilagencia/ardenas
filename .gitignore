@@ -25,3 +25,7 @@ apps/api/.env
 apps/api/.env.local
 **/dist/
 **/*.tsbuildinfo
+
+# ARDEN-PRD-001.2A.2 — artefatos gerados e manifesto de decisão preenchido (nunca commitar)
+config/infrastructure/artifact-manifest.json
+config/infrastructure/production-decision.yaml

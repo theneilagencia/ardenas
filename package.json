@@ -48,7 +48,17 @@
     "master-key:restore:verify": "npm -w @arden/api run master-key:restore:verify",
     "master-key:drill": "npm -w @arden/api run master-key:drill",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "infrastructure": "vite-node tooling/infrastructure/infra.cli.ts --",
+    "infrastructure:decision:validate": "vite-node tooling/infrastructure/infra.cli.ts decision:validate",
+    "infrastructure:contracts:validate": "vite-node tooling/infrastructure/infra.cli.ts contracts:validate",
+    "infrastructure:environments:validate": "vite-node tooling/infrastructure/infra.cli.ts environments:validate",
+    "infrastructure:alerts:validate": "vite-node tooling/infrastructure/infra.cli.ts alerts:validate",
+    "infrastructure:runbooks:validate": "vite-node tooling/infrastructure/infra.cli.ts runbooks:validate",
+    "infrastructure:iam:validate": "vite-node tooling/infrastructure/infra.cli.ts iam:validate",
+    "artifact:build": "vite-node tooling/infrastructure/infra.cli.ts artifact:build",
+    "artifact:verify": "vite-node tooling/infrastructure/infra.cli.ts artifact:verify",
+    "production:migrate": "vite-node tooling/infrastructure/infra.cli.ts production:migrate"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",

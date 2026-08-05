@@ -30,6 +30,16 @@ export default defineConfig({
           include: ['src/**/*.a11y.test.{ts,tsx}'],
         },
       },
+      {
+        // Ferramentas de infraestrutura (ARDEN-PRD-001.2A.2): offline, ambiente node.
+        extends: true,
+        test: {
+          name: 'infra',
+          environment: 'node',
+          include: ['tooling/infrastructure/**/*.spec.ts'],
+          setupFiles: [],
+        },
+      },
     ],
   },
 });
