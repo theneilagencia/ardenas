@@ -3,10 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ExecutionStateBadge } from '@/components/ui/StateBadge';
 import { useScopedData } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
+import { ExecutionAgentUsagePanel } from '@/features/agent-results/ExecutionAgentUsagePanel';
 
 export function ExecutionsPage() {
   const { t, i18n } = useTranslation();
-  const { executions, operations } = useScopedData();
+  const { executions } = useScopedData();
+  const { operations } = useOperations();
 
   const opName = (id: string) => operations.find((o) => o.id === id)?.name ?? id;
 
@@ -65,7 +68,8 @@ export function ExecutionsPage() {
 export function ExecutionDetailPage() {
   const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const { executions, operations } = useScopedData();
+  const { executions } = useScopedData();
+  const { operations } = useOperations();
   const exec = executions.find((e) => e.id === id);
 
   if (!exec) return <div className="empty-state">{t('common.empty')}</div>;
@@ -122,6 +126,9 @@ export function ExecutionDetailPage() {
           </table>
         </div>
       </div>
+
+      {/* Uso/resultado dos agentes desta execução (API v1 real; oculto se não houver). */}
+      <ExecutionAgentUsagePanel executionRunId={exec.id} />
     </>
   );
 }

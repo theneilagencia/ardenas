@@ -1,36 +1,49 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Check, Lock } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useAppStore } from '@/store/app-store';
-import { useScopedData } from '@/hooks/use-session';
+import { useScopedData, usePermission } from '@/hooks/use-session';
+import {
+  useCreateOperation,
+  useCreateOperationVersion,
+  useOperation,
+  usePublishOperationVersion,
+  useSaveOperationDraft,
+} from '@/hooks/use-operations';
 import { computeBlockers } from '@/domain/operation-blockers';
 import type { Environment, Operation } from '@/domain/types';
+import { newId } from '@/lib/id';
 import { DRAFT_ID, WIZARD_STEPS, emptyOperation, type WizardStepKey } from './new-operation';
 
 export function WizardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { operations, integrations, people } = useScopedData();
+  const { integrations, people } = useScopedData();
+  const permission = usePermission();
+  const canPublish = permission('operation.publish');
   const organizationId = useAppStore((s) => s.organizationId);
   const companyId = useAppStore((s) => s.session?.person.companyId ?? '');
-  const saveDraft = useAppStore((s) => s.saveDraft);
-  const publishOperation = useAppStore((s) => s.publishOperation);
 
-  // Retomável após recarga: hidrata do rascunho persistido na store, se houver.
-  const [op, setOp] = useState<Operation>(() => {
-    const existing = operations.find((o) => o.id === DRAFT_ID);
-    return existing ? structuredClone(existing) : emptyOperation(organizationId, companyId);
-  });
+  const draftQuery = useOperation(DRAFT_ID);
+  const saveDraftMut = useSaveOperationDraft();
+  const createMut = useCreateOperation();
+  const createVersionMut = useCreateOperationVersion();
+  const publishMut = usePublishOperationVersion();
+
+  const [op, setOp] = useState<Operation>(() => emptyOperation(organizationId, companyId));
   const [current, setCurrent] = useState(0);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const hydrated = useRef(false);
 
+  // Retomável após recarga: hidrata do rascunho persistido no repositório, uma vez.
   useEffect(() => {
-    const existing = operations.find((o) => o.id === DRAFT_ID);
-    if (existing) setOp(structuredClone(existing));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!hydrated.current && draftQuery.operation) {
+      setOp(structuredClone(draftQuery.operation));
+      hydrated.current = true;
+    }
+  }, [draftQuery.operation]);
 
   const testedIntegrationIds = useMemo(
     () => new Set(integrations.filter((i) => i.status === 'connected').map((i) => i.id)),
@@ -41,18 +54,25 @@ export function WizardPage() {
     () => computeBlockers(op, { testedIntegrationIds }),
     [op, testedIntegrationIds],
   );
-  const publishable = blockers.length === 0;
+  // Publicar exige ausência de bloqueadores E a permissão operation.publish. A
+  // permissão é ergonomia de interface — o backend revalidará a ação.
+  const publishable = blockers.length === 0 && canPublish;
 
   const patch = (next: Partial<Operation>) => setOp((prev) => ({ ...prev, ...next }));
 
-  const onSaveDraft = () => {
-    saveDraft(op);
+  const onSaveDraft = async () => {
+    await saveDraftMut.mutateAsync(op);
     setSavedAt(new Date().toLocaleTimeString());
   };
 
-  const onPublish = () => {
+  const onPublish = async () => {
     if (!publishable) return;
-    const published = publishOperation(op);
+    // Cria a operação a partir do formulário (id definitivo), então os comandos
+    // explícitos de versão e publicação.
+    const toCreate: Operation = { ...op, id: newId('op'), status: 'draft', version: '0.1' };
+    const created = await createMut.mutateAsync(toCreate);
+    await createVersionMut.mutateAsync(created.id);
+    const published = await publishMut.mutateAsync(created.id);
     navigate(`/operations/${published.id}`);
   };
 
@@ -65,6 +85,11 @@ export function WizardPage() {
         subtitle={t('wizard.stepOf', { current: current + 1, total: WIZARD_STEPS.length })}
         actions={
           <>
+            {!canPublish && (
+              <span className="chip" data-testid="publish-no-permission" title={t('wizard.noPublishPermission')}>
+                {t('wizard.noPublishPermission')}
+              </span>
+            )}
             <button type="button" className="btn btn-ghost" onClick={onSaveDraft}>
               {t('common.saveDraft')}
             </button>

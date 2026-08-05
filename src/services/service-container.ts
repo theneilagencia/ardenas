@@ -1,37 +1,149 @@
 /**
- * Arden.AS — container de serviços.
- * Resolve a implementação a partir da configuração. Se a troca exigir alterar
- * componente, o contrato está vazando — corrige-se o contrato, não o componente.
+ * Arden.AS — composição de dependências de dados (ponto único).
+ * A seleção da implementação por VITE_DATA_PROVIDER ocorre SÓ aqui. Componentes
+ * consomem `ArdenServices` (via camada de aplicação/hooks) e nunca conhecem
+ * implementações concretas, tabelas, HTTP, IndexedDB ou mocks.
  */
 
-import type { DataProvider } from './contracts';
-import { ApiDataProvider, IndexedDbDataProvider, MockDataProvider } from './providers';
+import type { ArdenServices } from './contracts';
+import type { SnapshotStore } from './data/snapshot-store';
+import { IndexedDbSnapshotStore, MemorySnapshotStore } from './data/snapshot-store';
+import { ApiClient } from './api-client';
+import type { SessionRepository } from './session/session-contracts';
+import { SnapshotSessionRepository } from './session/snapshot-session-repository';
+import { ApiSessionRepository } from './session/api-session-repository';
+import {
+  IndexedDbSessionSelectionStore,
+  MemorySessionSelectionStore,
+} from './session/session-selection-store';
+import { getActiveOrganizationId } from './session/active-context';
+import { getAccessToken } from './session/access-token';
+import { SnapshotOperationsRepository } from './repositories/operations-snapshot';
+import { SnapshotAuditRepository } from './repositories/audit-snapshot';
+import { ApiV1HttpClient } from './api/v1-http-client';
+import { createApiV1OperationsRepository } from './api/v1-operations-repository';
+import { createApiV1AuditRepository } from './api/generated/repository-compat';
+import { SnapshotApprovalsRepository } from './repositories/approvals-snapshot';
+import { ApiApprovalsRepository } from './repositories/approvals-api';
+import { SnapshotFilesRepository } from './repositories/files-snapshot';
+import { ApiFilesRepository } from './repositories/files-api';
+import { createApiV1ConnectorsRepository } from './api/v1-connectors-repository';
+import { createUnavailableConnectorsRepository } from './repositories/connectors-unavailable';
+import { createApiV1AgentsRepository } from './api/v1-agents-repository';
+import { createUnavailableAgentsRepository } from './repositories/agents-unavailable';
 
-type ProviderKind = 'mock' | 'indexeddb' | 'api';
+export type ProviderKind = 'mock' | 'indexeddb' | 'api';
 
-function resolveKind(): ProviderKind {
+export function resolveProviderKind(): ProviderKind {
   const raw = import.meta.env.VITE_DATA_PROVIDER as string | undefined;
   if (raw === 'api' || raw === 'mock' || raw === 'indexeddb') return raw;
   return 'indexeddb';
 }
 
-let provider: DataProvider | null = null;
-
-export function getDataProvider(): DataProvider {
-  if (provider) return provider;
-  const kind = resolveKind();
-  if (kind === 'api') {
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string) ?? '';
-    provider = new ApiDataProvider(baseUrl);
-  } else if (kind === 'mock') {
-    provider = new MockDataProvider();
-  } else {
-    provider = new IndexedDbDataProvider();
-  }
-  return provider;
+function apiBaseUrl(): string {
+  return (import.meta.env.VITE_API_BASE_URL as string) ?? '';
 }
 
-/** Usado por testes para injetar um provider determinístico. */
-export function setDataProvider(next: DataProvider): void {
-  provider = next;
+function apiClient(): ApiClient {
+  // O tenant vai no header X-Arden-Organization, derivado da sessão ativa; o token
+  // Bearer vem do portador único de access token (BE-002).
+  return new ApiClient({
+    baseUrl: apiBaseUrl(),
+    getOrganizationId: getActiveOrganizationId,
+    getToken: getAccessToken,
+  });
+}
+
+// ── Gateway físico (modos mock/indexeddb) ────────────────────────────────────
+
+let snapshotStore: SnapshotStore | null = null;
+
+/**
+ * Gateway de snapshot local. Só existe nos modos mock/indexeddb; no modo api os
+ * dados vêm dos repositórios HTTP e não há snapshot local.
+ */
+export function getSnapshotStore(): SnapshotStore {
+  if (snapshotStore) return snapshotStore;
+  snapshotStore =
+    resolveProviderKind() === 'mock' ? new MemorySnapshotStore() : new IndexedDbSnapshotStore();
+  return snapshotStore;
+}
+
+/** Injeta um gateway determinístico (testes). Reseta os serviços derivados. */
+export function setSnapshotStore(next: SnapshotStore): void {
+  snapshotStore = next;
+  services = null;
+  sessionRepository = null;
+}
+
+// ── Serviços de domínio ───────────────────────────────────────────────────────
+
+let services: ArdenServices | null = null;
+
+export function getServices(): ArdenServices {
+  if (services) return services;
+  const kind = resolveProviderKind();
+  if (kind === 'api') {
+    const client = apiClient();
+    // Operações e auditoria usam o backend REAL v1 (ARDEN-BE-003), sem fallback.
+    const v1 = new ApiV1HttpClient(client);
+    services = {
+      operations: createApiV1OperationsRepository(v1),
+      audit: createApiV1AuditRepository(v1),
+      // Aprovações e arquivos permanecem fora do escopo do v1 nesta issue.
+      approvals: new ApiApprovalsRepository(client),
+      files: new ApiFilesRepository(client),
+      // Conectores/conexões/credenciais/vínculos/webhooks (ARDEN-BE-006.8).
+      connectors: createApiV1ConnectorsRepository(v1),
+      // Agentes/modelos/resultados/uso (ARDEN-BE-007) — API v1 é a fonte de verdade.
+      agents: createApiV1AgentsRepository(v1),
+    };
+  } else {
+    const store = getSnapshotStore();
+    services = {
+      operations: new SnapshotOperationsRepository(store),
+      audit: new SnapshotAuditRepository(store),
+      approvals: new SnapshotApprovalsRepository(store),
+      files: new SnapshotFilesRepository(store),
+      // Integrações são API-only: sem fallback local, mas sem quebrar o app.
+      connectors: createUnavailableConnectorsRepository(),
+      // Agentes são API-only: sem fallback local, mas sem quebrar o app.
+      agents: createUnavailableAgentsRepository(),
+    };
+  }
+  return services;
+}
+
+/** Injeta serviços (testes). */
+export function setServices(next: ArdenServices | null): void {
+  services = next;
+}
+
+// ── Sessão / tenant (ARDEN-FE-002) ────────────────────────────────────────────
+
+let sessionRepository: SessionRepository | null = null;
+
+/**
+ * Repositório de sessão. Selecionado por VITE_DATA_PROVIDER, no MESMO ponto único
+ * dos demais serviços. Modo `api` sem base URL lança erro tipado — nunca cai para
+ * mock silenciosamente.
+ */
+export function getSessionRepository(): SessionRepository {
+  if (sessionRepository) return sessionRepository;
+  const kind = resolveProviderKind();
+  if (kind === 'api') {
+    sessionRepository = new ApiSessionRepository(apiClient(), apiBaseUrl());
+  } else {
+    const selection =
+      kind === 'mock'
+        ? new MemorySessionSelectionStore()
+        : new IndexedDbSessionSelectionStore();
+    sessionRepository = new SnapshotSessionRepository(getSnapshotStore(), selection);
+  }
+  return sessionRepository;
+}
+
+/** Injeta um repositório de sessão (testes). */
+export function setSessionRepository(next: SessionRepository | null): void {
+  sessionRepository = next;
 }

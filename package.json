@@ -6,6 +6,10 @@
   "engines": {
     "node": ">=22"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -16,7 +20,28 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:a11y": "vitest run --project a11y"
+    "test:e2e:api": "playwright test --config playwright.api.config.ts",
+    "test:a11y": "vitest run --project a11y",
+    "contracts:openapi": "vite-node scripts/generate-openapi.ts",
+    "dev:api": "npm -w @arden/api run dev",
+    "build:api": "npm -w @arden/api run build",
+    "db:seed": "npm -w @arden/api run db:seed",
+    "bootstrap:organization": "npm -w @arden/api run bootstrap:organization --",
+    "start:api": "npm -w @arden/api run start",
+    "typecheck:api": "npm -w @arden/api run typecheck",
+    "lint:api": "npm -w @arden/api run lint",
+    "test:api": "npm -w @arden/api run test",
+    "test:api:integration": "npm -w @arden/api run test:integration",
+    "test:api:execution": "npm -w @arden/api run test:execution",
+    "test:api:execution:integration": "npm -w @arden/api run test:execution:integration",
+    "start:worker": "npm -w @arden/api run start:worker",
+    "db:generate": "npm -w @arden/api run db:generate",
+    "db:migrate": "npm -w @arden/api run db:migrate",
+    "db:migrate:deploy": "npm -w @arden/api run db:migrate:deploy",
+    "db:migrate:status": "npm -w @arden/api run db:migrate:status",
+    "db:reset:test": "npm -w @arden/api run db:reset:test",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.4",
@@ -43,6 +68,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
@@ -53,12 +79,14 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "fake-indexeddb": "^6.0.0",
     "globals": "^15.14.0",
+    "js-yaml": "^5.2.2",
     "jsdom": "^25.0.1",
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1",
     "vite": "^6.0.5",
     "vite-plugin-pwa": "^0.21.1",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "zod-to-json-schema": "^3.25.2"
   }
 }

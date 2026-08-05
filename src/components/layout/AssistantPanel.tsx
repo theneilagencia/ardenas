@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useScopedData } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
 
 /**
  * Assistente contextual determinístico. Composto a partir da store.
@@ -15,6 +16,7 @@ export function AssistantPanel() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const data = useScopedData();
+  const { operations } = useOperations();
 
   if (!open) return null;
 
@@ -28,7 +30,7 @@ export function AssistantPanel() {
   const links: Array<{ label: string; to: string }> = [];
 
   if (pathname.startsWith('/operations')) {
-    fact = t('assistant.opsFact', { count: data.operations.length });
+    fact = t('assistant.opsFact', { count: operations.length });
     next = t('assistant.opsNext');
     links.push({ label: t('nav.operations'), to: '/operations' });
   } else if (pathname.startsWith('/deployment')) {
@@ -37,7 +39,7 @@ export function AssistantPanel() {
     links.push({ label: t('nav.deployment'), to: '/deployment' });
   } else {
     fact = t('assistant.overviewFact', {
-      ops: data.operations.length,
+      ops: operations.length,
       pending: pendingApprovals,
       exceptions: openExceptions,
     });

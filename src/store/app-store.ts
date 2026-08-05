@@ -6,8 +6,13 @@
 
 import { create } from 'zustand';
 import type { DomainSnapshot } from '@/services/contracts';
-import { getDataProvider } from '@/services/service-container';
-import { permissionsFor, type Session } from '@/domain/permissions';
+import {
+  getServices,
+  getSnapshotStore,
+  resolveProviderKind,
+} from '@/services/service-container';
+import type { Session } from '@/domain/permissions';
+import { activeMembership, type SessionContext } from '@/domain/identity';
 import type {
   ApprovalState,
   AuditEvent,
@@ -16,6 +21,9 @@ import type {
   Execution,
   ExecutionStepResult,
   Operation,
+  Person,
+  Policy,
+  PolicyLevel,
   RoleKey,
 } from '@/domain/types';
 import { newId, now } from '@/lib/id';
@@ -60,6 +68,9 @@ const emptySnapshot: DomainSnapshot = {
   auditEvents: [],
   deployments: [],
   notifications: [],
+  resultIndicators: [],
+  authorityMatrix: [],
+  assessments: [],
 };
 
 export interface AppState {
@@ -72,28 +83,41 @@ export interface AppState {
   // UI
   drawerOpen: boolean;
   assistantOpen: boolean;
+  cmdOpen: boolean;
+  tourStep: number; // -1 = fechado
+  /** Contador incremental: bump a cada evento de auditoria gravado, para revalidar leituras. */
+  auditVersion: number;
 
   // lifecycle
   bootstrap: () => Promise<void>;
   resetDemo: () => Promise<void>;
 
   // session / theme / org
-  switchProfile: (role: RoleKey) => void;
-  switchOrganization: (organizationId: string) => void;
+  /**
+   * Espelha a sessão resolvida pelo TenantContext (única autoridade). A store não
+   * decide identidade nem tenant — apenas mantém um espelho para as fatias ainda
+   * não migradas (auditoria, aprovações, execuções, etc.).
+   */
+  applySession: (session: SessionContext | null) => void;
+  /** Limpa seleção/estado transitório ao trocar de organização ou sair. */
+  resetTenantScope: () => void;
+  /** Incrementa o contador de auditoria (revalida leituras dependentes). */
+  bumpAuditVersion: () => void;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   setDrawerOpen: (open: boolean) => void;
   setAssistantOpen: (open: boolean) => void;
+  setCmdOpen: (open: boolean) => void;
+  startTour: () => void;
+  tourNext: () => void;
+  tourPrev: () => void;
+  endTour: () => void;
 
   // audit
   recordAudit: (input: RecordAuditInput) => AuditEvent;
 
-  // operations
-  saveDraft: (op: Operation) => void;
-  publishOperation: (op: Operation) => Operation;
-  pauseOperation: (id: string) => void;
-  resumeOperation: (id: string) => void;
-  startExecution: (operationId: string, opts?: { test: boolean }) => Execution;
+  // execuções (agregado ainda na store; recebe a Operação já carregada via repositório)
+  startExecution: (operation: Operation, opts?: { test: boolean }) => Execution;
 
   // approvals
   resolveApproval: (id: string, decision: ApprovalState, justification?: string) => void;
@@ -108,6 +132,41 @@ export interface AppState {
   requestFileDeletion: (id: string, approverId: string) => void;
   approveFileDeletion: (id: string, approverId: string) => void;
 
+  // people (ações administrativas gravando na store)
+  invitePerson: (input: { name: string; email: string; roleKeys: RoleKey[] }) => Person;
+  updatePersonRoles: (id: string, roleKeys: RoleKey[]) => void;
+  suspendPerson: (id: string) => void;
+  reactivatePerson: (id: string) => void;
+
+  // policies
+  createPolicy: (input: { name: string; level: PolicyLevel }) => Policy;
+  submitPolicy: (id: string) => void;
+  publishPolicy: (id: string) => void;
+  suspendPolicy: (id: string) => void;
+
+  // integrations
+  connectIntegration: (id: string) => void;
+  testIntegration: (id: string) => void;
+  disconnectIntegration: (id: string) => void;
+
+  // context
+  addContextSource: (input: { name: string; kind: string }) => void;
+  versionContextSource: (id: string) => void;
+
+  // work units / budget
+  requestWorkUnits: (input: { areaId: string; amount: number; justification: string }) => void;
+  approveWorkUnitRequest: (id: string) => void;
+  setBudget: (id: string, total: number) => void;
+
+  // environments
+
+  // exceptions
+  resolveException: (id: string) => void;
+  reprocessException: (id: string) => void;
+
+  // reports
+  exportReport: (reportId: string) => void;
+
   // notifications
   markNotificationsRead: () => void;
 }
@@ -118,10 +177,20 @@ function currentActor(session: Session | null): { id: string; role: RoleKey } {
 }
 
 export const useAppStore = create<AppState>((set, get) => {
-  const persist = () => {
-    const provider = getDataProvider();
-    if (provider.kind === 'api') return; // no modo api, mutações vão por endpoint
-    void provider.persist(structuredClone(get().data));
+  /**
+   * Persistência *slice-aware*: as fatias já migradas para repositórios
+   * (operations, auditEvents) são mantidas a partir do snapshot corrente e nunca
+   * sobrescritas pela store — evita dupla fonte de verdade. A store persiste
+   * apenas as fatias que ainda gerencia (fases 2–4).
+   */
+  const persist = async (): Promise<void> => {
+    if (resolveProviderKind() === 'api') return; // modo api: mutações vão por repositório
+    const data = get().data;
+    await getSnapshotStore().update((cur) => ({
+      ...data,
+      operations: cur.operations,
+      auditEvents: cur.auditEvents,
+    }));
   };
 
   const applyTheme = (theme: Theme) => {
@@ -138,53 +207,59 @@ export const useAppStore = create<AppState>((set, get) => {
     theme: 'light',
     drawerOpen: false,
     assistantOpen: false,
+    cmdOpen: false,
+    tourStep: -1,
+    auditVersion: 0,
 
     bootstrap: async () => {
-      const provider = getDataProvider();
-      const data = provider.kind === 'api' ? emptySnapshot : await provider.load();
-      const firstOrg = data.organizations[0]?.id ?? '';
-      const admin = data.people.find((p) => p.roleKeys.includes('corporate_admin'));
-      const session: Session | null = admin
-        ? {
-            person: admin,
-            organizationId: firstOrg,
-            roleKeys: admin.roleKeys,
-            permissions: permissionsFor(admin.roleKeys),
-          }
-        : null;
-      set({ ready: true, data, organizationId: firstOrg, session });
+      // A store NÃO cria mais a sessão de forma autônoma: identidade e tenant
+      // vêm do TenantContext (SessionRepository). Aqui só carregamos os dados de
+      // domínio das fatias ainda geridas pela store. O TenantContext chama
+      // applySession() para espelhar sessão/organização ativa.
+      const kind = resolveProviderKind();
+      const data = kind === 'api' ? emptySnapshot : await getSnapshotStore().read();
+      set({ ready: true, data });
     },
 
     resetDemo: async () => {
-      const provider = getDataProvider();
-      await provider.clear();
+      if (resolveProviderKind() !== 'api') await getSnapshotStore().clear();
       set({ ready: false });
       await get().bootstrap();
     },
 
-    switchProfile: (role) => {
-      const { data, organizationId } = get();
-      const person = data.people.find(
-        (p) => p.roleKeys.includes(role) && p.organizationId === organizationId,
-      );
-      if (!person) return;
-      set({
-        session: {
-          person,
-          organizationId,
-          roleKeys: person.roleKeys,
-          permissions: permissionsFor(person.roleKeys),
-        },
-      });
+    applySession: (sctx) => {
+      if (!sctx || !sctx.activeOrganizationId) {
+        set({ session: null, organizationId: '' });
+        return;
+      }
+      const organizationId = sctx.activeOrganizationId;
+      const membership = activeMembership(sctx);
+      // Resolve a pessoa real (para companyId etc.) quando disponível no snapshot;
+      // caso contrário, sintetiza a partir do usuário autenticado.
+      const real = membership ? get().data.people.find((p) => p.id === membership.id) : undefined;
+      const person: Person = real ?? {
+        id: membership?.id ?? sctx.user.id,
+        organizationId,
+        name: sctx.user.displayName,
+        email: sctx.user.email,
+        roleKeys: membership?.roleIds ?? [],
+        status: sctx.user.status === 'suspended' ? 'suspended' : 'active',
+      };
+      const session: Session = {
+        person,
+        organizationId,
+        roleKeys: membership?.roleIds ?? person.roleKeys,
+        permissions: sctx.permissions,
+      };
+      set({ session, organizationId });
     },
 
-    switchOrganization: (organizationId) => {
-      const { session } = get();
-      set({
-        organizationId,
-        session: session ? { ...session, organizationId } : session,
-      });
+    resetTenantScope: () => {
+      // Fecha estado transitório que poderia exibir dados do tenant anterior.
+      set({ drawerOpen: false, assistantOpen: false, cmdOpen: false, tourStep: -1 });
     },
+
+    bumpAuditVersion: () => set((s) => ({ auditVersion: s.auditVersion + 1 })),
 
     setTheme: (theme) => {
       applyTheme(theme);
@@ -199,6 +274,11 @@ export const useAppStore = create<AppState>((set, get) => {
 
     setDrawerOpen: (open) => set({ drawerOpen: open }),
     setAssistantOpen: (open) => set({ assistantOpen: open }),
+    setCmdOpen: (open) => set({ cmdOpen: open }),
+    startTour: () => set({ tourStep: 0 }),
+    tourNext: () => set((s) => ({ tourStep: s.tourStep + 1 })),
+    tourPrev: () => set((s) => ({ tourStep: Math.max(0, s.tourStep - 1) })),
+    endTour: () => set({ tourStep: -1 }),
 
     recordAudit: (input) => {
       const { session, organizationId } = get();
@@ -220,97 +300,20 @@ export const useAppStore = create<AppState>((set, get) => {
         evidenceId: input.evidenceId,
         result: input.result ?? 'success',
       };
-      set((s) => ({ data: { ...s.data, auditEvents: [event, ...s.data.auditEvents] } }));
-      persist();
+      // Fronteira única de auditoria: grava pelo repositório (fonte da verdade dos
+      // eventos) e só então persiste as fatias que a store ainda gerencia.
+      void getServices()
+        .audit.append(event)
+        .then(() => persist())
+        .then(() => set((s) => ({ auditVersion: s.auditVersion + 1 })))
+        .catch(() => {});
       return event;
     },
 
-    saveDraft: (op) => {
-      set((s) => {
-        const exists = s.data.operations.some((o) => o.id === op.id);
-        const operations = exists
-          ? s.data.operations.map((o) => (o.id === op.id ? { ...op, updatedAt: now() } : o))
-          : [...s.data.operations, { ...op, updatedAt: now() }];
-        return { data: { ...s.data, operations } };
-      });
-      get().recordAudit({
-        action: 'operation.draft_saved',
-        objectType: 'Operation',
-        objectId: op.id,
-        newValue: { status: 'draft' },
-        relatedOperationId: op.id,
-      });
-    },
-
-    publishOperation: (op) => {
-      // Constrói a operação exclusivamente a partir dos dados do formulário.
-      // Não clona operação existente. Gera identificador, versão 1.0.
-      const published: Operation = {
-        ...op,
-        id: op.id.startsWith('op_new') ? newId('op') : op.id,
-        version: '1.0',
-        status: 'scheduled',
-        publishedAt: now(),
-        updatedAt: now(),
-      };
-      set((s) => {
-        const exists = s.data.operations.some((o) => o.id === op.id);
-        const operations = exists
-          ? s.data.operations.map((o) => (o.id === op.id ? published : o))
-          : [...s.data.operations, published];
-        return { data: { ...s.data, operations } };
-      });
-      get().recordAudit({
-        action: 'operation.publish',
-        objectType: 'Operation',
-        objectId: published.id,
-        previousValue: { status: 'draft' },
-        newValue: { status: 'scheduled', version: '1.0' },
-        relatedOperationId: published.id,
-      });
-      return published;
-    },
-
-    pauseOperation: (id) => {
-      set((s) => ({
-        data: {
-          ...s.data,
-          operations: s.data.operations.map((o) =>
-            o.id === id ? { ...o, status: 'paused', updatedAt: now() } : o,
-          ),
-        },
-      }));
-      get().recordAudit({
-        action: 'operation.pause',
-        objectType: 'Operation',
-        objectId: id,
-        newValue: { status: 'paused' },
-        relatedOperationId: id,
-      });
-    },
-
-    resumeOperation: (id) => {
-      set((s) => ({
-        data: {
-          ...s.data,
-          operations: s.data.operations.map((o) =>
-            o.id === id ? { ...o, status: 'running', updatedAt: now() } : o,
-          ),
-        },
-      }));
-      get().recordAudit({
-        action: 'operation.resume',
-        objectType: 'Operation',
-        objectId: id,
-        newValue: { status: 'running' },
-        relatedOperationId: id,
-      });
-    },
-
-    startExecution: (operationId, opts) => {
-      const { data } = get();
-      const op = data.operations.find((o) => o.id === operationId);
-      if (!op) throw new Error(`Operação ${operationId} não encontrada`);
+    startExecution: (operation, opts) => {
+      // A Operação chega já carregada via repositório (a store não é mais fonte
+      // da verdade de operations). Executions permanece na store (Fase futura).
+      const op = operation;
       const test = opts?.test ?? false;
 
       // 1-2. Cria objeto em executions, vincula à operação e à versão publicada.
@@ -587,6 +590,297 @@ export const useAppStore = create<AppState>((set, get) => {
       });
     },
 
+    // ── Pessoas ──────────────────────────────────────────────────────────
+    invitePerson: (input) => {
+      const { organizationId, session } = get();
+      const person: Person = {
+        id: newId('p'),
+        organizationId,
+        companyId: session?.person.companyId,
+        name: input.name,
+        email: input.email,
+        roleKeys: input.roleKeys,
+        status: 'invited',
+      };
+      set((s) => ({ data: { ...s.data, people: [...s.data.people, person] } }));
+      get().recordAudit({
+        action: 'people.invite',
+        objectType: 'Person',
+        objectId: person.id,
+        newValue: { name: person.name, roleKeys: person.roleKeys, status: 'invited' },
+      });
+      return person;
+    },
+
+    updatePersonRoles: (id, roleKeys) => {
+      const prev = get().data.people.find((p) => p.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          people: s.data.people.map((p) => (p.id === id ? { ...p, roleKeys } : p)),
+        },
+      }));
+      get().recordAudit({
+        action: 'role.change',
+        objectType: 'Person',
+        objectId: id,
+        previousValue: { roleKeys: prev?.roleKeys },
+        newValue: { roleKeys },
+      });
+    },
+
+    suspendPerson: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          people: s.data.people.map((p) => (p.id === id ? { ...p, status: 'suspended' } : p)),
+        },
+      }));
+      get().recordAudit({
+        action: 'people.suspend',
+        objectType: 'Person',
+        objectId: id,
+        newValue: { status: 'suspended' },
+      });
+    },
+
+    reactivatePerson: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          people: s.data.people.map((p) => (p.id === id ? { ...p, status: 'active' } : p)),
+        },
+      }));
+      get().recordAudit({
+        action: 'people.reactivate',
+        objectType: 'Person',
+        objectId: id,
+        newValue: { status: 'active' },
+      });
+    },
+
+    // ── Políticas ────────────────────────────────────────────────────────
+    createPolicy: (input) => {
+      const { organizationId } = get();
+      const policy: Policy = {
+        id: newId('pol'),
+        organizationId,
+        level: input.level,
+        name: input.name,
+        state: 'draft',
+      };
+      set((s) => ({ data: { ...s.data, policies: [...s.data.policies, policy] } }));
+      get().recordAudit({
+        action: 'policy.create',
+        objectType: 'Policy',
+        objectId: policy.id,
+        newValue: { name: policy.name, level: policy.level, state: 'draft' },
+      });
+      return policy;
+    },
+
+    submitPolicy: (id) => transitionPolicy(get, set, id, 'submitted', 'policy.submit'),
+    publishPolicy: (id) => transitionPolicy(get, set, id, 'published', 'policy.publish'),
+    suspendPolicy: (id) => transitionPolicy(get, set, id, 'suspended', 'policy.suspend'),
+
+    // ── Integrações ──────────────────────────────────────────────────────
+    connectIntegration: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          integrations: s.data.integrations.map((i) =>
+            i.id === id ? { ...i, status: 'connected' } : i,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'integration.connect',
+        objectType: 'Integration',
+        objectId: id,
+        newValue: { status: 'connected' },
+      });
+    },
+
+    testIntegration: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          integrations: s.data.integrations.map((i) =>
+            i.id === id ? { ...i, status: 'connected', lastTestedAt: now() } : i,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'integration.test',
+        objectType: 'Integration',
+        objectId: id,
+        newValue: { status: 'connected', tested: true },
+      });
+    },
+
+    disconnectIntegration: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          integrations: s.data.integrations.map((i) =>
+            i.id === id ? { ...i, status: 'disconnected' } : i,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'integration.disconnect',
+        objectType: 'Integration',
+        objectId: id,
+        newValue: { status: 'disconnected' },
+      });
+    },
+
+    // ── Contexto ─────────────────────────────────────────────────────────
+    addContextSource: (input) => {
+      const { organizationId } = get();
+      const source = {
+        id: newId('ctx'),
+        organizationId,
+        name: input.name,
+        kind: input.kind,
+        version: 1,
+      };
+      set((s) => ({ data: { ...s.data, contextSources: [...s.data.contextSources, source] } }));
+      get().recordAudit({
+        action: 'context.add',
+        objectType: 'ContextSource',
+        objectId: source.id,
+        newValue: { name: source.name, version: 1 },
+      });
+    },
+
+    versionContextSource: (id) => {
+      const prev = get().data.contextSources.find((c) => c.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          contextSources: s.data.contextSources.map((c) =>
+            c.id === id ? { ...c, version: c.version + 1 } : c,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'context.version',
+        objectType: 'ContextSource',
+        objectId: id,
+        previousValue: { version: prev?.version },
+        newValue: { version: (prev?.version ?? 0) + 1 },
+      });
+    },
+
+    // ── Work Units / Orçamento ───────────────────────────────────────────
+    requestWorkUnits: (input) => {
+      const { organizationId } = get();
+      const request = {
+        id: newId('wureq'),
+        organizationId,
+        areaId: input.areaId,
+        amount: input.amount,
+        justification: input.justification,
+        state: 'pending' as const,
+      };
+      set((s) => ({
+        data: { ...s.data, workUnitRequests: [request, ...s.data.workUnitRequests] },
+      }));
+      get().recordAudit({
+        action: 'budget.overage.request',
+        objectType: 'WorkUnitRequest',
+        objectId: request.id,
+        newValue: { amount: request.amount },
+        justification: input.justification,
+      });
+    },
+
+    approveWorkUnitRequest: (id) => {
+      const req = get().data.workUnitRequests.find((r) => r.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          workUnitRequests: s.data.workUnitRequests.map((r) =>
+            r.id === id ? { ...r, state: 'approved' } : r,
+          ),
+          workUnits: s.data.workUnits.map((w) =>
+            req && w.areaId === req.areaId
+              ? { ...w, contracted: w.contracted + req.amount, available: w.available + req.amount }
+              : w,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'budget.overage.approve',
+        objectType: 'WorkUnitRequest',
+        objectId: id,
+        newValue: { state: 'approved', amount: req?.amount },
+      });
+    },
+
+    setBudget: (id, total) => {
+      const prev = get().data.budgets.find((b) => b.id === id);
+      set((s) => ({
+        data: {
+          ...s.data,
+          budgets: s.data.budgets.map((b) => (b.id === id ? { ...b, total } : b)),
+        },
+      }));
+      get().recordAudit({
+        action: 'budget.define',
+        objectType: 'Budget',
+        objectId: id,
+        previousValue: { total: prev?.total },
+        newValue: { total },
+      });
+    },
+
+    // ── Exceções ─────────────────────────────────────────────────────────
+    resolveException: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          exceptions: s.data.exceptions.map((e) =>
+            e.id === id ? { ...e, state: 'resolved' } : e,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'exception.resolve',
+        objectType: 'OperationException',
+        objectId: id,
+        newValue: { state: 'resolved' },
+      });
+    },
+
+    reprocessException: (id) => {
+      set((s) => ({
+        data: {
+          ...s.data,
+          exceptions: s.data.exceptions.map((e) =>
+            e.id === id ? { ...e, state: 'reprocessing' } : e,
+          ),
+        },
+      }));
+      get().recordAudit({
+        action: 'exception.reprocess',
+        objectType: 'OperationException',
+        objectId: id,
+        newValue: { state: 'reprocessing' },
+      });
+    },
+
+    // ── Relatórios ───────────────────────────────────────────────────────
+    exportReport: (reportId) => {
+      get().recordAudit({
+        action: 'report.export',
+        objectType: 'Report',
+        objectId: reportId,
+        newValue: { exported: true },
+      });
+    },
+
     markNotificationsRead: () => {
       set((s) => ({
         data: {
@@ -597,6 +891,32 @@ export const useAppStore = create<AppState>((set, get) => {
     },
   };
 });
+
+type SetFn = (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void;
+type GetFn = () => AppState;
+
+function transitionPolicy(
+  get: GetFn,
+  set: SetFn,
+  id: string,
+  state: Policy['state'],
+  action: string,
+) {
+  const prev = get().data.policies.find((p) => p.id === id);
+  set((s) => ({
+    data: {
+      ...s.data,
+      policies: s.data.policies.map((p) => (p.id === id ? { ...p, state } : p)),
+    },
+  }));
+  get().recordAudit({
+    action,
+    objectType: 'Policy',
+    objectId: id,
+    previousValue: { state: prev?.state },
+    newValue: { state },
+  });
+}
 
 function completeStep(d: Deployment, stepId: string): Deployment {
   const idx = d.steps.findIndex((s) => s.id === stepId);

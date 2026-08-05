@@ -1,21 +1,32 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { OperationStateBadge } from '@/components/ui/StateBadge';
 import { useScopedData, usePermission } from '@/hooks/use-session';
 import { useAppStore } from '@/store/app-store';
+import {
+  useOperation,
+  usePauseOperation,
+  useResumeOperation,
+  useDuplicateOperation,
+} from '@/hooks/use-operations';
+import { VersionCompareDialog } from './VersionCompareDialog';
 
 export function OperationDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { operations, people } = useScopedData();
+  const { operation: op, isLoading } = useOperation(id);
+  const { people } = useScopedData();
   const can = usePermission();
   const startExecution = useAppStore((s) => s.startExecution);
-  const pauseOperation = useAppStore((s) => s.pauseOperation);
-  const resumeOperation = useAppStore((s) => s.resumeOperation);
+  const pauseMut = usePauseOperation();
+  const resumeMut = useResumeOperation();
+  const duplicateMut = useDuplicateOperation();
+  const [compareOpen, setCompareOpen] = useState(false);
 
-  const op = operations.find((o) => o.id === id);
+  if (isLoading) return <div className="empty-state">{t('data.loading')}</div>;
   if (!op) {
     return <div className="empty-state">{t('common.empty')}</div>;
   }
@@ -23,7 +34,7 @@ export function OperationDetailPage() {
   const ownerName = people.find((p) => p.id === op.ownerId)?.name ?? op.ownerId;
 
   const runTest = () => {
-    const exec = startExecution(op.id, { test: true });
+    const exec = startExecution(op, { test: true });
     navigate(`/executions/${exec.id}`);
   };
 
@@ -34,6 +45,18 @@ export function OperationDetailPage() {
         subtitle={`${op.problem}`}
         actions={
           <>
+            {can('operation.create') && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={async () => {
+                  const copy = await duplicateMut.mutateAsync(op.id);
+                  navigate(`/operations/${copy.id}`);
+                }}
+              >
+                {t('operations.duplicate')}
+              </button>
+            )}
             {can('execution.start', op) && (
               <button type="button" className="btn btn-ghost" onClick={runTest}>
                 {t('operations.testRun')}
@@ -44,7 +67,7 @@ export function OperationDetailPage() {
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  onClick={() => resumeOperation(op.id)}
+                  onClick={() => resumeMut.mutate(op.id)}
                 >
                   {t('operations.resume')}
                 </button>
@@ -52,13 +75,13 @@ export function OperationDetailPage() {
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  onClick={() => pauseOperation(op.id)}
+                  onClick={() => pauseMut.mutate(op.id)}
                 >
                   {t('operations.pause')}
                 </button>
               ))}
             {can('execution.start', op) && (
-              <button type="button" className="btn btn-primary" onClick={() => startExecution(op.id)}>
+              <button type="button" className="btn btn-primary" onClick={() => startExecution(op)}>
                 {t('operations.runNow')}
               </button>
             )}
@@ -150,7 +173,72 @@ export function OperationDetailPage() {
             <Field label={t('wizard.field.evidencePolicy')} value={op.evidencePolicy} />
           </div>
         </section>
+
+        <section className="card">
+          <div className="card-head">
+            <h2 className="t-section">{t('operations.versions')}</h2>
+            {op.versions && op.versions.length >= 2 && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setCompareOpen(true)}
+              >
+                {t('operations.compareVersions')}
+              </button>
+            )}
+          </div>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="mono">{t('common.version')}</th>
+                  <th>{t('operations.publishedAt')}</th>
+                  <th>{t('common.status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(op.versions ?? [
+                  {
+                    version: op.version,
+                    publishedAt: op.publishedAt,
+                    environment: op.environment,
+                    status: op.status,
+                    budget: op.budget,
+                    workUnits: op.workUnits,
+                    note: '',
+                  },
+                ])
+                  .slice()
+                  .reverse()
+                  .map((v) => (
+                    <tr key={v.version}>
+                      <td className="mono">
+                        v{v.version}
+                        {v.version === op.version && (
+                          <span className="chip" style={{ marginLeft: 6 }}>
+                            {t('operations.current')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="mono">{v.publishedAt ? v.publishedAt.slice(0, 10) : '—'}</td>
+                      <td>
+                        <OperationStateBadge status={v.status} />
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
+
+      {op.versions && op.versions.length >= 2 && (
+        <VersionCompareDialog
+          versions={op.versions}
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+        />
+      )}
     </>
   );
 }

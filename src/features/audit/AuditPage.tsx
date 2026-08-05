@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { useScopedData } from '@/hooks/use-session';
+import { useAuditEvents } from '@/hooks/use-audit';
 import { formatDate } from '@/lib/format';
 import type { Lang } from '@/i18n';
 
 export function AuditPage() {
   const { t, i18n } = useTranslation();
-  const { auditEvents } = useScopedData();
+  const { events: auditEvents } = useAuditEvents();
   const lang = i18n.language as Lang;
 
   return (

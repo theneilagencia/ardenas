@@ -74,12 +74,94 @@ export class ApiDataProvider implements DataProvider {
     return this.client;
   }
 
-  async load(): Promise<DomainSnapshot> {
-    // Em produção cada domínio é carregado por seu endpoint sob demanda.
-    // O bootstrap completo é opcional e fica a cargo da integração.
-    throw new Error(
-      'ApiDataProvider.load: conectar aos endpoints do contrato (ver docs/handoff/API_CONTRACTS.md).',
-    );
+  /**
+   * Monta o snapshot a partir dos endpoints do contrato (docs/handoff/API_CONTRACTS.md).
+   * Cada coleção vem do seu GET; o envelope { data } é desembrulhado. Coleções sem
+   * endpoint no contrato (derivadas ou ainda não expostas) chegam vazias.
+   * Erros HTTP passam pelo mapa de tratamento do ApiClient (ArdenApiError).
+   */
+  async load(signal?: AbortSignal): Promise<DomainSnapshot> {
+    const list = async <T>(path: string): Promise<T[]> => {
+      const res = await this.client.get<T[] | { items: T[] }>(path, signal);
+      const data = res.data as T[] | { items: T[] } | undefined;
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray((data as { items: T[] }).items)) {
+        return (data as { items: T[] }).items;
+      }
+      return [];
+    };
+
+    const [
+      organizations,
+      companies,
+      people,
+      roles,
+      operations,
+      executions,
+      approvals,
+      exceptions,
+      evidence,
+      policies,
+      risks,
+      integrations,
+      contextSources,
+      files,
+      workUnits,
+      budgets,
+      auditEvents,
+      notifications,
+    ] = await Promise.all([
+      list<DomainSnapshot['organizations'][number]>('/organizations'),
+      list<DomainSnapshot['companies'][number]>('/companies'),
+      list<DomainSnapshot['people'][number]>('/people'),
+      list<DomainSnapshot['roles'][number]>('/roles'),
+      list<DomainSnapshot['operations'][number]>('/operations'),
+      list<DomainSnapshot['executions'][number]>('/executions'),
+      list<DomainSnapshot['approvals'][number]>('/approvals'),
+      list<DomainSnapshot['exceptions'][number]>('/exceptions'),
+      list<DomainSnapshot['evidence'][number]>('/evidence'),
+      list<DomainSnapshot['policies'][number]>('/policies'),
+      list<DomainSnapshot['risks'][number]>('/risks'),
+      list<DomainSnapshot['integrations'][number]>('/integrations'),
+      list<DomainSnapshot['contextSources'][number]>('/context-sources'),
+      list<DomainSnapshot['files'][number]>('/files/candidates'),
+      list<DomainSnapshot['workUnits'][number]>('/work-units'),
+      list<DomainSnapshot['budgets'][number]>('/budgets'),
+      list<DomainSnapshot['auditEvents'][number]>('/audit-events'),
+      list<DomainSnapshot['notifications'][number]>('/notifications'),
+    ]);
+
+    return {
+      organizations,
+      companies,
+      people,
+      roles,
+      operations,
+      executions,
+      approvals,
+      exceptions,
+      evidence,
+      policies,
+      risks,
+      integrations,
+      contextSources,
+      files,
+      workUnits,
+      budgets,
+      auditEvents,
+      notifications,
+      // Coleções sem endpoint dedicado no contrato: preenchidas pela integração
+      // quando expostas, vazias por padrão.
+      units: [],
+      areas: [],
+      teams: [],
+      costCenters: [],
+      workUnitRequests: [],
+      deployments: [],
+      resultIndicators: [],
+      authorityMatrix: [],
+      assessments: [],
+    };
   }
 
   async persist(): Promise<void> {

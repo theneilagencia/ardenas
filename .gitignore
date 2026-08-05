@@ -16,3 +16,12 @@ test-results
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# TS incremental build info
+*.tsbuildinfo
+
+# Backend secrets (ARDEN-BE-001)
+apps/api/.env
+apps/api/.env.local
+**/dist/
+**/*.tsbuildinfo

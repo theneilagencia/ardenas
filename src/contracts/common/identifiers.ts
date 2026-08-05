@@ -1,0 +1,124 @@
+/**
+ * Arden.AS — API v1 · identificadores (ARDEN-FE-003).
+ *
+ * IDs são OPACOS: strings não vazias sem semântica embutida (o cliente não deve
+ * derivar informação do formato). Marcas (brands) dão segurança de tipo sem
+ * alterar a representação em JSON (continua string).
+ */
+
+import { z } from 'zod';
+
+/** Identificador opaco genérico. */
+export const opaqueId = z.string().min(1).max(128);
+export type OpaqueId = z.infer<typeof opaqueId>;
+
+/** Idempotency-Key: string opaca gerada pelo cliente para comandos críticos. */
+export const idempotencyKey = z.string().min(8).max(200);
+export type IdempotencyKey = z.infer<typeof idempotencyKey>;
+
+/** Correlation-Id: rastreia uma requisição fim a fim. */
+export const correlationId = z.string().min(1).max(200);
+export type CorrelationId = z.infer<typeof correlationId>;
+
+// Aliases por entidade. IDs são opacos (strings sem semântica): usamos o mesmo
+// schema para todos, mantendo os DTOs ergonômicos e sem brands que atrapalhem a
+// interoperabilidade contrato ↔ domínio.
+export const userId = opaqueId;
+export type UserId = z.infer<typeof userId>;
+
+export const organizationId = opaqueId;
+export type OrganizationId = z.infer<typeof organizationId>;
+
+export const membershipId = opaqueId;
+export type MembershipId = z.infer<typeof membershipId>;
+
+export const operationId = opaqueId;
+export type OperationId = z.infer<typeof operationId>;
+
+export const operationVersionId = opaqueId;
+export type OperationVersionId = z.infer<typeof operationVersionId>;
+
+export const auditEventId = opaqueId;
+export type AuditEventId = z.infer<typeof auditEventId>;
+
+// Governança, aprovações e autorizações (ARDEN-BE-004).
+export const policyId = opaqueId;
+export type PolicyId = z.infer<typeof policyId>;
+
+export const policyVersionId = opaqueId;
+export type PolicyVersionId = z.infer<typeof policyVersionId>;
+
+export const policyBindingId = opaqueId;
+export type PolicyBindingId = z.infer<typeof policyBindingId>;
+
+export const approvalFlowId = opaqueId;
+export type ApprovalFlowId = z.infer<typeof approvalFlowId>;
+
+export const approvalFlowStepId = opaqueId;
+export type ApprovalFlowStepId = z.infer<typeof approvalFlowStepId>;
+
+export const approvalRequestId = opaqueId;
+export type ApprovalRequestId = z.infer<typeof approvalRequestId>;
+
+export const approvalDecisionId = opaqueId;
+export type ApprovalDecisionId = z.infer<typeof approvalDecisionId>;
+
+export const approvalDelegationId = opaqueId;
+export type ApprovalDelegationId = z.infer<typeof approvalDelegationId>;
+
+export const actionAuthorizationId = opaqueId;
+export type ActionAuthorizationId = z.infer<typeof actionAuthorizationId>;
+
+// Execução (ARDEN-BE-005)
+export const executionRunId = opaqueId;
+export type ExecutionRunId = z.infer<typeof executionRunId>;
+
+export const executionStepId = opaqueId;
+export type ExecutionStepId = z.infer<typeof executionStepId>;
+
+export const executionAttemptId = opaqueId;
+export type ExecutionAttemptId = z.infer<typeof executionAttemptId>;
+
+export const executionEventId = opaqueId;
+export type ExecutionEventId = z.infer<typeof executionEventId>;
+
+export const evidenceRecordId = opaqueId;
+export type EvidenceRecordId = z.infer<typeof evidenceRecordId>;
+
+// Conectores, credenciais, ferramentas e webhooks (ARDEN-BE-006)
+export const connectorDefinitionId = opaqueId;
+export type ConnectorDefinitionId = z.infer<typeof connectorDefinitionId>;
+
+export const connectorToolDefinitionId = opaqueId;
+export type ConnectorToolDefinitionId = z.infer<typeof connectorToolDefinitionId>;
+
+export const connectionId = opaqueId;
+export type ConnectionId = z.infer<typeof connectionId>;
+
+export const credentialVersionId = opaqueId;
+export type CredentialVersionId = z.infer<typeof credentialVersionId>;
+
+export const organizationToolBindingId = opaqueId;
+export type OrganizationToolBindingId = z.infer<typeof organizationToolBindingId>;
+
+export const operationToolBindingId = opaqueId;
+export type OperationToolBindingId = z.infer<typeof operationToolBindingId>;
+
+export const webhookEndpointId = opaqueId;
+export type WebhookEndpointId = z.infer<typeof webhookEndpointId>;
+
+export const webhookDeliveryId = opaqueId;
+export type WebhookDeliveryId = z.infer<typeof webhookDeliveryId>;
+
+// Runtime de agentes e modelos (ARDEN-BE-007)
+export const agentDefinitionId = opaqueId;
+export type AgentDefinitionId = z.infer<typeof agentDefinitionId>;
+
+export const agentVersionId = opaqueId;
+export type AgentVersionId = z.infer<typeof agentVersionId>;
+
+export const modelConfigurationId = opaqueId;
+export type ModelConfigurationId = z.infer<typeof modelConfigurationId>;
+
+export const agentModelCallId = opaqueId;
+export type AgentModelCallId = z.infer<typeof agentModelCallId>;

@@ -13,6 +13,9 @@ import type {
   RoleKey,
 } from './types';
 
+let riSeq = 0;
+let amSeq = 0;
+
 const T0 = '2026-01-15T09:00:00.000Z';
 const T1 = '2026-02-01T14:30:00.000Z';
 const T2 = '2026-03-10T11:20:00.000Z';
@@ -25,10 +28,17 @@ const UNIT = 'unit_sudeste';
 const AREA = 'area_operacoes';
 const CC = 'cc_op_01';
 
-function person(id: string, name: string, email: string, roleKeys: RoleKey[], companyId = CO): Person {
+function person(
+  id: string,
+  name: string,
+  email: string,
+  roleKeys: RoleKey[],
+  companyId: string | undefined = CO,
+  organizationId: string = ORG,
+): Person {
   return {
     id,
-    organizationId: ORG,
+    organizationId,
     companyId,
     name,
     email,
@@ -47,6 +57,10 @@ const PEOPLE: Person[] = [
   person('p_ana', 'Camila Rocha', 'camila@arden.as', ['analyst']),
   person('p_aud', 'Paulo Mendes', 'paulo@arden.as', ['auditor']),
   { ...person('p_susp', 'Usuário Suspenso', 'suspenso@arden.as', ['analyst']), status: 'suspended' },
+  // Mesma identidade (e-mail) da administradora, com membership na 2ª organização.
+  // Permite trocar de organização e provar o isolamento de tenant (org_horizon é
+  // vazia). O usuário é membro de ambas — nunca escolhe um tenant arbitrário.
+  person('p_admin_h', 'Helena Vasques', 'helena@arden.as', ['corporate_admin'], undefined, ORG2),
 ];
 
 function step(
@@ -147,6 +161,26 @@ const publishedOperation: Operation = {
   publishedAt: T1,
   createdAt: T0,
   updatedAt: T2,
+  versions: [
+    {
+      version: '0.9',
+      publishedAt: T0,
+      environment: 'sandbox',
+      status: 'draft',
+      budget: 3000,
+      workUnits: 18,
+      note: 'Rascunho validado em sandbox, sem entrega externa.',
+    },
+    {
+      version: '1.0',
+      publishedAt: T1,
+      environment: 'production',
+      status: 'running',
+      budget: 5000,
+      workUnits: 23,
+      note: 'Publicada em produção com aprovação na etapa de retenção.',
+    },
+  ],
 };
 
 const draftOperation: Operation = {
@@ -220,10 +254,24 @@ function buildDeployment(): Deployment {
   };
 }
 
+function pol(
+  id: string,
+  name: string,
+  level: import('./types').PolicyLevel,
+  scopeLabel: string,
+  ownerName: string,
+  version: string,
+  state: import('./types').PolicyState,
+  opsCount: number,
+  updatedAt: string,
+): import('./types').Policy {
+  return { id, organizationId: ORG, level, name, state, scopeLabel, ownerName, version, opsCount, updatedAt };
+}
+
 export function buildSeed(): DomainSnapshot {
   return {
     organizations: [
-      { id: ORG, name: 'Arden.AS Grupo', companyIds: [CO, CO2] },
+      { id: ORG, name: 'Grupo Atlas', companyIds: [CO, CO2] },
       { id: ORG2, name: 'Horizonte Holdings', companyIds: [] },
     ],
     companies: [
@@ -281,6 +329,76 @@ export function buildSeed(): DomainSnapshot {
         state: 'pending',
         requestedAt: T2,
         approverIds: ['p_apr'],
+        title: 'Enviar relatório comercial à diretoria',
+        operationLabel: 'Revisão comercial semanal · execução #2841',
+        category: 'Envio externo',
+        criticality: 'moderate',
+        proposedAction: 'Enviar e-mail com dois anexos para o grupo Diretoria',
+        recipients: '5 contatos autorizados · domínio corporativo',
+        authorityLevel: 'execute_with_approval',
+        requestedBy: 'Arden.AS · hoje 07:31',
+        due: 'Hoje 12:00',
+        impact: 'Comunicação externa ao time da operação, reversível apenas por retratação',
+        content:
+          'Prezados,\n\nSegue a revisão comercial da semana 30, com três desvios materiais identificados na unidade Mineração e o plano de acompanhamento sugerido.\n\nO detalhamento por conta está no relatório em anexo.',
+        evidenceLabels: [
+          'Relatório executivo semana 30 · PDF 9 páginas',
+          'Índice de fontes · 1.284 registros consultados',
+          'Modelo de e-mail aprovado em 14 mai',
+        ],
+      },
+      {
+        id: 'apr_2',
+        organizationId: ORG,
+        operationId: 'op_fechamento',
+        state: 'pending',
+        requestedAt: T2,
+        approverIds: ['p_apr'],
+        title: 'Cobrança de três contas em atraso',
+        operationLabel: 'Acompanhamento de contas a receber',
+        category: 'Envio externo',
+        criticality: 'elevated',
+        proposedAction: 'Enviar cobrança a três clientes com faturas vencidas',
+        recipients: '3 contatos externos autorizados',
+        authorityLevel: 'execute_with_approval',
+        requestedBy: 'Arden.AS · hoje 09:10',
+        due: 'Hoje 18:00',
+        impact: 'Comunicação externa a clientes, reversível apenas por retratação',
+        evidenceLabels: ['Extrato de contas a receber · 3 faturas'],
+      },
+      {
+        id: 'apr_3',
+        organizationId: ORG,
+        operationId: 'op_fechamento',
+        state: 'pending',
+        requestedAt: T2,
+        approverIds: ['p_fin'],
+        title: 'Capacidade adicional de 60 Work Units',
+        operationLabel: 'Fechamento financeiro mensal',
+        category: 'Orçamento',
+        criticality: 'moderate',
+        proposedAction: 'Liberar 60 Work Units de excedente para concluir o ciclo',
+        authorityLevel: 'execute_with_approval',
+        requestedBy: 'Arden.AS · ontem 16:40',
+        due: 'Amanhã 10:00',
+        impact: 'Consumo acima do contratado no período, com débito no orçamento da área',
+      },
+      {
+        id: 'apr_4',
+        organizationId: ORG,
+        operationId: 'op_conciliacao',
+        state: 'pending',
+        requestedAt: T2,
+        approverIds: ['p_sec'],
+        title: 'Mover 148 arquivos para quarentena',
+        operationLabel: 'Gestão de exceções logísticas',
+        category: 'Arquivos',
+        criticality: 'moderate',
+        proposedAction: 'Mover 148 arquivos inativos para quarentena com recuperação em 30 dias',
+        authorityLevel: 'execute_with_approval',
+        requestedBy: 'Arden.AS · hoje 11:05',
+        due: 'Sexta 17:00',
+        impact: 'Reversível em 30 dias; exclusão definitiva exige dois aprovadores',
       },
     ],
     exceptions: [
@@ -303,22 +421,14 @@ export function buildSeed(): DomainSnapshot {
       createdAt: T2,
     })),
     policies: [
-      {
-        id: 'pol_corp',
-        organizationId: ORG,
-        level: 'corporate',
-        name: 'Política corporativa de dados',
-        state: 'published',
-      },
-      {
-        id: 'pol_area',
-        organizationId: ORG,
-        companyId: CO,
-        areaId: AREA,
-        level: 'area',
-        name: 'Regra da área de Operações',
-        state: 'draft',
-      },
+      pol('pol_comm', 'Comunicação externa', 'corporate', 'Corporativa', 'Marina Costa', 'v4.2', 'published', 6, '12/06/2026'),
+      pol('pol_pii', 'Dados pessoais', 'corporate', 'Corporativa', 'Diego Faria', 'v2.3', 'published', 9, '28/06/2026'),
+      pol('pol_del', 'Exclusão de arquivos', 'corporate', 'Corporativa', 'Diego Faria', 'v1.6', 'published', 3, '15/05/2026'),
+      pol('pol_fin', 'Ações financeiras', 'company', 'Empresa: Indústria', 'Helena Ribeiro', 'v3.0', 'published', 4, '03/05/2026'),
+      pol('pol_src', 'Fontes autorizadas', 'corporate', 'Corporativa', 'Marina Costa', 'v2.1', 'published', 12, '22/05/2026'),
+      pol('pol_sched', 'Horários de execução', 'area', 'Área: Atendimento', 'Patrícia Lemos', 'v1.2', 'submitted', 2, '24/07/2026'),
+      pol('pol_cons', 'Consumo por operação', 'corporate', 'Corporativa', 'Helena Ribeiro', 'v1.9', 'published', 12, '18/07/2026'),
+      pol('pol_pub', 'Publicação externa', 'corporate', 'Corporativa', 'Marina Costa', 'v1.0', 'draft', 0, '26/07/2026'),
     ],
     risks: [
       {
@@ -441,5 +551,109 @@ export function buildSeed(): DomainSnapshot {
         createdAt: T2,
       },
     ],
+    resultIndicators: RESULT_INDICATORS,
+    authorityMatrix: AUTHORITY_MATRIX,
+    assessments: ASSESSMENTS,
   };
 }
+
+// ── Resultados: portfólio de indicadores (do mockup) ──────────────────────────
+const RESULT_INDICATORS: import('./types').ResultIndicator[] = [
+  ri('Tempo de ciclo', 'measured', '3h 42m', '-59%', '9h 10m'),
+  ri('Custo por ciclo', 'estimated', 'R$ 118', '-71%', 'R$ 402'),
+  ri('Volume de execuções', 'measured', '312', '+16%', '268'),
+  ri('Taxa de conclusão', 'measured', '94,2%', '+4,5 p.p.', '89,7%'),
+  ri('Retrabalho', 'measured', '5,4%', '-6,4 p.p.', '11,8%'),
+  ri('SLA cumprido', 'measured', '96,1%', '+4,7 p.p.', '91,4%'),
+  ri('Exceções tratadas', 'measured', '38', '-27%', '52'),
+  ri('Intervenções humanas', 'measured', '1,8 por ciclo', '-58%', '4,3 por ciclo'),
+  ri('Capacidade adicionada', 'estimated', '412 horas', '+75%', '236 horas'),
+  ri('Economia potencial', 'estimated', 'R$ 74.100', '+79%', 'R$ 41.300'),
+  ri('Receita influenciada', 'client_reported', 'R$ 210.000', '+25%', 'R$ 168.000'),
+  ri('Previsibilidade de prazo', 'measured', '±22 min', '-78%', '±1h 40m'),
+  ri('Qualidade aprovada sem ajuste', 'validated', '88,5%', '—', 'Não disponível'),
+  ri('Impacto em contratos renovados', 'unavailable', 'Não disponível', '—', 'Não disponível'),
+];
+
+function ri(
+  name: string,
+  method: import('./types').ResultMethod,
+  value: string,
+  delta: string,
+  before: string,
+): import('./types').ResultIndicator {
+  return { id: `ri_${++riSeq}`, organizationId: ORG, name, method, value, delta, before };
+}
+
+// ── Matriz de Gradientes de Autoridade (do mockup) ────────────────────────────
+const AUTHORITY_MATRIX: import('./types').AuthorityMatrixRow[] = [
+  am('Consultar oportunidades', 'Salesforce', 'Unidade autorizada', true, 'low', 'observe'),
+  am('Consolidar dados de vendas', 'Salesforce, ERP', 'Período fechado', true, 'low', 'prepare'),
+  am('Preparar relatório executivo', 'Arden.AS', 'Modelo aprovado', true, 'low', 'prepare'),
+  am('Atualizar estágio de oportunidade', 'Salesforce', 'Apenas oportunidades abertas', true, 'moderate', 'execute_under_rule'),
+  am('Movimentar arquivo', 'SharePoint', 'Pasta autorizada', true, 'low', 'execute_under_rule'),
+  am('Enviar comunicação interna', 'Microsoft 365', 'Modelo aprovado, destinatários internos', false, 'moderate', 'execute_under_rule'),
+  am('Enviar proposta a cliente', 'Microsoft 365', 'Aprovação do diretor comercial', false, 'elevated', 'execute_with_approval'),
+  am('Alterar registro contábil', 'ERP', 'Aprovação do diretor financeiro', false, 'elevated', 'execute_with_approval'),
+  am('Mover arquivo para quarentena', 'SharePoint', 'Recuperação em 30 dias', true, 'moderate', 'execute_with_approval'),
+  am('Excluir permanentemente', 'SharePoint', 'Dois aprovadores', false, 'critical', 'execute_with_approval'),
+  am('Excluir contrato', 'Repositório jurídico', 'Ação não permitida', false, 'critical', 'blocked'),
+  am('Executar pagamento', 'ERP', 'Ação não permitida', false, 'critical', 'blocked'),
+];
+
+function am(
+  action: string,
+  system: string,
+  condition: string,
+  reversible: boolean,
+  risk: import('./types').RiskLevel,
+  authorityLevel: import('./types').AuthorityLevel,
+): import('./types').AuthorityMatrixRow {
+  return { id: `am_${++amSeq}`, organizationId: ORG, action, system, condition, reversible, risk, authorityLevel };
+}
+
+// ── Assessments (Autonomous Work Assessment, do mockup) ───────────────────────
+const ASSESSMENTS: import('./types').Assessment[] = [
+  {
+    id: 'asm_1',
+    organizationId: ORG,
+    operationName: 'Fechamento financeiro mensal',
+    discipline: 'Financeiro',
+    date: '26 jul',
+    company: 'Atlas Serviços Financeiros',
+    responsibleId: 'p_fin',
+    responsibleName: 'Rafael Lima',
+    stage: 'completed',
+    recommendation: 'Candidata com ajustes',
+    execScore: 68,
+    workUnitsRange: '16 a 20',
+  },
+  {
+    id: 'asm_2',
+    organizationId: ORG,
+    operationName: 'Triagem de incidentes',
+    discipline: 'Tecnologia',
+    date: '28 jul',
+    company: 'Grupo Atlas',
+    responsibleId: 'p_sup',
+    responsibleName: 'Bruno Almeida',
+    stage: 'analyzing',
+    recommendation: 'Forte candidata',
+    execScore: 86,
+    workUnitsRange: '6 a 8',
+  },
+  {
+    id: 'asm_3',
+    organizationId: ORG,
+    operationName: 'Consolidação de avaliação de desempenho',
+    discipline: 'Pessoas',
+    date: '24 jul',
+    company: 'Grupo Atlas',
+    responsibleId: 'p_owner',
+    responsibleName: 'Marina Costa',
+    stage: 'awaiting_info',
+    recommendation: 'Exige clareza institucional',
+    execScore: 34,
+    workUnitsRange: '12 a 16',
+  },
+];

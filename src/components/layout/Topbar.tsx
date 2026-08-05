@@ -3,6 +3,7 @@ import { Bell, HelpCircle, Menu, Moon, Sun } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useAppStore } from '@/store/app-store';
 import { useScopedData, useSession } from '@/hooks/use-session';
+import { useTenant } from '@/app/tenant-context';
 import { setLang, type Lang } from '@/i18n';
 import type { RoleKey } from '@/domain/types';
 
@@ -23,7 +24,9 @@ export function Topbar() {
   const toggleTheme = useAppStore((s) => s.toggleTheme);
   const setDrawerOpen = useAppStore((s) => s.setDrawerOpen);
   const setAssistantOpen = useAppStore((s) => s.setAssistantOpen);
-  const switchProfile = useAppStore((s) => s.switchProfile);
+  const setCmdOpen = useAppStore((s) => s.setCmdOpen);
+  const startTour = useAppStore((s) => s.startTour);
+  const { switchProfile, signOut } = useTenant();
   const markRead = useAppStore((s) => s.markNotificationsRead);
   const session = useSession();
   const { notifications } = useScopedData();
@@ -43,13 +46,37 @@ export function Topbar() {
         <Menu size={16} aria-hidden />
       </button>
 
-      <input
+      <button
+        type="button"
         className="topbar-search"
-        placeholder={t('app.searchPlaceholder')}
+        onClick={() => setCmdOpen(true)}
         aria-label={t('app.searchPlaceholder')}
-      />
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          cursor: 'pointer',
+          color: 'var(--tx2)',
+          textAlign: 'left',
+        }}
+      >
+        <span>{t('app.searchPlaceholder')}</span>
+        <span className="chip mono" style={{ fontSize: '0.7rem' }}>
+          ⌘K
+        </span>
+      </button>
 
       <div style={{ flex: 1 }} />
+
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        onClick={startTour}
+        title={t('app.demoMode')}
+      >
+        {t('app.demoMode')}
+      </button>
 
       {/* Idioma */}
       <DropdownMenu.Root>
@@ -64,7 +91,19 @@ export function Topbar() {
               <DropdownMenu.Item
                 key={lng}
                 className="menu-item"
-                onSelect={() => setLang(lng)}
+                onSelect={() => {
+                  const prev = i18n.language;
+                  setLang(lng);
+                  if (prev !== lng) {
+                    useAppStore.getState().recordAudit({
+                      action: 'language.change',
+                      objectType: 'Session',
+                      objectId: session?.person.id ?? 'anon',
+                      previousValue: { lang: prev },
+                      newValue: { lang: lng },
+                    });
+                  }
+                }}
               >
                 {lng === 'pt-BR' ? 'Português (BR)' : 'English (US)'}
               </DropdownMenu.Item>
@@ -96,6 +135,14 @@ export function Topbar() {
                   {t(`role.${role}`)}
                 </DropdownMenu.Item>
               ))}
+              <DropdownMenu.Separator className="menu-sep" />
+              <DropdownMenu.Item
+                className="menu-item"
+                data-testid="sign-out"
+                onSelect={() => void signOut()}
+              >
+                {t('session.signOut')}
+              </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>

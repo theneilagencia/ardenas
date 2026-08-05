@@ -4,14 +4,24 @@ import { MemoryRouter } from 'react-router-dom';
 import axe from 'axe-core';
 import { AccessDenied } from '@/components/AccessDenied';
 import { useAppStore } from '@/store/app-store';
-import { setDataProvider } from '@/services/service-container';
-import { MockDataProvider } from '@/services/providers';
+import { setServices, setSnapshotStore } from '@/services/service-container';
+import { MemorySnapshotStore } from '@/services/data/snapshot-store';
+import { buildSessionContext } from '@/services/session/session-derivation';
 import { buildSeed } from '@/domain/seed';
 import '@/i18n';
 
 beforeEach(async () => {
-  setDataProvider(new MockDataProvider(buildSeed()));
+  setSnapshotStore(new MemorySnapshotStore(buildSeed()));
+  setServices(null);
   await useAppStore.getState().bootstrap();
+  // Espelha uma sessão ativa (a autoridade real é o TenantContext).
+  const session = buildSessionContext({
+    snapshot: buildSeed(),
+    currentUserId: null,
+    activeOrganizationId: 'org_arden',
+    expiresAt: null,
+  });
+  useAppStore.getState().applySession(session);
 });
 
 describe('acessibilidade — tela de acesso negado', () => {

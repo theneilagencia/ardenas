@@ -188,6 +188,7 @@ export interface Operation {
   publishedAt: ISODate | null;
   createdAt: ISODate;
   updatedAt: ISODate;
+  versions?: OperationVersionEntry[];
 }
 
 export interface Indicator {
@@ -196,6 +197,16 @@ export interface Indicator {
   target: number;
   current: number;
   unit: string;
+}
+
+export interface OperationVersionEntry {
+  version: string;
+  publishedAt: ISODate | null;
+  environment: Environment | null;
+  status: OperationStatus;
+  budget: number;
+  workUnits: number;
+  note: string;
 }
 
 // ── Execução ─────────────────────────────────────────────────────────────────
@@ -250,6 +261,19 @@ export interface Approval {
   resolverId?: ID;
   approverIds: ID[];
   justification?: string;
+  // Detalhe apresentado no painel de decisão
+  title?: string;
+  operationLabel?: string;
+  category?: string;
+  criticality?: Criticality;
+  proposedAction?: string;
+  recipients?: string;
+  authorityLevel?: AuthorityLevel;
+  requestedBy?: string;
+  due?: string;
+  impact?: string;
+  content?: string;
+  evidenceLabels?: string[];
 }
 
 export type ExceptionState = 'open' | 'resolved' | 'reprocessing';
@@ -305,6 +329,12 @@ export interface Policy {
   state: PolicyState;
   justification?: string;
   expiresAt?: ISODate;
+  // Metadados exibidos na Governança
+  scopeLabel?: string;
+  ownerName?: string;
+  version?: string;
+  opsCount?: number;
+  updatedAt?: ISODate;
 }
 
 // ── Risco ─────────────────────────────────────────────────────────────────────
@@ -447,6 +477,52 @@ export interface Deployment {
   steps: DeploymentStep[];
   completed: boolean;
   completedAt?: ISODate;
+}
+
+// ── Resultados (portfólio de indicadores) ────────────────────────────────────
+
+export type ResultMethod = 'measured' | 'estimated' | 'client_reported' | 'validated' | 'unavailable';
+
+export interface ResultIndicator {
+  id: ID;
+  organizationId: ID;
+  name: string;
+  method: ResultMethod;
+  value: string;
+  delta: string;
+  before: string;
+}
+
+// ── Matriz de Gradientes de Autoridade ────────────────────────────────────────
+
+export interface AuthorityMatrixRow {
+  id: ID;
+  organizationId: ID;
+  action: string;
+  system: string;
+  condition: string;
+  reversible: boolean;
+  risk: RiskLevel;
+  authorityLevel: AuthorityLevel;
+}
+
+// ── Assessment (Autonomous Work Assessment) ───────────────────────────────────
+
+export type AssessmentStage = 'analyzing' | 'awaiting_info' | 'completed';
+
+export interface Assessment {
+  id: ID;
+  organizationId: ID;
+  operationName: string;
+  discipline: string;
+  date: string;
+  company: string;
+  responsibleId: ID;
+  responsibleName: string;
+  stage: AssessmentStage;
+  recommendation: string;
+  execScore: number;
+  workUnitsRange: string;
 }
 
 // ── Notificações ──────────────────────────────────────────────────────────────

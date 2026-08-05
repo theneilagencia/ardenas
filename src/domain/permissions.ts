@@ -22,17 +22,57 @@ export type Permission =
   | 'operation.pause'
   | 'execution.view'
   | 'execution.start'
+  | 'execution.create'
   | 'execution.pause'
   | 'execution.resume'
+  | 'execution.cancel'
+  | 'execution.retry'
+  | 'evidence.view'
   | 'approval.view'
   | 'approval.resolve'
+  | 'approval.request'
+  | 'approval.cancel'
+  | 'approval.delegate'
   | 'policy.view'
   | 'policy.manage'
+  | 'policy.create'
+  | 'policy.edit'
   | 'policy.publish'
+  | 'policy.suspend'
+  | 'authority.evaluate'
   | 'risk.view'
   | 'risk.manage'
   | 'integration.view'
   | 'integration.manage'
+  // Conectores, conexões, credenciais, ferramentas e webhooks (ARDEN-BE-006).
+  | 'connector.view'
+  | 'connector.manage'
+  | 'connection.view'
+  | 'connection.create'
+  | 'connection.edit'
+  | 'connection.test'
+  | 'connection.rotate_credentials'
+  | 'connection.revoke'
+  | 'tool.view'
+  | 'tool.bind'
+  | 'webhook.view'
+  | 'webhook.manage'
+  | 'integration.execute'
+  // Runtime de agentes e modelos (ARDEN-BE-007).
+  | 'agent.view'
+  | 'agent.create'
+  | 'agent.edit'
+  | 'agent.publish'
+  | 'agent.suspend'
+  | 'agent.revoke'
+  | 'agent.execute'
+  | 'agent.cost.view'
+  | 'model_provider.view'
+  | 'model_provider.manage'
+  | 'model_configuration.view'
+  | 'model_configuration.create'
+  | 'model_configuration.edit'
+  | 'model_configuration.revoke'
   | 'context.view'
   | 'context.manage'
   | 'file.view'
@@ -65,17 +105,55 @@ export const ALL_PERMISSIONS: Permission[] = [
   'operation.pause',
   'execution.view',
   'execution.start',
+  'execution.create',
   'execution.pause',
   'execution.resume',
+  'execution.cancel',
+  'execution.retry',
+  'evidence.view',
   'approval.view',
   'approval.resolve',
+  'approval.request',
+  'approval.cancel',
+  'approval.delegate',
   'policy.view',
   'policy.manage',
+  'policy.create',
+  'policy.edit',
   'policy.publish',
+  'policy.suspend',
+  'authority.evaluate',
   'risk.view',
   'risk.manage',
   'integration.view',
   'integration.manage',
+  'connector.view',
+  'connector.manage',
+  'connection.view',
+  'connection.create',
+  'connection.edit',
+  'connection.test',
+  'connection.rotate_credentials',
+  'connection.revoke',
+  'tool.view',
+  'tool.bind',
+  'webhook.view',
+  'webhook.manage',
+  'integration.execute',
+  'agent.view',
+  'agent.create',
+  'agent.edit',
+  'agent.publish',
+  'agent.suspend',
+  'agent.revoke',
+  'agent.execute',
+  'agent.cost.view',
+  'model_provider.view',
+  'model_provider.manage',
+  'model_configuration.view',
+  'model_configuration.create',
+  'model_configuration.edit',
+  'model_configuration.revoke',
   'context.view',
   'context.manage',
   'file.view',
@@ -115,12 +193,31 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'operation.pause',
     'execution.view',
     'execution.start',
+    'execution.create',
     'execution.pause',
     'execution.resume',
+    'execution.cancel',
+    'execution.retry',
+    'evidence.view',
     'approval.view',
+    'approval.request',
+    'authority.evaluate',
     'risk.view',
     'context.view',
     'integration.view',
+    'connector.view',
+    'connection.view',
+    'tool.view',
+    'tool.bind',
+    'webhook.view',
+    'integration.execute',
+    'agent.view',
+    'agent.create',
+    'agent.edit',
+    'agent.publish',
+    'agent.execute',
+    'model_provider.view',
+    'model_configuration.view',
     'file.view',
     'budget.view',
     'audit.view',
@@ -132,10 +229,20 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.view',
     'execution.pause',
     'execution.resume',
+    'execution.cancel',
+    'evidence.view',
     'approval.view',
+    'authority.evaluate',
     'risk.view',
     'audit.view',
     'file.view',
+    'connector.view',
+    'connection.view',
+    'connection.test',
+    'integration.execute',
+    'agent.view',
+    'agent.execute',
+    'agent.cost.view',
   ],
   approver: [
     'organization.view',
@@ -143,6 +250,10 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.view',
     'approval.view',
     'approval.resolve',
+    'approval.request',
+    'approval.cancel',
+    'approval.delegate',
+    'authority.evaluate',
     'audit.view',
     'risk.view',
   ],
@@ -152,11 +263,36 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'security.manage',
     'policy.view',
     'policy.manage',
+    'policy.create',
+    'policy.edit',
     'policy.publish',
+    'policy.suspend',
+    'authority.evaluate',
     'role.view',
     'role.manage',
     'integration.view',
     'integration.manage',
+    'connector.view',
+    'connector.manage',
+    'connection.view',
+    'connection.create',
+    'connection.edit',
+    'connection.test',
+    'connection.rotate_credentials',
+    'connection.revoke',
+    'tool.view',
+    'tool.bind',
+    'webhook.view',
+    'webhook.manage',
+    'agent.view',
+    'agent.suspend',
+    'agent.revoke',
+    'model_provider.view',
+    'model_provider.manage',
+    'model_configuration.view',
+    'model_configuration.create',
+    'model_configuration.edit',
+    'model_configuration.revoke',
     'risk.view',
     'risk.manage',
     'audit.view',
@@ -179,6 +315,14 @@ export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {
     'execution.view',
     'risk.view',
     'file.view',
+    'connector.view',
+    'connection.view',
+    'tool.view',
+    'webhook.view',
+    'agent.view',
+    'agent.cost.view',
+    'model_provider.view',
+    'model_configuration.view',
   ],
 };
 
@@ -277,5 +421,8 @@ export function grantedBy(permission: Permission): RoleKey {
   if (permission.startsWith('policy') || permission.startsWith('security'))
     return 'security_admin';
   if (permission.startsWith('role')) return 'security_admin';
+  if (permission.startsWith('model_')) return 'security_admin';
+  if (permission === 'agent.suspend' || permission === 'agent.revoke') return 'security_admin';
+  if (permission.startsWith('agent')) return 'operation_owner';
   return 'corporate_admin';
 }

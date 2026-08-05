@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import type { Permission } from '@/domain/permissions';
-import { usePermission } from '@/hooks/use-session';
-import { AccessDenied } from './AccessDenied';
+import { PermissionBoundary } from './session/PermissionBoundary';
 
 /**
- * Guarda de rota. Permissão se aplica à rota, não apenas ao menu.
+ * Guarda de rota por permissão. Permissão se aplica à rota, não apenas ao menu.
+ * Delega para a `PermissionBoundary` (TenantContext + auditoria de acesso negado).
  */
 export function RequirePermission({
   permission,
@@ -13,9 +13,5 @@ export function RequirePermission({
   permission: Permission;
   children: ReactNode;
 }) {
-  const can = usePermission();
-  if (!can(permission)) {
-    return <AccessDenied permission={permission} />;
-  }
-  return <>{children}</>;
+  return <PermissionBoundary permission={permission}>{children}</PermissionBoundary>;
 }

@@ -96,24 +96,55 @@ Coberto por testes (`npm run test` e `npm run test:e2e`):
 - **Arquivos e quarentena** com recuperação em 30 dias; arquivo crítico vinculado a
   operação ativa não pode ser movido (o botão não existe); exclusão definitiva exige
   **dois aprovadores nomeados distintos**. *(unidade)*
+- **Ações administrativas gravando na store**, com auditoria por transição: Pessoas
+  (convite, troca de papel, suspensão e reativação), Políticas (criação, submissão,
+  publicação e suspensão), Integrações (conectar, testar, desconectar), Contexto
+  (adicionar fonte e versionar), Work Units (solicitar e aprovar excedente), Orçamento
+  (definir teto), Ambientes (promover e reverter com trava de ordem) e Exceções
+  (resolver e reprocessar). *(unidade)*
 - **Matriz de risco** por ação, com classificação sempre em texto ao lado da cor.
 - **Assistente contextual** determinístico, composto a partir da store, sem API externa.
-- **Auditoria** com estado anterior e novo em cada evento.
+- **Auditoria** com estado anterior e novo em cada evento; a central de Segurança
+  destaca as tentativas negadas.
 - **Acessibilidade**: a tela de acesso negado passa o axe (WCAG 2 A/AA) sem violações
   críticas ou sérias.
+
+### Os 23 módulos do mockup
+
+A navegação reproduz os 23 módulos do protótipo corporativo, nos cinco grupos:
+
+- **Operação** — Visão geral, Operações (catálogo, detalhe, wizard), Execuções, Aprovações
+- **Resultado** — Resultados (portfólio de indicadores com método de obtenção),
+  Evidências, Exceções
+- **Controle** — Work Units, Gradientes de Autoridade (matriz por ação), Governança
+  (políticas com herança, versões e retenção), Matriz de risco, Contexto, Integrações,
+  Arquivos
+- **Avaliação** — Assessment (Autonomous Work Assessment) e Avaliador (wizard de 12
+  etapas de operação autônoma)
+- **Empresa** — Implantação, Pessoas e equipes, Segurança, Ambientes, Auditoria,
+  Relatórios, Administração (16 áreas administrativas em cinco grupos)
 
 ## Pendências conhecidas
 
 Declaradas, não escondidas. Trabalho restante da reconstrução:
 
-- Detalhamento de tela dos módulos mapeados como *placeholder* (Pessoas, Papéis,
-  Políticas, Integrações, Contexto, Work Units, Orçamento, Ambientes, Segurança,
-  Relatórios, Exceções, Evidências) — hoje roteados, com permissão e navegação.
-- Ações administrativas de Pessoas, Papéis e Políticas gravando na store (o motor de
-  auditoria e a store já suportam; falta a UI de cada módulo).
-- Repositórios por domínio no modo `api` (o cliente HTTP, o mapa de erro e o container
-  estão prontos; falta implementar cada endpoint do contrato).
-- Ampliar a cobertura E2E e de acessibilidade aos demais módulos.
+- Interações do mockup já implementadas: command palette (⌘K), tour guiado (Modo
+  demonstração), aprovações em master-detail com delegar/solicitar ajuste, duplicar
+  operação, comparar versões lado a lado, transformar Assessment em operação, e
+  painéis de detalhe em *drawer* (Riscos e Evidências).
+- Resta estender o padrão de *drawer* aos demais módulos de listagem e aprofundar
+  telas específicas conforme necessidade.
+- Escrita no modo `api`: `OperationsRepository` tem implementação HTTP
+  (`ApiOperationsRepository`) e ligada à store (`StoreOperationsRepository`), resolvidas
+  pelo container (`getOperationsRepository`); Aprovações e Arquivos têm repositório HTTP.
+  Falta estender o repositório HTTP aos demais domínios e ligar as telas ao container
+  no lugar da store direta.
+- Ampliar a cobertura E2E e de acessibilidade aos módulos administrativos e de avaliação.
+- Alerta Dependabot em `brace-expansion` (GHSA-mh99-v99m-4gvg): cadeia exclusivamente
+  de ferramentas de desenvolvimento (ESLint e workbox-build), nunca no bundle entregue.
+  O único conserto oferecido pelo npm é subir ESLint para a major 10 (quebra a config);
+  fixar a versão via `overrides` quebra o globbing do workbox no build, então o alerta
+  fica documentado e adiado até o upstream publicar minimatch corrigido.
 
 ## Handoff e referência
 

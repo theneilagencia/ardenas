@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useScopedData, usePermission } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
 import { useAppStore } from '@/store/app-store';
 import { formatBytes } from '@/lib/format';
 import type { FileState } from '@/domain/types';
@@ -15,7 +16,8 @@ const STATE_KEY: Record<FileState, string> = {
 
 export function FilesPage() {
   const { t } = useTranslation();
-  const { files, operations, people } = useScopedData();
+  const { files, people } = useScopedData();
+  const { operations } = useOperations();
   const can = usePermission();
   const quarantine = useAppStore((s) => s.quarantineFile);
   const restore = useAppStore((s) => s.restoreFile);

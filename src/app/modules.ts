@@ -1,32 +1,41 @@
 /**
  * Arden.AS — registro de módulos.
- * A navegação e o escopo são reconstruídos a partir das permissões da sessão.
+ * Os 23 módulos e os cinco grupos do mockup corporativo. A navegação e o escopo
+ * são reconstruídos a partir das permissões da sessão.
  */
 
 import {
   Activity,
-  AlertTriangle,
   BadgeCheck,
+  Bot,
   Boxes,
-  Building2,
-  ClipboardCheck,
   Coins,
+  Cpu,
+  ClipboardCheck,
+  ClipboardList,
   Database,
   FileArchive,
   FileText,
-  Gauge,
+  GaugeCircle,
   GitBranch,
   LayoutDashboard,
+  LineChart,
+  ListChecks,
   Plug,
   ScrollText,
+  Settings,
   Shield,
   ShieldAlert,
+  SlidersHorizontal,
+  Sparkles,
+  TrendingUp,
   Users,
-  Wallet,
   Workflow as WorkflowIcon,
   type LucideIcon,
 } from 'lucide-react';
 import type { Permission } from '@/domain/permissions';
+
+export type ModuleGroup = 'operate' | 'result' | 'control' | 'agents' | 'assessment' | 'company';
 
 export interface ModuleDef {
   key: string;
@@ -35,33 +44,58 @@ export interface ModuleDef {
   icon: LucideIcon;
   /** Permissão mínima para ver o módulo. */
   permission: Permission;
-  group: 'operate' | 'govern' | 'administer';
+  group: ModuleGroup;
 }
 
 export const MODULES: ModuleDef[] = [
+  // OPERAÇÃO
   { key: 'overview', path: '/', labelKey: 'nav.overview', icon: LayoutDashboard, permission: 'organization.view', group: 'operate' },
   { key: 'operations', path: '/operations', labelKey: 'nav.operations', icon: WorkflowIcon, permission: 'operation.view', group: 'operate' },
   { key: 'executions', path: '/executions', labelKey: 'nav.executions', icon: Activity, permission: 'execution.view', group: 'operate' },
   { key: 'approvals', path: '/approvals', labelKey: 'nav.approvals', icon: ClipboardCheck, permission: 'approval.view', group: 'operate' },
-  { key: 'exceptions', path: '/exceptions', labelKey: 'nav.exceptions', icon: AlertTriangle, permission: 'execution.view', group: 'operate' },
-  { key: 'evidence', path: '/evidence', labelKey: 'nav.evidence', icon: FileText, permission: 'audit.view', group: 'operate' },
-  { key: 'deployment', path: '/deployment', labelKey: 'nav.deployment', icon: GitBranch, permission: 'onboarding.execute', group: 'operate' },
 
-  { key: 'risk', path: '/risk', labelKey: 'nav.risk', icon: ShieldAlert, permission: 'risk.view', group: 'govern' },
-  { key: 'policies', path: '/policies', labelKey: 'nav.policies', icon: ScrollText, permission: 'policy.view', group: 'govern' },
-  { key: 'security', path: '/security', labelKey: 'nav.security', icon: Shield, permission: 'security.view', group: 'govern' },
-  { key: 'audit', path: '/audit', labelKey: 'nav.audit', icon: BadgeCheck, permission: 'audit.view', group: 'govern' },
-  { key: 'files', path: '/files', labelKey: 'nav.files', icon: FileArchive, permission: 'file.view', group: 'govern' },
+  // RESULTADO
+  { key: 'results', path: '/results', labelKey: 'nav.results', icon: TrendingUp, permission: 'operation.view', group: 'result' },
+  { key: 'evidence', path: '/evidence', labelKey: 'nav.evidence', icon: FileText, permission: 'audit.view', group: 'result' },
+  { key: 'exceptions', path: '/exceptions', labelKey: 'nav.exceptions', icon: ListChecks, permission: 'execution.view', group: 'result' },
 
-  { key: 'people', path: '/people', labelKey: 'nav.people', icon: Users, permission: 'people.view', group: 'administer' },
-  { key: 'roles', path: '/roles', labelKey: 'nav.roles', icon: BadgeCheck, permission: 'role.view', group: 'administer' },
-  { key: 'integrations', path: '/integrations', labelKey: 'nav.integrations', icon: Plug, permission: 'integration.view', group: 'administer' },
-  { key: 'context', path: '/context', labelKey: 'nav.context', icon: Database, permission: 'context.view', group: 'administer' },
-  { key: 'workUnits', path: '/work-units', labelKey: 'nav.workUnits', icon: Coins, permission: 'budget.view', group: 'administer' },
-  { key: 'budget', path: '/budget', labelKey: 'nav.budget', icon: Wallet, permission: 'budget.view', group: 'administer' },
-  { key: 'environments', path: '/environments', labelKey: 'nav.environments', icon: Boxes, permission: 'operation.view', group: 'administer' },
-  { key: 'reports', path: '/reports', labelKey: 'nav.reports', icon: Gauge, permission: 'report.export', group: 'administer' },
-  { key: 'organizations', path: '/organizations', labelKey: 'nav.settings', icon: Building2, permission: 'organization.manage', group: 'administer' },
+  // CONTROLE
+  { key: 'workUnits', path: '/work-units', labelKey: 'nav.workUnits', icon: GaugeCircle, permission: 'budget.view', group: 'control' },
+  { key: 'authority', path: '/authority', labelKey: 'nav.authority', icon: SlidersHorizontal, permission: 'risk.view', group: 'control' },
+  { key: 'governance', path: '/governance', labelKey: 'nav.governance', icon: ScrollText, permission: 'policy.view', group: 'control' },
+  { key: 'risk', path: '/risk', labelKey: 'nav.risk', icon: ShieldAlert, permission: 'risk.view', group: 'control' },
+  { key: 'context', path: '/context', labelKey: 'nav.context', icon: Database, permission: 'context.view', group: 'control' },
+  { key: 'integrations', path: '/integrations', labelKey: 'nav.integrations', icon: Plug, permission: 'integration.view', group: 'control' },
+  { key: 'anthropic', path: '/anthropic', labelKey: 'nav.anthropic', icon: Sparkles, permission: 'model_provider.view', group: 'control' },
+  { key: 'files', path: '/files', labelKey: 'nav.files', icon: FileArchive, permission: 'file.view', group: 'control' },
+
+  // AGENTES (ARDEN-BE-007)
+  { key: 'agents', path: '/agents', labelKey: 'nav.agents', icon: Bot, permission: 'agent.view', group: 'agents' },
+  { key: 'modelConfigurations', path: '/model-configurations', labelKey: 'nav.modelConfigurations', icon: Cpu, permission: 'model_configuration.view', group: 'agents' },
+  { key: 'agentResults', path: '/agent-results', labelKey: 'nav.agentResults', icon: Sparkles, permission: 'agent.view', group: 'agents' },
+  { key: 'agentUsage', path: '/agent-usage', labelKey: 'nav.agentUsage', icon: Coins, permission: 'agent.cost.view', group: 'agents' },
+
+  // AVALIAÇÃO
+  { key: 'assessment', path: '/assessment', labelKey: 'nav.assessment', icon: ClipboardList, permission: 'operation.view', group: 'assessment' },
+  { key: 'evaluator', path: '/evaluator', labelKey: 'nav.evaluator', icon: LineChart, permission: 'operation.view', group: 'assessment' },
+
+  // EMPRESA
+  { key: 'deployment', path: '/deployment', labelKey: 'nav.deployment', icon: GitBranch, permission: 'onboarding.execute', group: 'company' },
+  { key: 'people', path: '/people', labelKey: 'nav.people', icon: Users, permission: 'people.view', group: 'company' },
+  { key: 'security', path: '/security', labelKey: 'nav.security', icon: Shield, permission: 'security.view', group: 'company' },
+  { key: 'environments', path: '/environments', labelKey: 'nav.environments', icon: Boxes, permission: 'operation.view', group: 'company' },
+  { key: 'audit', path: '/audit', labelKey: 'nav.audit', icon: BadgeCheck, permission: 'audit.view', group: 'company' },
+  { key: 'reports', path: '/reports', labelKey: 'nav.reports', icon: GaugeCircle, permission: 'report.export', group: 'company' },
+  { key: 'admin', path: '/admin', labelKey: 'nav.admin', icon: Settings, permission: 'organization.manage', group: 'company' },
 ];
 
-export const MODULE_GROUPS: Array<ModuleDef['group']> = ['operate', 'govern', 'administer'];
+export const MODULE_GROUPS: ModuleGroup[] = ['operate', 'result', 'control', 'agents', 'assessment', 'company'];
+
+export const GROUP_LABEL_KEY: Record<ModuleGroup, string> = {
+  operate: 'navGroup.operate',
+  result: 'navGroup.result',
+  control: 'navGroup.control',
+  agents: 'navGroup.agents',
+  assessment: 'navGroup.assessment',
+  company: 'navGroup.company',
+};

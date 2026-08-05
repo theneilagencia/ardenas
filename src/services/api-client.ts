@@ -51,6 +51,8 @@ export class ArdenApiError extends Error {
 export interface ApiClientOptions {
   baseUrl: string;
   organizationId?: string;
+  /** Organização ativa derivada da sessão (tem precedência sobre `organizationId`). */
+  getOrganizationId?: () => string | null;
   getToken?: () => string | null;
 }
 
@@ -63,8 +65,10 @@ export class ApiClient {
   ): Promise<ApiResponse<T>> {
     const headers = new Headers(init.headers);
     headers.set('Content-Type', 'application/json');
-    if (this.opts.organizationId) {
-      headers.set('X-Arden-Organization', this.opts.organizationId);
+    // Tenant derivado da sessão ativa (nunca informado pelo usuário).
+    const organizationId = this.opts.getOrganizationId?.() ?? this.opts.organizationId;
+    if (organizationId) {
+      headers.set('X-Arden-Organization', organizationId);
     }
     const token = this.opts.getToken?.();
     if (token) headers.set('Authorization', `Bearer ${token}`);

@@ -1,0 +1,1663 @@
+// Arden.AS — schema Prisma (ARDEN-BE-001).
+// Apenas tabelas TÉCNICAS de fundação. Sem tabelas de negócio (usuários,
+// organizações, operações, versões, auditoria) nesta issue.
+// A migração de schema é versionada pelo Prisma Migrate (tabela _prisma_migrations
+// cumpre o papel de "schema_migrations"). Não usar `db push` como produção.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Infraestrutura de idempotência (Idempotency-Key). Ainda NÃO aplicada a
+/// endpoints de negócio (inexistentes nesta issue); a tabela e o serviço existem
+/// para os módulos futuros. Escopo por (organização, usuário, método, rota, chave).
+model IdempotencyRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @map("organization_id")
+  userId         String?  @map("user_id")
+  method         String
+  path           String
+  idempotencyKey String   @map("idempotency_key")
+  requestHash    String   @map("request_hash")
+  statusCode     Int      @map("status_code")
+  response       Json
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@unique([method, path, idempotencyKey], name: "uniq_idempotency_scope")
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
+
+/// Metadados técnicos da aplicação (ex.: versão de schema, marcadores de bootstrap).
+/// Chave-valor simples; não guarda segredos.
+model ApplicationMetadata {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("application_metadata")
+}
+
+// ── Identidade e tenancy (ARDEN-BE-002) ───────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REVOKED
+}
+
+enum RoleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILURE
+}
+
+/// Usuário interno. A IDENTIDADE ESTÁVEL é (externalProvider, externalSubject) —
+/// nunca o e-mail. Não guarda senha (autenticação é do provedor externo).
+model User {
+  id                  String     @id @default(uuid()) @db.Uuid
+  externalProvider    String     @map("external_provider")
+  externalSubject     String     @map("external_subject")
+  email               String?
+  displayName         String?    @map("display_name")
+  avatarUrl           String?    @map("avatar_url")
+  status              UserStatus @default(ACTIVE)
+  lastAuthenticatedAt DateTime?  @map("last_authenticated_at") @db.Timestamptz(6)
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships       Membership[]
+  sessionPreference UserSessionPreference?
+
+  @@unique([externalProvider, externalSubject], name: "uniq_external_identity")
+  @@index([email])
+  @@map("users")
+}
+
+model Organization {
+  id        String             @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String             @unique
+  status    OrganizationStatus @default(ACTIVE)
+  revision  Int                @default(0)
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships          Membership[]
+  roles                Role[]
+  operations           Operation[]
+  policies             Policy[]
+  approvalFlows        ApprovalFlow[]
+  approvalRequests     ApprovalRequest[]
+  approvalDelegations  ApprovalDelegation[]
+  actionAuthorizations ActionAuthorization[]
+  policyBindings       OperationPolicyBinding[]
+  executionRuns        ExecutionRun[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  status         MembershipStatus @default(ACTIVE)
+  revision       Int              @default(0)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  roles        MembershipRole[]
+
+  @@unique([userId, organizationId], name: "uniq_membership")
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+/// Papel. `organizationId` nulo = papel GLOBAL de sistema; caso contrário,
+/// papel customizado da organização.
+model Role {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String?    @map("organization_id") @db.Uuid
+  key            String
+  name           String
+  description    String?
+  system         Boolean    @default(false)
+  status         RoleStatus @default(ACTIVE)
+  revision       Int        @default(0)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions     RolePermission[]
+  membershipRoles MembershipRole[]
+
+  // Unicidade por organização. Papéis de SISTEMA (organizationId = null) têm um
+  // índice único PARCIAL adicional (`uniq_system_role_key`, migração
+  // 20260731142624) porque NULL é distinto de NULL em índices compostos SQL —
+  // sem ele, papéis de sistema duplicados seriam possíveis.
+  @@unique([organizationId, key], name: "uniq_role_key_per_org")
+  @@map("roles")
+}
+
+/// Catálogo estável de permissões (sincronizado com o frontend — ARDEN-FE-002).
+model Permission {
+  id          String @id @default(uuid()) @db.Uuid
+  key         String @unique
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model MembershipRole {
+  membershipId String @map("membership_id") @db.Uuid
+  roleId       String @map("role_id") @db.Uuid
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, roleId])
+  @@index([roleId])
+  @@map("membership_roles")
+}
+
+model RolePermission {
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+/// Preferência de organização ativa. NÃO é prova de autorização (revalidada a cada
+/// requisição contra a membership).
+model UserSessionPreference {
+  userId               String   @id @map("user_id") @db.Uuid
+  activeOrganizationId String?  @map("active_organization_id") @db.Uuid
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_session_preferences")
+}
+
+/// Trilha de auditoria de identidade — SOMENTE LEITURA pela API pública (sem
+/// update/delete). Append-only.
+model IdentityAuditEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  actorUserId    String?      @map("actor_user_id") @db.Uuid
+  organizationId String?      @map("organization_id") @db.Uuid
+  action         String
+  resourceType   String       @map("resource_type")
+  resourceId     String?      @map("resource_id")
+  outcome        AuditOutcome
+  reasonCode     String?      @map("reason_code")
+  correlationId  String       @map("correlation_id")
+  ipAddress      String?      @map("ip_address")
+  userAgent      String?      @map("user_agent")
+  metadata       Json         @default("{}")
+  occurredAt     DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([organizationId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([correlationId])
+  @@map("identity_audit_events")
+}
+
+// ── Operações, versões e auditoria de operações (ARDEN-BE-003) ─────────────────
+// Valores dos enums em minúsculas para casar EXATAMENTE com o contrato HTTP v1
+// (src/contracts), evitando mapeamento de caixa na serialização.
+
+enum OperationStatus {
+  draft
+  active
+  paused
+  archived
+}
+
+enum OperationVersionStatus {
+  draft
+  published
+  superseded
+}
+
+/// Origem do ator de um evento de auditoria (contrato: auditEvent.source).
+enum AuditSource {
+  user
+  system
+  integration
+}
+
+/// Operação: agregado de negócio pertencente a UMA organização. O conteúdo
+/// substantivo vive nas versões; a operação guarda metadados e os ponteiros para
+/// a versão em rascunho e a versão publicada. Nunca é apagada por endpoint público.
+model Operation {
+  id                    String          @id @default(uuid()) @db.Uuid
+  organizationId        String          @map("organization_id") @db.Uuid
+  name                  String
+  description           String?
+  status                OperationStatus @default(draft)
+  ownerId               String?         @map("owner_id") @db.Uuid
+  // Ponteiros lógicos para operation_versions (mesma tabela). Sem FK Prisma para
+  // evitar ciclo; integridade garantida transacionalmente e pela regra de não
+  // apagar versões.
+  currentDraftVersionId String?         @map("current_draft_version_id") @db.Uuid
+  publishedVersionId    String?         @map("published_version_id") @db.Uuid
+  createdBy             String          @map("created_by") @db.Uuid
+  revision              Int             @default(1)
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization         Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versions             OperationVersion[]
+  policyBindings       OperationPolicyBinding[]
+  approvalRequests     ApprovalRequest[]
+  actionAuthorizations ActionAuthorization[]
+  executionRuns        ExecutionRun[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, updatedAt])
+  @@map("operations")
+}
+
+/// Versão de uma operação. DRAFT é editável; PUBLISHED é IMUTÁVEL (mesmo após
+/// SUPERSEDED). Pertence ao mesmo tenant da operação.
+model OperationVersion {
+  id               String                 @id @default(uuid()) @db.Uuid
+  organizationId   String                 @map("organization_id") @db.Uuid
+  operationId      String                 @map("operation_id") @db.Uuid
+  versionNumber    Int                    @map("version_number")
+  status           OperationVersionStatus @default(draft)
+  definition       Json                   @default("{}")
+  authorityProfile Json                   @default("{}") @map("authority_profile")
+  changeSummary    String?                @map("change_summary")
+  createdBy        String                 @map("created_by") @db.Uuid
+  publishedBy      String?                @map("published_by") @db.Uuid
+  publishedAt      DateTime?              @map("published_at") @db.Timestamptz(6)
+  revision         Int                    @default(1)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  operation     Operation      @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  executionRuns ExecutionRun[]
+
+  @@unique([operationId, versionNumber], name: "uniq_version_number_per_operation")
+  @@index([organizationId, status])
+  @@map("operation_versions")
+}
+
+/// Trilha de auditoria de operações — append-only. SOMENTE LEITURA pela API
+/// pública (sem update/delete/POST público). Suporta before/after e ator rico
+/// para o contrato HTTP (auditEvent). `outcome` é interno (não exposto no
+/// contrato) para registrar negações.
+model AuditEvent {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @map("organization_id") @db.Uuid
+  actorUserId      String?      @map("actor_user_id") @db.Uuid
+  actorType        AuditSource  @default(user) @map("actor_type")
+  actorRole        String?      @map("actor_role")
+  actorDisplayName String?      @map("actor_display_name")
+  action           String
+  resourceType     String       @map("resource_type")
+  resourceId       String       @map("resource_id")
+  outcome          AuditOutcome @default(SUCCESS)
+  correlationId    String       @map("correlation_id")
+  before           Json?
+  after            Json?
+  metadata         Json         @default("{}")
+  occurredAt       DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([organizationId, occurredAt])
+  @@index([organizationId, resourceType, resourceId])
+  @@index([correlationId])
+  @@map("audit_events")
+}
+
+// ── Políticas, aprovações e autorizações de ação (ARDEN-BE-004) ────────────────
+// Enums em MAIÚSCULAS (casam com os contratos HTTP autorados nesta issue).
+
+enum PolicyCategory {
+  AUTHORITY
+  APPROVAL
+  FINANCIAL
+  SECURITY
+  OPERATIONAL
+}
+
+enum PolicyStatus {
+  DRAFT
+  PUBLISHED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum PolicyVersionStatus {
+  DRAFT
+  PUBLISHED
+  SUPERSEDED
+}
+
+enum PolicyBindingScope {
+  OPERATION
+  VERSION
+}
+
+enum ApprovalFlowStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum ApprovalDecisionMode {
+  ANY_ONE
+  ALL
+  QUORUM
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  INVALIDATED
+}
+
+enum ApprovalDecisionType {
+  APPROVE
+  REJECT
+}
+
+enum ApprovalDelegationStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum ActionAuthorizationStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+  INVALIDATED
+}
+
+/// Política de governança (versionada). O conteúdo executável vive nas versões.
+model Policy {
+  id                    String         @id @default(uuid()) @db.Uuid
+  organizationId        String         @map("organization_id") @db.Uuid
+  key                   String
+  name                  String
+  description           String?
+  category              PolicyCategory
+  status                PolicyStatus   @default(DRAFT)
+  currentDraftVersionId String?        @map("current_draft_version_id") @db.Uuid
+  publishedVersionId    String?        @map("published_version_id") @db.Uuid
+  createdBy             String         @map("created_by") @db.Uuid
+  revision              Int            @default(1)
+  createdAt             DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  versions     PolicyVersion[]
+  bindings     OperationPolicyBinding[]
+
+  @@unique([organizationId, key], name: "uniq_policy_key_per_org")
+  @@index([organizationId, status])
+  @@map("policies")
+}
+
+/// Versão de política. DRAFT editável; PUBLISHED imutável (mesmo após SUPERSEDED).
+model PolicyVersion {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  policyId       String              @map("policy_id") @db.Uuid
+  versionNumber  Int                 @map("version_number")
+  status         PolicyVersionStatus @default(DRAFT)
+  definition     Json                @default("{}")
+  changeSummary  String?             @map("change_summary")
+  createdBy      String              @map("created_by") @db.Uuid
+  publishedBy    String?             @map("published_by") @db.Uuid
+  publishedAt    DateTime?           @map("published_at") @db.Timestamptz(6)
+  revision       Int                 @default(1)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  policy   Policy                   @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  bindings OperationPolicyBinding[]
+
+  @@unique([policyId, versionNumber], name: "uniq_policy_version_number")
+  @@index([organizationId, status])
+  @@map("policy_versions")
+}
+
+/// Vínculo de uma política (versão) a uma operação (ou versão de operação).
+model OperationPolicyBinding {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @map("organization_id") @db.Uuid
+  operationId        String             @map("operation_id") @db.Uuid
+  operationVersionId String?            @map("operation_version_id") @db.Uuid
+  policyId           String             @map("policy_id") @db.Uuid
+  policyVersionId    String             @map("policy_version_id") @db.Uuid
+  scope              PolicyBindingScope @default(OPERATION)
+  priority           Int                @default(100)
+  enabled            Boolean            @default(true)
+  createdBy          String             @map("created_by") @db.Uuid
+  revision           Int                @default(1)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation     Operation     @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  policy        Policy        @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  policyVersion PolicyVersion @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+
+  @@index([operationId, enabled])
+  @@index([organizationId])
+  @@map("operation_policy_bindings")
+}
+
+/// Definição de fluxo de aprovação (cabeçalho). As etapas vivem em steps.
+model ApprovalFlow {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  key            String
+  name           String
+  description    String?
+  status         ApprovalFlowStatus @default(DRAFT)
+  createdBy      String             @map("created_by") @db.Uuid
+  revision       Int                @default(1)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  steps        ApprovalFlowStep[]
+  requests     ApprovalRequest[]
+
+  @@unique([organizationId, key], name: "uniq_approval_flow_key_per_org")
+  @@index([organizationId, status])
+  @@map("approval_flows")
+}
+
+/// Etapa de um fluxo de aprovação. Elegibilidade + modo de decisão + prazos.
+model ApprovalFlowStep {
+  id                     String               @id @default(uuid()) @db.Uuid
+  organizationId         String               @map("organization_id") @db.Uuid
+  approvalFlowId         String               @map("approval_flow_id") @db.Uuid
+  sequence               Int
+  name                   String
+  decisionMode           ApprovalDecisionMode @default(ANY_ONE) @map("decision_mode")
+  quorum                 Int?
+  requiredPermission     String?              @map("required_permission")
+  eligibleRoleKey        String?              @map("eligible_role_key")
+  specificApproverUserId String?              @map("specific_approver_user_id") @db.Uuid
+  requesterCannotApprove Boolean              @default(true) @map("requester_cannot_approve")
+  justificationRequired  Boolean              @default(false) @map("justification_required")
+  expiresAfterMinutes    Int?                 @map("expires_after_minutes")
+  escalationAfterMinutes Int?                 @map("escalation_after_minutes")
+  createdAt              DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  approvalFlow ApprovalFlow       @relation(fields: [approvalFlowId], references: [id], onDelete: Cascade)
+  decisions    ApprovalDecision[]
+
+  @@unique([approvalFlowId, sequence], name: "uniq_flow_step_sequence")
+  @@index([organizationId])
+  @@map("approval_flow_steps")
+}
+
+/// Solicitação de aprovação de uma ação sobre uma operação/versão publicada.
+model ApprovalRequest {
+  id                  String                @id @default(uuid()) @db.Uuid
+  organizationId      String                @map("organization_id") @db.Uuid
+  operationId         String                @map("operation_id") @db.Uuid
+  operationVersionId  String                @map("operation_version_id") @db.Uuid
+  actionKey           String                @map("action_key")
+  actionPayloadHash   String                @map("action_payload_hash")
+  actionContext       Json                  @default("{}") @map("action_context")
+  requestedBy         String                @map("requested_by") @db.Uuid
+  requestedAt         DateTime              @default(now()) @map("requested_at") @db.Timestamptz(6)
+  approvalFlowId      String                @map("approval_flow_id") @db.Uuid
+  currentStepSequence Int                   @default(1) @map("current_step_sequence")
+  status              ApprovalRequestStatus @default(PENDING)
+  expiresAt           DateTime?             @map("expires_at") @db.Timestamptz(6)
+  decidedAt           DateTime?             @map("decided_at") @db.Timestamptz(6)
+  policySnapshot      Json                  @default("{}") @map("policy_snapshot")
+  authoritySnapshot   Json                  @default("{}") @map("authority_snapshot")
+  correlationId       String                @map("correlation_id")
+  revision            Int                   @default(1)
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation      Operation             @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  approvalFlow   ApprovalFlow          @relation(fields: [approvalFlowId], references: [id], onDelete: Restrict)
+  decisions      ApprovalDecision[]
+  authorizations ActionAuthorization[]
+
+  @@index([organizationId, status, requestedAt])
+  @@index([operationId, status])
+  @@map("approval_requests")
+}
+
+/// Decisão registrada por um aprovador em uma etapa. IMUTÁVEL.
+model ApprovalDecision {
+  id                 String               @id @default(uuid()) @db.Uuid
+  organizationId     String               @map("organization_id") @db.Uuid
+  approvalRequestId  String               @map("approval_request_id") @db.Uuid
+  approvalFlowStepId String               @map("approval_flow_step_id") @db.Uuid
+  decidedBy          String               @map("decided_by") @db.Uuid
+  decision           ApprovalDecisionType
+  justification      String?
+  decidedAt          DateTime             @default(now()) @map("decided_at") @db.Timestamptz(6)
+  correlationId      String               @map("correlation_id")
+
+  request ApprovalRequest  @relation(fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  step    ApprovalFlowStep @relation(fields: [approvalFlowStepId], references: [id], onDelete: Restrict)
+
+  @@unique([approvalRequestId, approvalFlowStepId, decidedBy], name: "uniq_decision_per_approver_step")
+  @@index([approvalRequestId, decidedAt])
+  @@map("approval_decisions")
+}
+
+/// Delegação controlada de autoridade de decisão entre usuários do mesmo tenant.
+model ApprovalDelegation {
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String                   @map("organization_id") @db.Uuid
+  delegatorUserId String                   @map("delegator_user_id") @db.Uuid
+  delegateUserId  String                   @map("delegate_user_id") @db.Uuid
+  validFrom       DateTime                 @map("valid_from") @db.Timestamptz(6)
+  validUntil      DateTime                 @map("valid_until") @db.Timestamptz(6)
+  scope           Json                     @default("{}")
+  status          ApprovalDelegationStatus @default(ACTIVE)
+  createdBy       String                   @map("created_by") @db.Uuid
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt       DateTime?                @map("revoked_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, delegateUserId, status])
+  @@map("approval_delegations")
+}
+
+/// Autorização de ação emitida após aprovação (ou permissão direta). Validável.
+model ActionAuthorization {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  organizationId     String                    @map("organization_id") @db.Uuid
+  approvalRequestId  String?                   @map("approval_request_id") @db.Uuid
+  operationId        String                    @map("operation_id") @db.Uuid
+  operationVersionId String                    @map("operation_version_id") @db.Uuid
+  actionKey          String                    @map("action_key")
+  actionPayloadHash  String                    @map("action_payload_hash")
+  grantedToUserId    String?                   @map("granted_to_user_id") @db.Uuid
+  status             ActionAuthorizationStatus @default(ACTIVE)
+  validFrom          DateTime                  @default(now()) @map("valid_from") @db.Timestamptz(6)
+  validUntil         DateTime?                 @map("valid_until") @db.Timestamptz(6)
+  grantedAt          DateTime                  @default(now()) @map("granted_at") @db.Timestamptz(6)
+  usedAt             DateTime?                 @map("used_at") @db.Timestamptz(6)
+  authoritySnapshot  Json                      @default("{}") @map("authority_snapshot")
+  policySnapshot     Json                      @default("{}") @map("policy_snapshot")
+  correlationId      String                    @map("correlation_id")
+  revision           Int                       @default(1)
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation    Operation        @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  request      ApprovalRequest? @relation(fields: [approvalRequestId], references: [id], onDelete: SetNull)
+  executions   ExecutionRun[]
+
+  @@index([organizationId, operationId, actionKey, status])
+  @@map("action_authorizations")
+}
+
+// ─── Motor de execução (ARDEN-BE-005) ──────────────────────────────────────────
+
+enum ExecutionTriggerType {
+  MANUAL
+  API
+  SCHEDULED
+  SYSTEM
+}
+
+enum ExecutionRunStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  PAUSE_REQUESTED
+  PAUSED
+  RESUME_REQUESTED
+  CANCEL_REQUESTED
+  CANCELLED
+  SUCCEEDED
+  FAILED
+  COMPENSATING
+  COMPENSATED
+  COMPENSATION_FAILED
+  TIMED_OUT
+}
+
+enum ExecutionStepStatus {
+  PENDING
+  READY
+  RUNNING
+  RETRY_WAIT
+  PAUSED
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  CANCELLED
+  COMPENSATING
+  COMPENSATED
+  COMPENSATION_FAILED
+  TIMED_OUT
+}
+
+enum ExecutionAttemptStatus {
+  STARTED
+  SUCCEEDED
+  FAILED
+  TIMED_OUT
+  ABANDONED
+}
+
+enum ExecutionActorType {
+  USER
+  SYSTEM
+  WORKER
+}
+
+enum EvidenceType {
+  INPUT
+  OUTPUT
+  DECISION
+  AUTHORIZATION
+  ERROR
+  STATE_TRANSITION
+  COMPENSATION
+}
+
+enum ExecutionJobStatus {
+  QUEUED
+  RUNNING
+  RETRY_WAIT
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// Execução de uma versão PUBLICADA de uma operação. Fonte de verdade do estado.
+model ExecutionRun {
+  id                    String               @id @default(uuid()) @db.Uuid
+  organizationId        String               @map("organization_id") @db.Uuid
+  operationId           String               @map("operation_id") @db.Uuid
+  operationVersionId    String               @map("operation_version_id") @db.Uuid
+  requestedByUserId     String               @map("requested_by_user_id") @db.Uuid
+  actionAuthorizationId String?              @map("action_authorization_id") @db.Uuid
+  actionKey             String               @map("action_key")
+  triggerType           ExecutionTriggerType @default(MANUAL) @map("trigger_type")
+  triggerReference      String?              @map("trigger_reference")
+  status                ExecutionRunStatus   @default(PENDING)
+  input                 Json                 @default("{}")
+  inputHash             String               @map("input_hash")
+  output                Json?
+  errorCode             String?              @map("error_code")
+  errorSummary          String?              @map("error_summary")
+  currentStepId         String?              @map("current_step_id") @db.Uuid
+  startedAt             DateTime?            @map("started_at") @db.Timestamptz(6)
+  completedAt           DateTime?            @map("completed_at") @db.Timestamptz(6)
+  pausedAt              DateTime?            @map("paused_at") @db.Timestamptz(6)
+  cancelledAt           DateTime?            @map("cancelled_at") @db.Timestamptz(6)
+  timeoutAt             DateTime?            @map("timeout_at") @db.Timestamptz(6)
+  attemptCount          Int                  @default(0) @map("attempt_count")
+  maxAttempts           Int                  @default(1) @map("max_attempts")
+  correlationId         String               @map("correlation_id")
+  revision              Int                  @default(1)
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization  Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  operation     Operation            @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  version       OperationVersion     @relation(fields: [operationVersionId], references: [id], onDelete: Restrict)
+  authorization ActionAuthorization? @relation(fields: [actionAuthorizationId], references: [id], onDelete: SetNull)
+  steps         ExecutionStep[]
+  attempts      ExecutionAttempt[]
+  events        ExecutionEvent[]
+  evidence      EvidenceRecord[]
+  jobs          ExecutionJob[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([operationId, createdAt])
+  @@index([operationVersionId, createdAt])
+  @@map("execution_runs")
+}
+
+/// Etapa materializada de uma execução (snapshot da etapa da versão publicada).
+model ExecutionStep {
+  id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String              @map("organization_id") @db.Uuid
+  executionRunId    String              @map("execution_run_id") @db.Uuid
+  definitionStepKey String              @map("definition_step_key")
+  sequence          Int
+  name              String
+  actionKey         String              @map("action_key")
+  status            ExecutionStepStatus @default(PENDING)
+  input             Json                @default("{}")
+  inputHash         String              @map("input_hash")
+  output            Json?
+  errorCode         String?             @map("error_code")
+  errorSummary      String?             @map("error_summary")
+  attemptCount      Int                 @default(0) @map("attempt_count")
+  maxAttempts       Int                 @default(1) @map("max_attempts")
+  nextAttemptAt     DateTime?           @map("next_attempt_at") @db.Timestamptz(6)
+  startedAt         DateTime?           @map("started_at") @db.Timestamptz(6)
+  completedAt       DateTime?           @map("completed_at") @db.Timestamptz(6)
+  timeoutAt         DateTime?           @map("timeout_at") @db.Timestamptz(6)
+  revision          Int                 @default(1)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  run      ExecutionRun       @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  attempts ExecutionAttempt[]
+  events   ExecutionEvent[]
+  evidence EvidenceRecord[]
+
+  @@unique([executionRunId, sequence], name: "uniq_step_sequence_per_run")
+  @@index([executionRunId, sequence])
+  @@index([organizationId, status, nextAttemptAt])
+  @@map("execution_steps")
+}
+
+/// Tentativa de processamento de uma etapa por um worker. Append-only.
+model ExecutionAttempt {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @map("organization_id") @db.Uuid
+  executionRunId  String                 @map("execution_run_id") @db.Uuid
+  executionStepId String                 @map("execution_step_id") @db.Uuid
+  attemptNumber   Int                    @map("attempt_number")
+  workerId        String                 @map("worker_id")
+  status          ExecutionAttemptStatus @default(STARTED)
+  startedAt       DateTime               @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt     DateTime?              @map("completed_at") @db.Timestamptz(6)
+  errorCode       String?                @map("error_code")
+  errorSummary    String?                @map("error_summary")
+  metadata        Json                   @default("{}")
+
+  run  ExecutionRun  @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  step ExecutionStep @relation(fields: [executionStepId], references: [id], onDelete: Restrict)
+
+  @@unique([executionStepId, attemptNumber], name: "uniq_attempt_number_per_step")
+  @@index([executionStepId, attemptNumber])
+  @@map("execution_attempts")
+}
+
+/// Evento imutável de execução. Sequência monotônica por execução. Append-only.
+model ExecutionEvent {
+  id              String             @id @default(uuid()) @db.Uuid
+  organizationId  String             @map("organization_id") @db.Uuid
+  executionRunId  String             @map("execution_run_id") @db.Uuid
+  executionStepId String?            @map("execution_step_id") @db.Uuid
+  sequence        BigInt
+  eventType       String             @map("event_type")
+  actorType       ExecutionActorType @map("actor_type")
+  actorId         String?            @map("actor_id") @db.Uuid
+  correlationId   String             @map("correlation_id")
+  causationId     String?            @map("causation_id")
+  payload         Json               @default("{}")
+  occurredAt      DateTime           @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  run  ExecutionRun   @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  step ExecutionStep? @relation(fields: [executionStepId], references: [id], onDelete: Restrict)
+
+  @@unique([executionRunId, sequence], name: "uniq_event_sequence_per_run")
+  @@index([executionRunId, sequence])
+  @@map("execution_events")
+}
+
+/// Evidência operacional imutável (hash + origem). Append-only.
+model EvidenceRecord {
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @map("organization_id") @db.Uuid
+  executionRunId   String             @map("execution_run_id") @db.Uuid
+  executionStepId  String?            @map("execution_step_id") @db.Uuid
+  evidenceType     EvidenceType       @map("evidence_type")
+  content          Json               @default("{}")
+  contentHash      String             @map("content_hash")
+  storageReference String?            @map("storage_reference")
+  mimeType         String?            @map("mime_type")
+  createdByType    ExecutionActorType @map("created_by_type")
+  createdById      String?            @map("created_by_id") @db.Uuid
+  correlationId    String             @map("correlation_id")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  run  ExecutionRun   @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+  step ExecutionStep? @relation(fields: [executionStepId], references: [id], onDelete: Restrict)
+
+  @@index([executionRunId, createdAt])
+  @@index([executionStepId, createdAt])
+  @@map("evidence_records")
+}
+
+/// Fila durável de jobs (PostgreSQL + FOR UPDATE SKIP LOCKED + lease).
+model ExecutionJob {
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @map("organization_id") @db.Uuid
+  executionRunId   String             @map("execution_run_id") @db.Uuid
+  status           ExecutionJobStatus @default(QUEUED)
+  payload          Json               @default("{}")
+  attempts         Int                @default(0)
+  maxAttempts      Int                @default(20) @map("max_attempts")
+  availableAt      DateTime           @default(now()) @map("available_at") @db.Timestamptz(6)
+  lockedAt         DateTime?          @map("locked_at") @db.Timestamptz(6)
+  lockedBy         String?            @map("locked_by")
+  leaseExpiresAt   DateTime?          @map("lease_expires_at") @db.Timestamptz(6)
+  lastError        String?            @map("last_error")
+  deduplicationKey String             @map("deduplication_key")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  run ExecutionRun @relation(fields: [executionRunId], references: [id], onDelete: Restrict)
+
+  @@unique([deduplicationKey], name: "uniq_job_dedup_key")
+  @@index([status, availableAt])
+  @@index([organizationId, status])
+  @@index([leaseExpiresAt])
+  @@map("execution_jobs")
+}
+
+// ─── Conectores, credenciais, ferramentas e webhooks (ARDEN-BE-006) ─────────────
+// Persistência (006.3). `organizationId` escalar (padrão AuditEvent); FKs e índices
+// parciais adicionais criados na migração SQL. NENHUM segredo persistido nesta fase:
+// os campos criptográficos permanecem NULL até o cofre (006.4).
+
+enum ConnectorCategory {
+  HTTP
+  WEBHOOK
+  DATABASE
+  MESSAGING
+  BUSINESS_SYSTEM
+  INTERNAL_TEST
+  MODEL_PROVIDER
+}
+
+enum ConnectorStatus {
+  ACTIVE
+  DEPRECATED
+  DISABLED
+}
+
+enum ConnectorToolRiskLevel {
+  READ
+  WRITE
+  DESTRUCTIVE
+  FINANCIAL
+  SECURITY_CRITICAL
+}
+
+enum ToolIdempotencyMode {
+  NONE
+  OPTIONAL
+  REQUIRED
+  PROVIDER_NATIVE
+}
+
+enum ToolRetryMode {
+  NEVER
+  SAFE
+  CONDITIONAL
+}
+
+enum ConnectionStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ERROR
+  REVOKED
+}
+
+enum ConnectionTestStatus {
+  SUCCESS
+  FAILURE
+  NOT_TESTED
+}
+
+enum CredentialStatus {
+  PENDING
+  ACTIVE
+  SUPERSEDED
+  REVOKED
+}
+
+enum WebhookEndpointStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum WebhookSignatureScheme {
+  HMAC_SHA256
+  STATIC_BEARER
+  NONE
+}
+
+enum WebhookDeliveryStatus {
+  RECEIVED
+  ACCEPTED
+  REJECTED
+  REPLAYED
+  PROCESSED
+  FAILED
+}
+
+/// Catálogo VERSIONADO de conectores (system-managed). `catalogHash` identifica a
+/// projeção da definição canônica (código → banco). CRUD público não altera.
+model ConnectorDefinition {
+  id                    String            @id @default(uuid()) @db.Uuid
+  key                   String
+  version               String
+  name                  String
+  description           String?
+  category              ConnectorCategory
+  status                ConnectorStatus   @default(ACTIVE)
+  systemManaged         Boolean           @default(true) @map("system_managed")
+  productionAllowed     Boolean           @default(true) @map("production_allowed")
+  configurationSchema   Json              @default("{}") @map("configuration_schema")
+  credentialSchema      Json              @default("{}") @map("credential_schema")
+  networkPolicyTemplate Json              @default("{}") @map("network_policy_template")
+  capabilityKeys        Json              @default("[]") @map("capability_keys")
+  catalogHash           String            @map("catalog_hash")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tools ConnectorToolDefinition[]
+
+  @@unique([key, version], name: "uniq_connector_key_version")
+  @@index([status])
+  @@map("connector_definitions")
+}
+
+/// Ferramenta TIPADA de um conector (system-managed). `actionKey` indexada.
+model ConnectorToolDefinition {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  connectorDefinitionId String                 @map("connector_definition_id") @db.Uuid
+  key                   String
+  version               String
+  name                  String
+  description           String?
+  actionKey             String                 @map("action_key")
+  inputSchema           Json                   @default("{}") @map("input_schema")
+  outputSchema          Json                   @default("{}") @map("output_schema")
+  riskLevel             ConnectorToolRiskLevel @default(READ) @map("risk_level")
+  idempotencyMode       ToolIdempotencyMode    @default(NONE) @map("idempotency_mode")
+  retryMode             ToolRetryMode          @default(NEVER) @map("retry_mode")
+  defaultTimeoutMs      Int                    @default(15000) @map("default_timeout_ms")
+  maximumTimeoutMs      Int                    @default(60000) @map("maximum_timeout_ms")
+  active                Boolean                @default(true)
+  catalogHash           String                 @map("catalog_hash")
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  connector    ConnectorDefinition       @relation(fields: [connectorDefinitionId], references: [id], onDelete: Cascade)
+  toolBindings OrganizationToolBinding[]
+
+  @@unique([connectorDefinitionId, key, version], name: "uniq_tool_key_version")
+  @@index([actionKey])
+  @@map("connector_tool_definitions")
+}
+
+/// Conexão de uma organização com um sistema externo. `configuration` NUNCA guarda
+/// segredo. Segredos vivem (cifrados, futuramente) em ConnectionCredentialVersion.
+model OrganizationConnection {
+  id                         String               @id @default(uuid()) @db.Uuid
+  organizationId             String               @map("organization_id") @db.Uuid
+  connectorDefinitionId      String               @map("connector_definition_id") @db.Uuid
+  name                       String
+  description                String?
+  status                     ConnectionStatus     @default(DRAFT)
+  configuration              Json                 @default("{}")
+  networkPolicy              Json                 @default("{}") @map("network_policy")
+  currentCredentialVersionId String?              @map("current_credential_version_id") @db.Uuid
+  lastTestedAt               DateTime?            @map("last_tested_at") @db.Timestamptz(6)
+  lastTestStatus             ConnectionTestStatus @default(NOT_TESTED) @map("last_test_status")
+  lastErrorCode              String?              @map("last_error_code")
+  lastErrorSummary           String?              @map("last_error_summary")
+  createdByUserId            String               @map("created_by_user_id") @db.Uuid
+  revision                   Int                  @default(1)
+  createdAt                  DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  credentialVersions ConnectionCredentialVersion[]
+  toolBindings       OrganizationToolBinding[]
+  webhookEndpoints   WebhookEndpoint[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, connectorDefinitionId])
+  @@index([organizationId, updatedAt])
+  @@map("organization_connections")
+}
+
+/// Versão de credencial. Estrutura final; campos criptográficos NULOS até o cofre
+/// (006.4). Índice parcial único garante ≤ 1 versão ACTIVE por conexão.
+model ConnectionCredentialVersion {
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @map("organization_id") @db.Uuid
+  connectionId     String           @map("connection_id") @db.Uuid
+  versionNumber    Int              @map("version_number")
+  status           CredentialStatus @default(PENDING)
+  encryptedSecret  String?          @map("encrypted_secret")
+  encryptedDataKey String?          @map("encrypted_data_key")
+  algorithm        String?
+  keyVersion       String?          @map("key_version")
+  nonce            String?
+  authTag          String?          @map("auth_tag")
+  fingerprint      String?
+  metadata         Json             @default("{}")
+  createdByUserId  String           @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  activatedAt      DateTime?        @map("activated_at") @db.Timestamptz(6)
+  supersededAt     DateTime?        @map("superseded_at") @db.Timestamptz(6)
+  revokedAt        DateTime?        @map("revoked_at") @db.Timestamptz(6)
+
+  connection OrganizationConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+
+  @@unique([connectionId, versionNumber], name: "uniq_credential_version_per_connection")
+  @@index([organizationId, status])
+  @@map("connection_credential_versions")
+}
+
+/// Vínculo organização → ferramenta de um conector, sobre uma conexão.
+model OrganizationToolBinding {
+  id                        String   @id @default(uuid()) @db.Uuid
+  organizationId            String   @map("organization_id") @db.Uuid
+  connectionId              String   @map("connection_id") @db.Uuid
+  connectorToolDefinitionId String   @map("connector_tool_definition_id") @db.Uuid
+  name                      String
+  enabled                   Boolean  @default(true)
+  configurationOverrides    Json     @default("{}") @map("configuration_overrides")
+  policyOverrides           Json     @default("{}") @map("policy_overrides")
+  createdByUserId           String   @map("created_by_user_id") @db.Uuid
+  revision                  Int      @default(1)
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  connection        OrganizationConnection  @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  tool              ConnectorToolDefinition @relation(fields: [connectorToolDefinitionId], references: [id], onDelete: Restrict)
+  operationBindings OperationToolBinding[]
+
+  @@index([organizationId, enabled])
+  @@index([connectionId])
+  @@index([connectorToolDefinitionId])
+  @@map("organization_tool_bindings")
+}
+
+/// Vínculo de ferramenta a operação/versão (alias + mapeamento declarativo).
+/// Remoção é LÓGICA (removedAt/removedByUserId) — preserva histórico.
+model OperationToolBinding {
+  id                        String    @id @default(uuid()) @db.Uuid
+  organizationId            String    @map("organization_id") @db.Uuid
+  operationId               String    @map("operation_id") @db.Uuid
+  operationVersionId        String?   @map("operation_version_id") @db.Uuid
+  organizationToolBindingId String    @map("organization_tool_binding_id") @db.Uuid
+  alias                     String
+  enabled                   Boolean   @default(true)
+  allowedActionKeys         Json      @default("[]") @map("allowed_action_keys")
+  inputMapping              Json      @default("{}") @map("input_mapping")
+  outputMapping             Json      @default("{}") @map("output_mapping")
+  removedAt                 DateTime? @map("removed_at") @db.Timestamptz(6)
+  removedByUserId           String?   @map("removed_by_user_id") @db.Uuid
+  createdByUserId           String    @map("created_by_user_id") @db.Uuid
+  revision                  Int       @default(1)
+  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  binding OrganizationToolBinding @relation(fields: [organizationToolBindingId], references: [id], onDelete: Restrict)
+
+  @@index([operationId, enabled])
+  @@index([operationVersionId, enabled])
+  @@index([organizationId, alias])
+  @@map("operation_tool_bindings")
+}
+
+/// Endpoint de webhook de ENTRADA. Token só como hash (nunca em claro).
+model WebhookEndpoint {
+  id                        String                 @id @default(uuid()) @db.Uuid
+  organizationId            String                 @map("organization_id") @db.Uuid
+  connectionId              String                 @map("connection_id") @db.Uuid
+  key                       String
+  status                    WebhookEndpointStatus  @default(ACTIVE)
+  pathTokenHash             String                 @map("path_token_hash")
+  signatureScheme           WebhookSignatureScheme @default(HMAC_SHA256) @map("signature_scheme")
+  secretCredentialVersionId String?                @map("secret_credential_version_id") @db.Uuid
+  replayWindowSeconds       Int                    @default(300) @map("replay_window_seconds")
+  allowedEventTypes         Json                   @default("[]") @map("allowed_event_types")
+  operationId               String?                @map("operation_id") @db.Uuid
+  operationVersionId        String?                @map("operation_version_id") @db.Uuid
+  createdByUserId           String                 @map("created_by_user_id") @db.Uuid
+  revision                  Int                    @default(1)
+  createdAt                 DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  connection OrganizationConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  deliveries WebhookDelivery[]
+
+  @@unique([pathTokenHash], name: "uniq_webhook_token_hash")
+  @@index([organizationId, status])
+  @@index([connectionId])
+  @@map("webhook_endpoints")
+}
+
+/// Entrega recebida em um webhook. Append-oriented; transições só por service.
+model WebhookDelivery {
+  id                 String                @id @default(uuid()) @db.Uuid
+  organizationId     String                @map("organization_id") @db.Uuid
+  webhookEndpointId  String                @map("webhook_endpoint_id") @db.Uuid
+  externalDeliveryId String?               @map("external_delivery_id")
+  payloadHash        String                @map("payload_hash")
+  status             WebhookDeliveryStatus @default(RECEIVED)
+  receivedAt         DateTime              @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt        DateTime?             @map("processed_at") @db.Timestamptz(6)
+  correlationId      String                @map("correlation_id")
+  errorCode          String?               @map("error_code")
+  errorSummary       String?               @map("error_summary")
+
+  endpoint WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Restrict)
+
+  @@index([webhookEndpointId, receivedAt])
+  @@index([organizationId, receivedAt])
+  @@index([organizationId, payloadHash])
+  @@map("webhook_deliveries")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────
+// Runtime de agentes e modelos (ARDEN-BE-007.2). Persistência e lifecycle
+// administrativo. NENHUM runtime de LLM, SDK, segredo de provider ou execução aqui.
+// ─────────────────────────────────────────────────────────────────────────────────
+
+enum ModelProviderStatus {
+  ACTIVE
+  DEPRECATED
+  DISABLED
+}
+
+enum ModelConfigurationStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum AgentStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum AgentVersionStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+/// Catálogo VERSIONADO de providers de modelo (system-managed). `catalogHash`
+/// identifica a projeção da definição canônica (código → banco). Sem tenant, sem
+/// credencial, sem SDK, sem segredo. CRUD tenant não altera.
+model ModelProviderDefinition {
+  id                String              @id @default(uuid()) @db.Uuid
+  key               String
+  version           String
+  name              String
+  description       String?
+  status            ModelProviderStatus @default(ACTIVE)
+  capabilities      Json                @default("[]")
+  productionAllowed Boolean             @default(false) @map("production_allowed")
+  systemManaged     Boolean             @default(true) @map("system_managed")
+  catalogHash       String              @map("catalog_hash")
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  modelConfigurations ModelConfiguration[]
+
+  @@unique([key, version], name: "uniq_model_provider_key_version")
+  @@index([status, productionAllowed])
+  @@map("model_provider_definitions")
+}
+
+/// Catálogo persistido de modelos de um provider (system-managed, projetado do catálogo
+/// canônico em código). Metadados apenas — nunca segredo, nunca preço. Modelos comerciais
+/// (ex.: Anthropic, ARDEN-BE-008.2) entram DISABLED / productionAllowed=false enquanto a
+/// verificação oficial e a execução estão pendentes. Limites null quando não verificados.
+model ModelCatalogEntry {
+  id                       String              @id @default(uuid()) @db.Uuid
+  providerKey              String              @map("provider_key")
+  providerVersion          String              @map("provider_version")
+  modelId                  String              @map("model_id")
+  displayName              String              @map("display_name")
+  status                   ModelProviderStatus @default(DISABLED)
+  productionAllowed        Boolean             @default(false) @map("production_allowed")
+  capabilities             Json                @default("[]")
+  maximumInputTokens       Int?                @map("maximum_input_tokens")
+  maximumOutputTokens      Int?                @map("maximum_output_tokens")
+  supportsStructuredOutput Boolean             @default(false) @map("supports_structured_output")
+  supportsToolCalling      Boolean             @default(false) @map("supports_tool_calling")
+  supportsPromptCaching    Boolean             @default(false) @map("supports_prompt_caching")
+  supportsVision           Boolean             @default(false) @map("supports_vision")
+  supportsStreaming        Boolean             @default(false) @map("supports_streaming")
+  rateCardKey              String?             @map("rate_card_key")
+  sourceReferences         Json                @default("[]") @map("source_references")
+  systemManaged            Boolean             @default(true) @map("system_managed")
+  catalogHash              String              @map("catalog_hash")
+  createdAt                DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([providerKey, providerVersion, modelId], name: "uniq_model_catalog_entry")
+  @@index([providerKey, providerVersion, status])
+  @@map("model_catalog_entries")
+}
+
+/// Configuração organizacional de um modelo (tenant-scoped). Fixa provider + modelId
+/// + (opcional) referência à conexão que guarda a credencial no cofre. NUNCA guarda
+/// segredo. `revision` começa em 1. `REVOKED` é terminal.
+model ModelConfiguration {
+  id                     String                   @id @default(uuid()) @db.Uuid
+  organizationId         String                   @map("organization_id") @db.Uuid
+  providerDefinitionId   String                   @map("provider_definition_id") @db.Uuid
+  name                   String
+  description            String?
+  modelId                String                   @map("model_id")
+  credentialConnectionId String?                  @map("credential_connection_id") @db.Uuid
+  parameters             Json                     @default("{}")
+  status                 ModelConfigurationStatus @default(DRAFT)
+  createdByUserId        String                   @map("created_by_user_id") @db.Uuid
+  revision               Int                      @default(1)
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  provider      ModelProviderDefinition @relation(fields: [providerDefinitionId], references: [id], onDelete: Restrict)
+  agentVersions AgentVersion[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, providerDefinitionId])
+  @@index([organizationId, modelId])
+  @@index([organizationId, updatedAt])
+  @@map("model_configurations")
+}
+
+/// Definição de agente (tenant-scoped, versionável e reutilizável). `status` com state
+/// machine; `REVOKED` terminal. Não guarda prompt, modelId, provider nem segredo. O
+/// ponteiro `currentPublishedVersionId` é validado no service (mesmo agente/tenant).
+model AgentDefinition {
+  id                        String      @id @default(uuid()) @db.Uuid
+  organizationId            String      @map("organization_id") @db.Uuid
+  key                       String
+  name                      String
+  description               String?
+  status                    AgentStatus @default(DRAFT)
+  currentPublishedVersionId String?     @map("current_published_version_id") @db.Uuid
+  createdByUserId           String      @map("created_by_user_id") @db.Uuid
+  revision                  Int         @default(1)
+  createdAt                 DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  versions AgentVersion[]
+
+  @@unique([organizationId, key], name: "uniq_agent_key_per_org")
+  @@index([organizationId, status])
+  @@index([organizationId, updatedAt])
+  @@map("agent_definitions")
+}
+
+/// Versão de agente (tenant-scoped). DRAFT→PUBLISHED→RETIRED. Publicada/retirada são
+/// imutáveis. Objetivo, instruções e TODAS as políticas pertencem à versão.
+/// `contentHash` é determinístico sobre o conteúdo funcional (SHA-256).
+model AgentVersion {
+  id                   String             @id @default(uuid()) @db.Uuid
+  organizationId       String             @map("organization_id") @db.Uuid
+  agentDefinitionId    String             @map("agent_definition_id") @db.Uuid
+  versionNumber        Int                @map("version_number")
+  status               AgentVersionStatus @default(DRAFT)
+  objective            String
+  systemInstructions   String             @map("system_instructions")
+  modelConfigurationId String             @map("model_configuration_id") @db.Uuid
+  inputSchema          Json               @default("{}") @map("input_schema")
+  outputSchema         Json               @default("{}") @map("output_schema")
+  contextPolicy        Json               @default("{}") @map("context_policy")
+  executionPolicy      Json               @default("{}") @map("execution_policy")
+  toolPolicy           Json               @default("{}") @map("tool_policy")
+  evaluationPolicy     Json               @default("{}") @map("evaluation_policy")
+  costPolicy           Json               @default("{}") @map("cost_policy")
+  contentHash          String             @map("content_hash")
+  createdByUserId      String             @map("created_by_user_id") @db.Uuid
+  revision             Int                @default(1)
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  publishedAt          DateTime?          @map("published_at") @db.Timestamptz(6)
+  retiredAt            DateTime?          @map("retired_at") @db.Timestamptz(6)
+
+  agent              AgentDefinition    @relation(fields: [agentDefinitionId], references: [id], onDelete: Restrict)
+  modelConfiguration ModelConfiguration @relation(fields: [modelConfigurationId], references: [id], onDelete: Restrict)
+
+  @@unique([agentDefinitionId, versionNumber], name: "uniq_agent_version_number")
+  @@index([organizationId, status])
+  @@index([modelConfigurationId])
+  @@index([agentDefinitionId, status])
+  @@map("agent_versions")
+}
+
+/// Status de um checkpoint do loop do agente (ARDEN-BE-007.5).
+enum AgentRuntimeCheckpointStatus {
+  ACTIVE
+  SUSPENDED
+  COMPLETED
+}
+
+/// Checkpoint MÍNIMO do loop de tool calling do agente (ARDEN-BE-007.5). Permite
+/// retomada idempotente após aprovação humana e garante execução única de tools por
+/// replay. NÃO guarda prompt, contexto, segredo, credencial, Authorization, input/output
+/// bruto sensível nem provider request — apenas contadores, hashes e metadados
+/// sanitizados. Uma linha por etapa de agente (`agent.execute`).
+model AgentRuntimeCheckpoint {
+  id               String                       @id @default(uuid()) @db.Uuid
+  organizationId   String                       @map("organization_id") @db.Uuid
+  executionRunId   String                       @map("execution_run_id") @db.Uuid
+  executionStepId  String                       @unique @map("execution_step_id") @db.Uuid
+  agentDefinitionId String                      @map("agent_definition_id") @db.Uuid
+  agentVersionId   String                       @map("agent_version_id") @db.Uuid
+  status           AgentRuntimeCheckpointStatus @default(ACTIVE)
+  turnCount        Int                          @default(0) @map("turn_count")
+  modelCallCount   Int                          @default(0) @map("model_call_count")
+  toolCallCount    Int                          @default(0) @map("tool_call_count")
+  /// Metadados SANITIZADOS da tool call pendente de aprovação (sem input/segredo bruto).
+  pendingToolCall  Json?                        @map("pending_tool_call")
+  /// Mapa idemKey → resultado sanitizado de tool calls já concluídas (execução única).
+  completedToolCalls Json                       @default("{}") @map("completed_tool_calls")
+  approvalRequestId String?                     @map("approval_request_id") @db.Uuid
+  contextHash      String?                      @map("context_hash")
+  revision         Int                          @default(1)
+  createdAt        DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, executionRunId])
+  @@index([approvalRequestId])
+  @@map("agent_runtime_checkpoints")
+}
+
+// ── ARDEN-BE-007.6 — resultado operacional, usage, custo e governança ────────────
+
+enum AgentResultStatus {
+  SUCCEEDED
+  FAILED
+  SUSPENDED
+  REQUIRES_APPROVAL
+  UNKNOWN
+}
+
+enum AgentOutputValidationStatus {
+  VALID
+  INVALID
+  NOT_AVAILABLE
+}
+
+enum AgentEvaluationStatus {
+  PASSED
+  FAILED
+  PARTIAL
+  NOT_RUN
+}
+
+enum AgentGovernanceStatus {
+  WITHIN_LIMITS
+  LIMIT_WARNING
+  LIMIT_EXCEEDED
+  BLOCKED
+}
+
+enum AgentModelCallPurpose {
+  PRIMARY
+  OUTPUT_REPAIR
+  TOOL_CONTINUATION
+  EVALUATION
+}
+
+enum ModelRateCardStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum AgentUsageRollupDimension {
+  ORGANIZATION
+  OPERATION
+  OPERATION_VERSION
+  AGENT_DEFINITION
+  AGENT_VERSION
+  MODEL_CONFIGURATION
+  PROVIDER
+  MODEL
+}
+
+/// Resultado operacional CONSOLIDADO de uma execução de agente (uma linha por etapa
+/// `agent.execute`). Tenant-scoped. NUNCA guarda prompt/contexto/output completo/segredo —
+/// apenas status, contadores, tokens, custo estimado e hashes. Atualizável para
+/// PAUSED/RESUMED; o desfecho terminal não é duplicado (unique por etapa).
+model AgentExecutionResult {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  organizationId         String                      @map("organization_id") @db.Uuid
+  executionRunId         String                      @map("execution_run_id") @db.Uuid
+  executionStepId        String                      @unique @map("execution_step_id") @db.Uuid
+  operationId            String                      @map("operation_id") @db.Uuid
+  operationVersionId     String                      @map("operation_version_id") @db.Uuid
+  agentDefinitionId      String                      @map("agent_definition_id") @db.Uuid
+  agentVersionId         String                      @map("agent_version_id") @db.Uuid
+
+  status                 AgentResultStatus
+  outputValidationStatus AgentOutputValidationStatus @default(NOT_AVAILABLE) @map("output_validation_status")
+  evaluationStatus       AgentEvaluationStatus       @default(NOT_RUN) @map("evaluation_status")
+  governanceStatus       AgentGovernanceStatus       @default(WITHIN_LIMITS) @map("governance_status")
+
+  outputHash             String?                     @map("output_hash")
+  contextHash            String?                     @map("context_hash")
+
+  modelCallCount         Int                         @default(0) @map("model_call_count")
+  toolCallCount          Int                         @default(0) @map("tool_call_count")
+  turnCount              Int                         @default(0) @map("turn_count")
+  repairAttemptCount     Int                         @default(0) @map("repair_attempt_count")
+  approvalCount          Int                         @default(0) @map("approval_count")
+  securitySignalCount    Int                         @default(0) @map("security_signal_count")
+
+  inputTokens            Int                         @default(0) @map("input_tokens")
+  outputTokens           Int                         @default(0) @map("output_tokens")
+  cachedInputTokens      Int                         @default(0) @map("cached_input_tokens")
+  cachedOutputTokens     Int                         @default(0) @map("cached_output_tokens")
+
+  estimatedCostMinor     BigInt?                     @map("estimated_cost_minor")
+  currency               String?
+  rateCardId             String?                     @map("rate_card_id") @db.Uuid
+
+  providerKey            String                      @map("provider_key")
+  modelId                String                      @map("model_id")
+
+  evaluationSummary      Json                        @default("{}") @map("evaluation_summary")
+  governanceSummary      Json                        @default("{}") @map("governance_summary")
+  evidenceReferenceIds   Json                        @default("[]") @map("evidence_reference_ids")
+
+  startedAt              DateTime?                   @map("started_at") @db.Timestamptz(6)
+  completedAt            DateTime?                   @map("completed_at") @db.Timestamptz(6)
+  durationMs             Int                         @default(0) @map("duration_ms")
+  revision               Int                         @default(1)
+  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, agentDefinitionId, createdAt])
+  @@index([organizationId, operationId, createdAt])
+  @@index([executionRunId])
+  @@map("agent_execution_results")
+}
+
+/// Uma linha por chamada ao provider de modelo. Sem prompt/contexto/segredo — só tokens,
+/// hashes e custo estimado. Idempotente por (etapa, índice da chamada).
+model AgentModelCallUsage {
+  id                   String                @id @default(uuid()) @db.Uuid
+  organizationId       String                @map("organization_id") @db.Uuid
+  executionRunId       String                @map("execution_run_id") @db.Uuid
+  executionStepId      String                @map("execution_step_id") @db.Uuid
+  agentDefinitionId    String                @map("agent_definition_id") @db.Uuid
+  agentVersionId       String                @map("agent_version_id") @db.Uuid
+  modelConfigurationId String                @map("model_configuration_id") @db.Uuid
+
+  providerKey          String                @map("provider_key")
+  providerVersion      String                @map("provider_version")
+  modelId              String                @map("model_id")
+
+  callIndex            Int                   @map("call_index")
+  purpose              AgentModelCallPurpose @default(PRIMARY)
+  status               String
+  finishReason         String?               @map("finish_reason")
+
+  inputTokens          Int                   @default(0) @map("input_tokens")
+  outputTokens         Int                   @default(0) @map("output_tokens")
+  cachedInputTokens    Int                   @default(0) @map("cached_input_tokens")
+  cachedOutputTokens   Int                   @default(0) @map("cached_output_tokens")
+
+  estimatedCostMinor   BigInt?               @map("estimated_cost_minor")
+  currency             String?
+  rateCardId           String?               @map("rate_card_id") @db.Uuid
+
+  requestHash          String?               @map("request_hash")
+  responseHash         String?               @map("response_hash")
+
+  durationMs           Int                   @default(0) @map("duration_ms")
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([executionStepId, callIndex], name: "uniq_model_call_per_step")
+  @@index([organizationId, createdAt])
+  @@index([executionRunId])
+  @@map("agent_model_call_usage")
+}
+
+/// Metadados SANITIZADOS de cada tool call (sem input/output/credential/URL/headers).
+/// Idempotente por (etapa, toolCallId).
+model AgentToolCallUsage {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  executionRunId    String   @map("execution_run_id") @db.Uuid
+  executionStepId   String   @map("execution_step_id") @db.Uuid
+  agentDefinitionId String   @map("agent_definition_id") @db.Uuid
+  agentVersionId    String   @map("agent_version_id") @db.Uuid
+
+  toolCallId        String   @map("tool_call_id")
+  alias             String
+  actionKey         String   @map("action_key")
+  riskLevel         String   @map("risk_level")
+  decision          String
+  status            String
+
+  authorizationId   String?  @map("authorization_id") @db.Uuid
+  approvalRequestId String?  @map("approval_request_id") @db.Uuid
+
+  inputHash         String?  @map("input_hash")
+  outputHash        String?  @map("output_hash")
+
+  durationMs        Int      @default(0) @map("duration_ms")
+  retryCount        Int      @default(0) @map("retry_count")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt       DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@unique([executionStepId, toolCallId], name: "uniq_tool_call_per_step")
+  @@index([organizationId, createdAt])
+  @@index([executionRunId])
+  @@map("agent_tool_call_usage")
+}
+
+/// Agregação diária UTC por dimensão (upsert idempotente). Nunca mistura moedas num total.
+model AgentUsageRollup {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  organizationId        String                    @map("organization_id") @db.Uuid
+  dimensionType         AgentUsageRollupDimension @map("dimension_type")
+  dimensionId           String                    @map("dimension_id")
+  periodDate            DateTime                  @map("period_date") @db.Date
+  providerKey           String                    @map("provider_key")
+  modelId               String                    @map("model_id")
+  currency              String
+
+  executionCount        Int                       @default(0) @map("execution_count")
+  succeededCount        Int                       @default(0) @map("succeeded_count")
+  failedCount           Int                       @default(0) @map("failed_count")
+  suspendedCount        Int                       @default(0) @map("suspended_count")
+  unknownCount          Int                       @default(0) @map("unknown_count")
+  modelCallCount        Int                       @default(0) @map("model_call_count")
+  toolCallCount         Int                       @default(0) @map("tool_call_count")
+  inputTokens           BigInt                    @default(0) @map("input_tokens")
+  outputTokens          BigInt                    @default(0) @map("output_tokens")
+  estimatedCostMinor    BigInt                    @default(0) @map("estimated_cost_minor")
+  durationMs            BigInt                    @default(0) @map("duration_ms")
+  approvalCount         Int                       @default(0) @map("approval_count")
+  criticalSignalCount   Int                       @default(0) @map("critical_signal_count")
+
+  revision              Int                       @default(1)
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, dimensionType, dimensionId, periodDate, providerKey, modelId, currency], name: "uniq_rollup_bucket")
+  @@index([organizationId, dimensionType, periodDate])
+  @@map("agent_usage_rollups")
+}
+
+/// Catálogo SYSTEM-MANAGED de preços ESTIMADOS (não comercial, sem internet). Custos em
+/// unidade menor por milhão de tokens. `internal.test-model` = tudo 0 USD. Versionado.
+model ModelRateCard {
+  id                                 String              @id @default(uuid()) @db.Uuid
+  providerKey                        String              @map("provider_key")
+  providerVersion                    String              @map("provider_version")
+  modelId                            String              @map("model_id")
+  currency                           String
+
+  inputCostPerMillionTokensMinor        BigInt           @default(0) @map("input_cost_per_million_tokens_minor")
+  outputCostPerMillionTokensMinor       BigInt           @default(0) @map("output_cost_per_million_tokens_minor")
+  cachedInputCostPerMillionTokensMinor  BigInt           @default(0) @map("cached_input_cost_per_million_tokens_minor")
+  cachedOutputCostPerMillionTokensMinor BigInt           @default(0) @map("cached_output_cost_per_million_tokens_minor")
+
+  effectiveFrom                      DateTime            @default(now()) @map("effective_from") @db.Timestamptz(6)
+  effectiveUntil                     DateTime?           @map("effective_until") @db.Timestamptz(6)
+  status                             ModelRateCardStatus @default(ACTIVE)
+  source                             String              @default("INTERNAL")
+  catalogHash                        String              @map("catalog_hash")
+  createdAt                          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                          DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([providerKey, providerVersion, modelId, status], name: "uniq_active_rate_card")
+  @@index([providerKey, modelId, status])
+  @@map("model_rate_cards")
+}

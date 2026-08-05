@@ -3,15 +3,17 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { OperationStateBadge } from '@/components/ui/StateBadge';
 import { useScopedData } from '@/hooks/use-session';
+import { useOperations } from '@/hooks/use-operations';
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
   const data = useScopedData();
+  const { operations } = useOperations();
 
   const pending = data.approvals.filter((a) => a.state === 'pending').length;
   const exceptions = data.exceptions.filter((e) => e.state === 'open').length;
   const available = data.workUnits.reduce((sum, w) => sum + w.available, 0);
-  const recent = [...data.operations]
+  const recent = [...operations]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 5);
 

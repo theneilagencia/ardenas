@@ -224,6 +224,27 @@
   box-shadow: inset 2px 0 0 var(--ac);
 }
 
+.menu-item[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--bd);
+}
+
+.spin {
+  animation: arden-spin 0.9s linear infinite;
+}
+
+@keyframes arden-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .dialog-overlay {
   position: fixed;
   inset: 0;
@@ -245,4 +266,26 @@
   box-shadow: var(--shadow-overlay);
   padding: var(--sp-6);
   z-index: 81;
+}
+
+.drawer-content {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(420px, 100vw);
+  overflow-y: auto;
+  background: var(--sf);
+  border-left: 1px solid var(--bd);
+  box-shadow: var(--shadow-overlay);
+  padding: var(--sp-6);
+  z-index: 81;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: var(--mut);
 }
