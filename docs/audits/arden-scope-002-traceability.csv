@@ -1,0 +1,106 @@
+scopeId,domain,domainName,category,feature,mandatory,layers,status,evidence
+SCOPE-AUTH-001,A,Autenticação e sessão,BACKEND,Autenticação,True,"API,SVC,TEST",COMPLETE,identity/*; test/identity-authz.integration.spec.ts (22/22)
+SCOPE-AUTH-002,A,Autenticação e sessão,BACKEND,JIT provisioning,True,"SVC,DB,TEST",COMPLETE,user-provisioning.service.ts; identity-authz.spec
+SCOPE-AUTH-003,A,Autenticação e sessão,BACKEND,Sessão,True,"API,SVC,TEST",COMPLETE,session.controller.ts; identity-authz.spec
+SCOPE-AUTH-004,A,Autenticação e sessão,BACKEND,Troca de tenant,True,"API,SVC,DB,TEST,E2E",COMPLETE,session.service.ts; multitenancy.spec; e2e/api/session-api.spec.ts
+SCOPE-AUTH-005,A,Autenticação e sessão,BACKEND,Logout,True,"API,SVC,TEST",COMPLETE,session.controller.ts; identity-authz.spec
+SCOPE-ORG-001,B,Organizações e tenancy,BACKEND,Listar orgs,True,"API,SVC,DB,TEST",COMPLETE,organizations.service.ts; multitenancy.spec
+SCOPE-ORG-002,B,Organizações e tenancy,BACKEND,Detalhe org,True,"API,SVC,TEST",COMPLETE,organizations.controller.ts; identity-authz.spec
+SCOPE-ORG-003,B,Organizações e tenancy,BACKEND,Membership/me,True,"API,SVC,TEST",COMPLETE,organizations.controller.ts
+SCOPE-ORG-004,B,Organizações e tenancy,BACKEND,Isolamento multi-tenant,True,"SVC,DB,TEST",COMPLETE,authz/guards/organization.guard.ts; multitenancy+operations-multitenancy.spec
+SCOPE-PERM-001,C,"Usuários, roles e permissões",SECURITY,Catálogo de permissões,True,"DB,TEST",COMPLETE,prisma/seed.ts; identity-authz.spec
+SCOPE-PERM-002,C,"Usuários, roles e permissões",SECURITY,Permission guard,True,"SVC,TEST",COMPLETE,authz/guards/permission.guard.ts
+SCOPE-PERM-003,C,"Usuários, roles e permissões",SECURITY,Papéis e memberships,True,"SVC,DB,TEST",COMPLETE,authz/authorization.service.ts; identity-authz.spec
+SCOPE-PERM-004,C,"Usuários, roles e permissões",SECURITY,Gestão de papéis (UI/CRUD),False,FE,MOCK_ONLY,features/roles/RolesPage.tsx (constante estática ROLE_PERMISSIONS; sem CRUD/backend)
+SCOPE-OPS-001,D,Operações,BACKEND,CRUD de operação,True,"FE,API,SVC,DB,TEST,E2E",COMPLETE,operations.*; operations-flow.spec; e2e/api/operations-api.spec.ts
+SCOPE-OPS-002,D,Operações,BACKEND,Ciclo de vida,True,"FE,API,SVC,DB,TEST",COMPLETE,operations-lifecycle.spec
+SCOPE-OPS-003,D,Operações,BACKEND,Wizard de criação,True,"FE,API,E2E",COMPLETE,features/operations/wizard; e2e/wizard.spec.ts; v1-operations-repository.ts
+SCOPE-OPS-004,D,Operações,BACKEND,Ambientes (promote/rollback),True,"FE,API,SVC,TEST",COMPLETE,features/environments; operation-lifecycle.ts
+SCOPE-VER-001,E,Versionamento e publicação,BACKEND,Versões,True,"API,SVC,DB,TEST",COMPLETE,operation-versions.*; operations-lifecycle.spec
+SCOPE-VER-002,E,Versionamento e publicação,BACKEND,Publicação transacional,True,"API,SVC,DB,TEST",COMPLETE,operation-versions.service.ts; operations-rollback.spec
+SCOPE-VER-003,E,Versionamento e publicação,BACKEND,Comparação de versões,True,"API,SVC,TEST",COMPLETE,version-diff.spec.ts; operations-lifecycle.spec
+SCOPE-AUTH-LEVEL-001,F,Autoridade,BACKEND,Perfil/matriz de autoridade,True,"API,SVC,DB,TEST",COMPLETE,operations/authority.controller.ts; authority.rules.spec
+SCOPE-AUTH-LEVEL-002,F,Autoridade,BACKEND,Motor de avaliação de autoridade,True,"API,SVC,DB,TEST",COMPLETE,enforcement/*; enforcement-flow.spec; authority-evaluation.spec
+SCOPE-AUTH-LEVEL-003,F,Autoridade,BACKEND,UI de autoridade,True,FE,MOCK_ONLY,features/authority (useScopedData snapshot; backend existe mas não conectado)
+SCOPE-POL-001,G,Policies e approvals,BACKEND,CRUD/publicação de policy,True,"API,SVC,DB,TEST",COMPLETE,policies.*; policies-flow.spec
+SCOPE-POL-002,G,Policies e approvals,BACKEND,Binding policy↔operação,True,"API,SVC,DB,TEST",COMPLETE,policies/bindings.controller.ts; policies-flow.spec
+SCOPE-APV-001,G,Policies e approvals,BACKEND,Fluxos de aprovação,True,"API,SVC,DB,TEST",COMPLETE,approvals/flows.controller.ts; enforcement-flow.spec
+SCOPE-APV-002,G,Policies e approvals,BACKEND,Pedido + decisão,True,"API,SVC,DB,TEST",COMPLETE,approvals/requests.*; enforcement-flow+approval-concurrency.spec
+SCOPE-APV-003,G,Policies e approvals,BACKEND,Delegações,True,"API,SVC,DB,TEST",COMPLETE,approvals/delegations.controller.ts; enforcement-flow.spec
+SCOPE-APV-004,G,Policies e approvals,BACKEND,UI de governança/aprovações,True,FE,MOCK_ONLY,"features/governance,approvals (snapshot; ApiApprovalsRepository presente porém nunca chamado)"
+SCOPE-WU-001,H,Work Units,BACKEND,Unidade de trabalho,True,"SVC,DB,TEST",COMPLETE,"GAP-007 reconciliado: contabilidade de work-unit é SUPERSEDED_BY_EXISTING_AGGREGATE — execução (ExecutionRun) + usage/custo (AgentModelCallUsage/AgentUsageRollup/ModelRateCard), COMPLETE e testados; nenhuma entidade WorkUnit dedicada é exigida (evitaria duplicar ExecutionRun) | (antes: execution steps carregam workUnitCost; sem entidade WorkUnit...)"
+SCOPE-WU-002,H,Work Units,BACKEND,UI de Work Units,False,FE,MOCK_ONLY,features/work-units (snapshot; sem domínio backend dedicado)
+SCOPE-EXE-001,I,Execution engine,EXECUTION,Motor de execução,True,"API,SVC,DB,TEST",COMPLETE,executions/*; execution-flow+execution-critical.spec
+SCOPE-EXE-002,I,Execution engine,EXECUTION,Evidências,True,"API,SVC,DB,TEST",COMPLETE,execution-flow.spec (evidence)
+SCOPE-EXE-003,I,Execution engine,EXECUTION,UI de execuções,True,FE,MOCK_ONLY,features/executions (snapshot; backend de execuções existe mas não conectado)
+SCOPE-WRK-001,J,Workers e filas,EXECUTION,Fila durável,True,"SVC,DB,TEST",COMPLETE,execution.queue.ts:48; execution-critical.spec §40
+SCOPE-WRK-002,J,Workers e filas,EXECUTION,Leases + heartbeat + recuperação,True,"SVC,DB,TEST",COMPLETE,execution.queue.ts; execution-critical.spec §41
+SCOPE-WRK-003,J,Workers e filas,EXECUTION,Worker entrypoint,True,"SVC,TEST",COMPLETE,worker.ts; execution.worker.ts
+SCOPE-CON-001,K,Connectors,CONNECTOR,Catálogo de conectores,True,"API,SVC,DB,TEST",COMPLETE,connectors/catalog; connectors-persistence.spec
+SCOPE-CON-002,K,Connectors,CONNECTOR,Conexões,True,"FE,API,SVC,DB,TEST",COMPLETE,connections.*; connections-api.spec; features/integrations
+SCOPE-CON-003,K,Connectors,CONNECTOR,Tool bindings,True,"API,SVC,DB,TEST",COMPLETE,tool-bindings.controller.ts; connectors-persistence.spec
+SCOPE-CON-004,K,Connectors,CONNECTOR,Webhooks,True,"API,SVC,DB,TEST",COMPLETE,webhooks/*; webhook-inbound.spec
+SCOPE-CON-005,K,Connectors,CONNECTOR,SSRF guard,True,"SVC,TEST",COMPLETE,http/ssrf-guard.ts; secure-http-client.spec
+SCOPE-VAULT-001,L,Credentials e SecretVault,SECURITY,Cofre AES-256-GCM,True,"SVC,DB,TEST",COMPLETE,vault/aes-gcm.ts; credential-vault-critical.spec (canário)
+SCOPE-VAULT-002,L,Credentials e SecretVault,SECURITY,Rotação + crypto-shredding,True,"API,SVC,DB,TEST",COMPLETE,credential-versions.service.ts; credential-vault.spec
+SCOPE-VAULT-003,L,Credentials e SecretVault,SECURITY,Keyring versionado + backup/restore,True,"SVC,TEST",COMPLETE,security/connector-master-key*; connector-master-key-lifecycle.spec
+SCOPE-VAULT-004,L,Credentials e SecretVault,SECURITY,Recriptografia (CAS),True,"SVC,DB,TEST",COMPLETE,connector-credential-reencryption.service.ts; master-key-reencryption.integration.spec
+SCOPE-TOOL-001,M,Tools,CONNECTOR,Executor de tool externa,True,"SVC,DB,TEST",COMPLETE,external-tool-executor.ts; external-tool.integration.spec
+SCOPE-TOOL-002,M,Tools,CONNECTOR,Validação de schema de tool,True,"SVC,TEST",COMPLETE,tools/json-schema-validator.spec.ts
+SCOPE-TOOL-003,M,Tools,CONNECTOR,Resultado incerto sem falso sucesso,True,"SVC,TEST",COMPLETE,external-tool.integration.spec
+SCOPE-AGT-001,N,Agents,AGENT,CRUD/ciclo de vida de agente,True,"FE,API,SVC,DB,TEST",COMPLETE,agents/agents; agents-persistence.spec; features/agents
+SCOPE-AGT-002,N,Agents,AGENT,Versões imutáveis,True,"FE,API,SVC,DB,TEST",COMPLETE,agents/versions; agents-critical.spec §32/§33
+SCOPE-AGT-003,N,Agents,AGENT,Runtime loop de tools,True,"SVC,DB,TEST",COMPLETE,runtime/agent-runtime.ts; agent-tool-calling.integration.spec
+SCOPE-AGT-004,N,Agents,AGENT,Suspensão/retomada + checkpoint,True,"SVC,DB,TEST",COMPLETE,agent-runtime.ts; agent-tool-calling.spec §38
+SCOPE-AGT-005,N,Agents,AGENT,Isolamento de contexto,True,"SVC,TEST",COMPLETE,runtime/context/*; agent-context.integration.spec
+SCOPE-MC-001,O,Model configurations,AGENT,Model configurations,True,"FE,API,SVC,DB,TEST",COMPLETE,model-configurations.*; agents-persistence.spec; features/model-configurations
+SCOPE-MC-002,O,Model configurations,AGENT,Catálogo de provedores/modelos,True,"API,SVC,DB,TEST",COMPLETE,providers/model-providers.controller.ts
+SCOPE-AI-001,P,Runtime de IA,AGENT,Provider determinístico interno,True,"SVC,DB,TEST",COMPLETE,runtime/internal-test-model.provider.ts; agent-runtime.integration.spec
+SCOPE-AI-002,P,Runtime de IA,AGENT,Anthropic — structured output offline,True,"SVC,TEST",COMPLETE,providers/anthropic/*; anthropic-runtime.integration.spec
+SCOPE-AI-003,P,Runtime de IA,AGENT,Anthropic — tool calling offline,True,"SVC,TEST",COMPLETE,anthropic-tool-calling.integration.spec
+SCOPE-AI-004,P,Runtime de IA,AGENT,Anthropic — execução real/produção,True,SVC,BLOCKED_BY_EXTERNAL_PROVIDER,gates default false; productionAllowed=false; live calls NONE; pricing/data-gov UNVERIFIED
+SCOPE-USE-001,Q,"Usage, custo e avaliação",AGENT,Registro de uso,True,"API,SVC,DB,TEST",COMPLETE,governance/*; agent-governance.integration.spec §42
+SCOPE-USE-002,Q,"Usage, custo e avaliação",AGENT,Custo estimado,True,"SVC,DB,TEST",COMPLETE,cost-estimator; agent-governance.spec §42
+SCOPE-USE-003,Q,"Usage, custo e avaliação",AGENT,Avaliação + rollups,True,"SVC,DB,TEST",COMPLETE,evaluation-engine; agent-governance.spec §43/§44
+SCOPE-USE-004,Q,"Usage, custo e avaliação",AGENT,Endpoints admin de resultado/uso,True,"FE,API,SVC,TEST",COMPLETE,agent-results.controller.ts; features/agent-results
+SCOPE-AUD-001,R,Auditoria e evidências,SECURITY,Auditoria de domínio,True,"API,SVC,DB,TEST",COMPLETE,audit/*; operations-multitenancy.spec (no-leak)
+SCOPE-AUD-002,R,Auditoria e evidências,SECURITY,Auditoria de identidade,True,"SVC,DB,TEST",COMPLETE,identity audit; identity-authz.spec
+SCOPE-AUD-003,R,Auditoria e evidências,SECURITY,UI de auditoria/segurança,True,"FE,API,TEST",COMPLETE,"features/audit,security (use-audit api-real)"
+SCOPE-FE-001,S,Frontend e UX,FRONTEND,Núcleo de operações (FE),True,"FE,API,E2E",COMPLETE,"features/operations,environments; e2e/api"
+SCOPE-FE-002,S,Frontend e UX,FRONTEND,Agents/model-config/results (FE),True,"FE,API,TEST",COMPLETE,"features/agents,model-configurations,agent-results"
+SCOPE-FE-003,S,Frontend e UX,FRONTEND,Integrations/Anthropic admin (FE),True,"FE,API,E2E",COMPLETE,"features/integrations,anthropic; e2e/api/anthropic-admin-api.spec.ts"
+SCOPE-FE-004,S,Frontend e UX,FRONTEND,Auditoria/Segurança (FE),True,"FE,API",COMPLETE,"features/audit,security"
+SCOPE-FE-005,S,Frontend e UX,FRONTEND,Permissões na UI,True,"FE,TEST",COMPLETE,components/RequirePermission; routes.tsx
+SCOPE-FE-006,S,Frontend e UX,FRONTEND,Command palette + tour + drawers + a11y,True,"FE,E2E,A11Y",COMPLETE,"e2e/command-palette,detail-drawer; *.a11y.test.tsx"
+SCOPE-FE-007,S,Frontend e UX,FRONTEND,Rotas demo-only (governança/aprovações/execuções/autoridade/evidência/exceções/work-units/risco/contexto/arquivos/deployment/pessoas/relatórios/orçamento/resultados),True,FE,MOCK_ONLY,useScopedData snapshot; app-store emptySnapshot em modo api
+SCOPE-FE-008,S,Frontend e UX,FRONTEND,Assessment → operação,False,FE,PARTIAL,GAP-005 fechado (regressão): createFromAssessment cria operação REAL em modo api (v1-operations-repository + test); dados de assessment de origem permanecem demo (Exclusão A) | (antes: v1-operations-repository.ts:291 lança em modo api; só funcio...)
+SCOPE-FE-009,S,Frontend e UX,FRONTEND,Avaliador,False,FE,MOCK_ONLY,EvaluatorPage usa estado local; nada persiste
+SCOPE-FE-010,S,Frontend e UX,FRONTEND,Repositórios API órfãos,False,FE,COMPLETE,"GAP-002 fechado: ApiApprovalsRepository/ApiFilesRepository (código morto, contrato legado) removidos; container rewired; nenhum repositório órfão remanescente | (antes: repositories/approvals-api.ts,files-api.ts (dead wiring)...)"
+SCOPE-API-001,T,Contratos de API,API,OpenAPI v1,True,"API,TEST",COMPLETE,docs/api/openapi-v1.yaml; contracts:openapi (zero drift)
+SCOPE-API-002,T,Contratos de API,API,Cliente gerado + compat,True,"FE,TEST",COMPLETE,services/api/generated; *-client-compat.test.ts
+SCOPE-API-003,T,Contratos de API,API,Envelope de erro + canário de segredo,True,"API,TEST",COMPLETE,contracts/*/secret-canary.contract.test.ts
+SCOPE-DB-001,U,Persistência e migrations,DATABASE,Schema + migrations,True,"DB,TEST",COMPLETE,prisma/schema.prisma; migration.integration.spec
+SCOPE-DB-002,U,Persistência e migrations,DATABASE,Idempotência + concorrência,True,"SVC,DB,TEST",COMPLETE,idempotency.integration.spec; operations-concurrency-idempotency.spec
+SCOPE-DB-003,U,Persistência e migrations,DATABASE,Seed idempotente,True,"DB,TEST",COMPLETE,GAP-008 fechado: seed concorrência-seguro (createMany skipDuplicates + P2002 re-fetch); test/seed-idempotency.integration.spec.ts (6 seeds paralelos); integração 271/271 estável | (antes: prisma/seed.ts:45 permission.upsert corre em re-seed concorr...)
+SCOPE-SEC-001,V,Segurança,SECURITY,Isolamento de tenant (defesa em profundidade),True,"SVC,DB,TEST",COMPLETE,authz/guards; multitenancy + 20+ specs
+SCOPE-SEC-002,V,Segurança,SECURITY,Master key preflight + readiness fail-closed,True,"SVC,TEST",COMPLETE,health.controller.ts; connector-master-key-preflight.service.ts
+SCOPE-SEC-003,V,Segurança,SECURITY,Platform secret source,True,"SVC,TEST",COMPLETE,security/platform-secret-source.ts + spec
+SCOPE-SEC-004,V,Segurança,SECURITY,Higiene de segredos,True,"CI,TEST",COMPLETE,ci.yml secrets job; canário em specs
+SCOPE-SEC-005,V,Segurança,SECURITY,Redação de dados sensíveis,True,"SVC,TEST",COMPLETE,common/redaction/*; redaction.spec
+SCOPE-INF-001,W,Infraestrutura e operação,OPERATIONAL,IaC provider-neutro,True,"DOC,TOOL",PREPARED,infra/; infrastructure:contracts:validate
+SCOPE-INF-002,W,Infraestrutura e operação,OPERATIONAL,IaC específico de provedor,True,NONE,BLOCKED_BY_DECISION,depende do ADR-0001 (REQUIRES_BUSINESS_DECISION)
+SCOPE-INF-003,W,Infraestrutura e operação,OPERATIONAL,Ambientes staging/production,True,NONE,BLOCKED_BY_DECISION,INFRASTRUCTURE_IMPLEMENTATION_PLAN 001.2B
+SCOPE-INF-004,W,Infraestrutura e operação,OPERATIONAL,PostgreSQL gerenciado + HA,True,NONE,BLOCKED_BY_DECISION,MANAGED_POSTGRESQL_OPTIONS (documentado); não provisionado
+SCOPE-INF-005,W,Infraestrutura e operação,OPERATIONAL,Pooling,True,"SVC,DOC",PREPARED,schema.prisma directUrl (implementado); pooler real 001.2B
+SCOPE-INF-006,W,Infraestrutura e operação,OPERATIONAL,Backup + PITR,True,NONE,BLOCKED_BY_DECISION,DATABASE_BACKUP_AND_PITR_POLICY (documentado)
+SCOPE-INF-007,W,Infraestrutura e operação,OPERATIONAL,Restore drill real,True,"TOOL,DOC",PREPARED,DATABASE_RESTORE_DRILL_PLAN; adapter fail-closed; drill offline de chave OK
+SCOPE-INF-008,W,Infraestrutura e operação,OPERATIONAL,Secret manager externo,True,NONE,BLOCKED_BY_DECISION,fronteira PlatformSecretSource pronta; adapter depende de decisão
+SCOPE-INF-009,W,Infraestrutura e operação,OPERATIONAL,Private networking + egress DENY,True,"DOC,TOOL",PREPARED,NETWORK_AND_EGRESS_DECISION; network-catalog validado; camada de plataforma 001.2B
+SCOPE-INF-010,W,Infraestrutura e operação,OPERATIONAL,Observabilidade externa + alertas,True,"DOC,TOOL",PREPARED,OBSERVABILITY_EXPORT_CONTRACT; 19 alertas machine-readable; backend não selecionado
+SCOPE-INF-011,W,Infraestrutura e operação,OPERATIONAL,Deploy + rollback,True,"TOOL,DOC",PREPARED,artifact:build/verify; deploy fail-closed; execução 001.2B
+SCOPE-INF-012,W,Infraestrutura e operação,OPERATIONAL,On-call + incident response,True,DOC,DOCUMENTED_ONLY,runbooks + INCIDENT_RESPONSE; sem operação real
+SCOPE-PRD-001,X,Produção e go-live,PRODUCTION,Gate de produção,True,NONE,BLOCKED_BY_DECISION,GO_LIVE_GATES (MISSING); entry gate FAIL
+SCOPE-PRD-002,X,Produção e go-live,PRODUCTION,Decisão de infraestrutura,True,NONE,BLOCKED_BY_DECISION,REQUIRES_BUSINESS_DECISION; ADR PROPOSED
+SCOPE-PRD-003,X,Produção e go-live,PRODUCTION,Restore drill PASS (produção),True,NONE,BLOCKED_BY_DECISION,depende de infra 001.2B
+SCOPE-PRD-004,X,Produção e go-live,PRODUCTION,Anthropic produção comercial,True,NONE,BLOCKED_BY_EXTERNAL_PROVIDER,gates deferidos; DISABLED
+SCOPE-PRD-005,X,Produção e go-live,PRODUCTION,Homologação (staging estável + smoke),True,NONE,BLOCKED_BY_DECISION,STAGING_ENTRY_CHECKLIST BLOCKED
