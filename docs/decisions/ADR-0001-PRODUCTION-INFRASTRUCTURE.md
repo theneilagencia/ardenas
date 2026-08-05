@@ -82,3 +82,21 @@ padrões portáteis (OCI, PostgreSQL gerenciado padrão, adapter de secrets neut
 | Evidência de custo (S5) | (pendente) |
 | Parecer jurídico (S8) | (pendente) |
 | Novo status | (permanece PROPOSED até aprovação) |
+
+## Processo formal de aprovação (ARDEN-PRD-001.2A.1)
+
+O caminho objetivo para mover esta ADR de `PROPOSED` para `ACCEPTED` está formalizado no
+**pacote executivo de decisão** (ARDEN-PRD-001.2A.1). Pré-condições e evidências exigidas:
+`docs/decisions/ADR-0001-APPROVAL-CHECKLIST.md`. Coleta da decisão de negócio/jurídico:
+`docs/production/INFRASTRUCTURE_BUSINESS_DECISION_FORM.md` e demais documentos indexados em
+`docs/implementation/ARDEN_PRD_001_2A_1_DECISION_PACKAGE_REPORT.md`.
+
+A ADR **só** muda para `ACCEPTED` quando **todas** as pré-condições do checklist estiverem
+satisfeitas (alternativa + região selecionadas; cotação oficial anexada; orçamento
+aprovado; SLA confirmado; jurídico + DPA aprovados; RPO/RTO aprovados; responsável
+operacional atribuído; riscos aceitos; aprovadores registrados). Ao mover, registrar aqui —
+**sem reescrever o histórico** — `approval date`, `approvers`, `evidence references`,
+`decision conditions` e `review date`. O início de ARDEN-PRD-001.2B fica condicionado ao
+`ARDEN_PRD_001_2B_ENTRY_GATE = PASS` (`docs/production/ARDEN_PRD_001_2B_ENTRY_GATE.md`).
+
+**Estado atual:** ADR = `PROPOSED`; entry gate = `FAIL`. Nenhuma pré-condição satisfeita.
