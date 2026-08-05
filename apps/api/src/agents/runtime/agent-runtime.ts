@@ -189,7 +189,15 @@ export class AgentRuntimeService implements AgentRuntime {
 
       let result: ModelGenerationResult;
       try {
-        result = await provider.generate(request);
+        // Contexto NÃO secreto para resolução tenant-scoped de credencial no provider
+        // comercial (ARDEN-BE-008.3). Provider-neutro: providers internos ignoram.
+        result = await provider.generate(request, {
+          organizationId: input.organizationId,
+          modelConfigurationId: resolved.modelConfigurationId,
+          credentialConnectionId: resolved.credentialConnectionId,
+          correlationId: input.correlationId,
+          deadlineMs: input.timeoutMs,
+        });
       } catch (err) {
         base.modelCalls.push({ callIndex: base.modelCalls.length, purpose: modelCallPurpose, status: 'FAILED', finishReason: null, inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, cachedOutputTokens: 0, durationMs: 0, requestHash: null, responseHash: null });
         return this.handleProviderError(base, usage, err, context.securitySignals);

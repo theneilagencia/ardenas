@@ -22,13 +22,20 @@ import {
   modelConfigurationStatus,
 } from './agent-keys';
 
-/** Parâmetros de geração, com limites contratuais. */
-export const modelParameters = z.object({
-  temperature: z.number().min(0).max(2).optional(),
-  topP: z.number().min(0).max(1).optional(),
-  maximumOutputTokens: z.number().int().positive().max(200_000),
-  stopSequences: z.array(z.string().min(1).max(120)).max(8).optional(),
-});
+/**
+ * Parâmetros de geração, com limites contratuais. `.strict()` REJEITA qualquer chave
+ * fora do conjunto — nunca aceita `model`, `apiKey`, `baseUrl`, `headers`, `tools`,
+ * `system`, `organizationId`, `timeout`/`retry` (ARDEN-BE-008.2 §25). Providers com
+ * restrições adicionais (ex.: Anthropic) aplicam validação específica no serviço.
+ */
+export const modelParameters = z
+  .object({
+    temperature: z.number().min(0).max(2).optional(),
+    topP: z.number().min(0).max(1).optional(),
+    maximumOutputTokens: z.number().int().positive().max(200_000),
+    stopSequences: z.array(z.string().min(1).max(120)).max(8).optional(),
+  })
+  .strict();
 export type ModelParameters = z.infer<typeof modelParameters>;
 
 /** Entidade (resposta) — nunca inclui credencial/segredo. */

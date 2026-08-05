@@ -19,4 +19,7 @@ export * from './enforcement';
 export * from './executions';
 export * from './connectors';
 export * from './agents';
+// Provider comercial Anthropic (ARDEN-BE-008.1) — tipos de borda (CONTRACT_ONLY);
+// NÃO registrados no OpenAPI (registry.ts permanece inalterado).
+export * from './model-providers/anthropic';
 export { schemaRegistry, endpoints } from './registry';

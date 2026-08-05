@@ -99,6 +99,40 @@ const webhookSendOutputSchema: JsonSchemaContract = {
   properties: { status: { type: 'integer' }, delivered: { type: 'boolean' } },
 };
 
+// ── Anthropic (ARDEN-BE-008.2): conector system-managed do provider de modelo ────
+// Credencial write-only (apiKey); configuração NÃO sensível com base URL travada em
+// OFFICIAL. Nenhuma ferramenta de geração é exposta. Espelha `anthropic-credential.
+// schema.ts` e `anthropic-connection.schema.ts` (contratos 008.1) como documento JSON.
+const anthropicCredentialJsonSchema: JsonSchemaContract = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['apiKey'],
+  properties: {
+    apiKey: {
+      type: 'string',
+      writeOnly: true,
+      minLength: 1,
+      maxLength: 512,
+      description: 'API key da Anthropic (sensível; armazenada apenas no SecretVault).',
+    },
+  },
+};
+
+const anthropicConfigurationJsonSchema: JsonSchemaContract = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['baseUrlMode', 'timeoutMs', 'maximumRetries'],
+  properties: {
+    baseUrlMode: {
+      type: 'string',
+      enum: ['OFFICIAL'],
+      description: 'Somente a base URL oficial da Anthropic. Sem override arbitrário.',
+    },
+    timeoutMs: { type: 'integer', minimum: 1000, maximum: 120000 },
+    maximumRetries: { type: 'integer', minimum: 0, maximum: 5 },
+  },
+};
+
 // ── Conectores canônicos ────────────────────────────────────────────────────────
 const RAW_CONNECTORS: ConnectorDefinitionCanonical[] = [
   {
@@ -142,6 +176,23 @@ const RAW_CONNECTORS: ConnectorDefinitionCanonical[] = [
     credentialSchema: emptyObjectSchema,
     networkPolicyTemplate: PRODUCTION_NETWORK_POLICY_DEFAULTS,
     capabilityKeys: ['connector.test.echo', 'connector.test.failure', 'connector.test.timeout'],
+  },
+  {
+    key: 'system.anthropic',
+    version: '1',
+    name: 'Anthropic',
+    description:
+      'Conector system-managed do provider Anthropic (API direta). Guarda a credencial ' +
+      'tenant-managed (API key) no SecretVault. Sem ferramenta de geração — o modelo é ' +
+      'executado pelo ModelProvider em fase futura. Provider ainda DISABLED (CONTRACT_ONLY).',
+    category: 'MODEL_PROVIDER',
+    status: 'ACTIVE',
+    systemManaged: true,
+    productionAllowed: true,
+    configurationSchema: anthropicConfigurationJsonSchema,
+    credentialSchema: anthropicCredentialJsonSchema,
+    networkPolicyTemplate: PRODUCTION_NETWORK_POLICY_DEFAULTS,
+    capabilityKeys: [],
   },
 ];
 

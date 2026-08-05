@@ -26,7 +26,7 @@ import {
   retireAgentVersionRequest,
   listAgentVersionsQuery,
 } from './agent-version.schema';
-import { modelProviderDefinition } from './model-provider.schema';
+import { modelProviderDefinition, modelCatalogEntry } from './model-provider.schema';
 import {
   modelConfiguration,
   createModelConfigurationRequest,
@@ -60,6 +60,8 @@ export const agentsSchemas = {
   ModelProviderDefinition: modelProviderDefinition,
   ModelProviderResponse: apiResponse(modelProviderDefinition),
   ModelProviderListResponse: apiResponse(z.array(modelProviderDefinition)),
+  ModelCatalogEntry: modelCatalogEntry,
+  ModelCatalogListResponse: apiResponse(z.array(modelCatalogEntry)),
 
   ModelConfiguration: modelConfiguration,
   ModelConfigurationResponse: apiResponse(modelConfiguration),
@@ -114,6 +116,7 @@ export const agentsEndpoints: EndpointContract[] = [
   // Providers de modelo (público, não tenant-scoped; leitura)
   { id: 'modelProviders.list', method: 'GET', path: `${API}/model-providers`, summary: 'Lista providers de modelo', tag: TAG, permission: 'model_provider.view', idempotent: false, optimisticConcurrency: false, pathParams: [], successStatus: 200, responseSchema: 'ModelProviderListResponse' },
   { id: 'modelProviders.get', method: 'GET', path: `${API}/model-providers/{providerKey}`, summary: 'Consulta um provider de modelo', tag: TAG, permission: 'model_provider.view', idempotent: false, optimisticConcurrency: false, pathParams: ['providerKey'], successStatus: 200, responseSchema: 'ModelProviderResponse' },
+  { id: 'modelProviders.listModels', method: 'GET', path: `${API}/model-providers/{providerKey}/versions/{providerVersion}/models`, summary: 'Lista o catálogo persistido de modelos de um provider', tag: TAG, permission: 'model_provider.view', idempotent: false, optimisticConcurrency: false, pathParams: ['providerKey', 'providerVersion'], successStatus: 200, responseSchema: 'ModelCatalogListResponse', description: 'Leitura system-scoped. Modelos comerciais permanecem DISABLED até verificação/execução (008.3+). Sem segredo, sem preço.' },
 
   // Configurações de modelo (tenant-scoped)
   { id: 'modelConfigurations.list', method: 'GET', path: `${ORG}/model-configurations`, summary: 'Lista configurações de modelo', tag: TAG, permission: 'model_configuration.view', idempotent: false, optimisticConcurrency: false, querySchema: 'ListModelConfigurationsQuery', pathParams: ['organizationId'], successStatus: 200, responseSchema: 'ModelConfigurationListResponse' },

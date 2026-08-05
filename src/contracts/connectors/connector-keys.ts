@@ -9,7 +9,10 @@
 import { z } from 'zod';
 
 // ── Conectores de referência (catálogo fechado) ────────────────────────────────
-export const connectorKey = z.enum(['system.http', 'system.webhook', 'internal.test']);
+// `system.anthropic` (ARDEN-BE-008.2): conector system-managed que guarda a credencial
+// tenant-managed do provider Anthropic. NÃO expõe ferramenta de geração — o modelo é
+// executado (fase futura) pelo ModelProvider, não como tool genérica.
+export const connectorKey = z.enum(['system.http', 'system.webhook', 'internal.test', 'system.anthropic']);
 export type ConnectorKey = z.infer<typeof connectorKey>;
 
 /** Versão do conector (string estável, não vazia). */
@@ -49,6 +52,9 @@ export const connectorCategory = z.enum([
   'MESSAGING',
   'BUSINESS_SYSTEM',
   'INTERNAL_TEST',
+  // MODEL_PROVIDER (ARDEN-BE-008.2): conector que guarda credencial de um provider de
+  // modelo (ex.: Anthropic). Espelhado no enum Prisma `ConnectorCategory` (migração aditiva).
+  'MODEL_PROVIDER',
 ]);
 export type ConnectorCategory = z.infer<typeof connectorCategory>;
 

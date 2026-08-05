@@ -59,6 +59,9 @@ export default defineConfig({
         API_PREFIX: '/api/v1',
         ENABLE_SWAGGER: 'true',
         LOG_LEVEL: 'silent',
+        // Chave-mestra do cofre (BE-006.4) — SOMENTE TESTE (32 bytes 0x07 em Base64).
+        // Sem ela o cofre fica indisponível e create/rotate de credencial retornam 500.
+        CONNECTOR_MASTER_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=',
       },
     },
     {

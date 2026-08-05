@@ -283,6 +283,11 @@ export class FakeConnectorsRepository implements ConnectorsRepository {
     };
   }
 
+  validationResult: import('@arden/contracts').ConnectionConfigurationValidationResult | null = null;
+  async validateConnectionConfiguration(connectionId: string): Promise<import('@arden/contracts').ConnectionConfigurationValidationResult> {
+    if (this.validationResult) return this.validationResult;
+    return { connectionId, configurationValid: true, credentialPresent: true, credentialDecryptable: true, providerCompatible: true, providerVerificationStatus: 'NOT_VERIFIED_WITH_PROVIDER', credentialFingerprint: 'fp-1234', issues: [], validatedAt: new Date().toISOString() };
+  }
   async rotateCredential(
     connectionId: string,
     body: RotateConnectionCredentialRequest,

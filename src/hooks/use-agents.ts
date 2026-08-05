@@ -44,6 +44,7 @@ import {
   listAgentResults,
   listAgentVersions,
   listAgents,
+  listModelCatalog,
   listModelConfigurations,
   listModelProviders,
   getAgentUsage,
@@ -67,6 +68,7 @@ const AGENT_KEY = 'agent';
 const AGENT_VERSIONS_KEY = 'agent-versions';
 const AGENT_VERSION_KEY = 'agent-version';
 const MODEL_PROVIDERS_KEY = 'model-providers';
+const MODEL_CATALOG_KEY = 'model-catalog';
 const MODEL_CONFIGS_KEY = 'model-configurations';
 const MODEL_CONFIG_KEY = 'model-configuration';
 const AGENT_RESULTS_KEY = 'agent-results';
@@ -201,6 +203,22 @@ export function useModelProviders() {
     enabled: !!ctx,
   });
   return { providers: q.data ?? [], isLoading: q.isLoading, error: asError(q.error), refetch: q.refetch };
+}
+
+/**
+ * Catálogo de modelos de um provider/versão (§5). Os IDs de modelo vêm SEMPRE
+ * daqui — nunca digitados livremente nem embutidos no código. Modelos desativados
+ * e limites/preços não verificados chegam prontos do backend.
+ */
+export function useModelCatalog(providerKey?: string, providerVersion?: string) {
+  const { ctx } = useOrgCtx();
+  const enabled = !!ctx && !!providerKey && !!providerVersion;
+  const q = useQuery({
+    queryKey: [MODEL_CATALOG_KEY, providerKey, providerVersion],
+    queryFn: () => listModelCatalog(requireCtx(ctx), providerKey as string, providerVersion as string),
+    enabled,
+  });
+  return { models: q.data ?? [], isLoading: q.isLoading, error: asError(q.error), refetch: q.refetch };
 }
 
 // ── Configurações de modelo ────────────────────────────────────────────────────

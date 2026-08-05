@@ -13,6 +13,7 @@ import {
   modelProviderVersion,
   modelProviderStatus,
   modelProviderCapability,
+  modelId,
 } from './agent-keys';
 
 export const modelProviderDefinition = z.object({
@@ -47,9 +48,50 @@ export const MODEL_PROVIDER_DEFINITIONS: readonly ModelProviderDefinition[] = [
     productionAllowed: false,
     systemManaged: true,
   },
+  {
+    // ARDEN-BE-008.2: Anthropic via API direta, persistido como DISABLED / não executável
+    // (CONTRACT_ONLY). NÃO registrado no ModelProviderRegistry; verificação oficial de
+    // preço/governança pendente (008.2A = UNVERIFIED). Não muda para ACTIVE nesta fase.
+    key: 'anthropic.direct',
+    version: '1',
+    name: 'Anthropic (API direta)',
+    description:
+      'Provider comercial Anthropic Claude via API direta. Contrato apenas nesta fase ' +
+      '(DISABLED, productionAllowed=false): sem SDK, sem chamada real, sem runtime registrado.',
+    status: 'DISABLED',
+    capabilities: ['STRUCTURED_OUTPUT'],
+    productionAllowed: false,
+    systemManaged: true,
+  },
 ];
 
 /** Projeção pura e validada do catálogo de providers. */
 export function projectModelProviders(): ModelProviderDefinition[] {
   return MODEL_PROVIDER_DEFINITIONS.map((p) => modelProviderDefinition.parse(p));
 }
+
+/**
+ * Entrada de CATÁLOGO DE MODELOS persistida (ARDEN-BE-008.2 §21), leitura pública/
+ * system-scoped. Metadados apenas — nunca segredo, nunca preço. Modelos comerciais
+ * (ex.: Anthropic) permanecem `DISABLED` / `productionAllowed=false` enquanto pendentes.
+ * `maximumInputTokens`/`maximumOutputTokens` são `null` quando não verificados oficialmente.
+ */
+export const modelCatalogEntry = z.object({
+  providerKey: modelProviderKey,
+  providerVersion: modelProviderVersion,
+  modelId,
+  displayName: z.string().min(1).max(120),
+  status: modelProviderStatus,
+  productionAllowed: z.boolean(),
+  capabilities: z.array(modelProviderCapability).max(5),
+  maximumInputTokens: z.number().int().positive().nullable(),
+  maximumOutputTokens: z.number().int().positive().nullable(),
+  supportsStructuredOutput: z.boolean(),
+  supportsToolCalling: z.boolean(),
+  supportsPromptCaching: z.boolean(),
+  supportsVision: z.boolean(),
+  supportsStreaming: z.boolean(),
+  rateCardKey: z.string().max(120).nullable(),
+  sourceReferences: z.array(z.string().min(1).max(300)),
+});
+export type ModelCatalogEntry = z.infer<typeof modelCatalogEntry>;

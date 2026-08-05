@@ -10,7 +10,8 @@
 
 import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { connectorNetworkPolicy, type CreateConnectionRequest, type UpdateConnectionRequest, type Connection, type ConnectionStatus, type TestConnectionResult } from '@arden/contracts';
+import { connectorNetworkPolicy, type CreateConnectionRequest, type UpdateConnectionRequest, type Connection, type ConnectionStatus, type TestConnectionResult, type ConnectionConfigurationValidationResult } from '@arden/contracts';
+import { validateAgainstSchema } from '../tools/json-schema-validator';
 import { PrismaService } from '../../database/prisma.service';
 import { IdempotencyService } from '../../modules/idempotency/idempotency.service';
 import { AuditRecorder } from '../../audit/audit.recorder';
@@ -202,6 +203,76 @@ export class ConnectionsService {
     });
 
     return { data: { status, checkedAt: checkedAt.toISOString(), latencyMs, credentialFingerprint: fingerprint, errorCode, errorSummary } };
+  }
+
+  /**
+   * VALIDAÇÃO LOCAL da configuração (ARDEN-BE-008.2 §17). NÃO contata o provider nem a
+   * rede: valida o JSON de configuração contra o schema do conector, confere presença e
+   * DECIFRABILIDADE da credencial ativa no cofre (decifra e descarta), e a compatibilidade
+   * provider/conector. Sempre declara `NOT_VERIFIED_WITH_PROVIDER`. Nunca devolve segredo.
+   */
+  async validateConfiguration(ctx: AuthenticatedRequestContext, id: string): Promise<{ data: ConnectionConfigurationValidationResult }> {
+    const orgId = this.orgId(ctx);
+    const conn = await this.repo.findById(orgId, id);
+    if (!conn) throw notFound('Conexão não encontrada.');
+    if (conn.status === 'REVOKED') throw connectionRevoked();
+    const def = await this.connectors.findById(conn.connectorDefinitionId);
+    if (!def) throw connectorNotAvailable();
+
+    const issues: string[] = [];
+
+    // 1. Configuração válida contra o schema do conector (documento JSON Schema).
+    const violations = validateAgainstSchema(conn.configuration ?? {}, (def.configurationSchema ?? undefined) as Record<string, unknown> | undefined);
+    const configurationValid = violations.length === 0;
+    for (const v of violations.slice(0, 10)) issues.push(`config:${v.path}:${v.message}`.slice(0, 200));
+
+    // 2. Presença da credencial ativa (cofre) — sem exigir conexão ACTIVE.
+    const active = await this.credentials.findActive(orgId, id);
+    const credentialPresent = active !== null;
+    if (!credentialPresent) issues.push('credential:absent');
+
+    // 3. Decifrabilidade no cofre (decifra e descarta o plaintext) — nunca retorna segredo.
+    let credentialDecryptable = false;
+    let credentialFingerprint: string | null = null;
+    if (active) {
+      try {
+        const resolved = await this.credentialResolver.resolveCredentialVersion({ organizationId: orgId, connectionId: id, credentialVersionId: active.id });
+        credentialDecryptable = true;
+        credentialFingerprint = resolved.fingerprint;
+        resolved.secret = {};
+      } catch {
+        credentialDecryptable = false;
+        issues.push('credential:not_decryptable');
+      }
+    }
+
+    // 4. Compatibilidade provider/conector (conector ativo e não depreciado).
+    const providerCompatible = def.status === 'ACTIVE';
+    if (!providerCompatible) issues.push(`connector:${def.status.toLowerCase()}`);
+
+    const validatedAt = new Date();
+    await this.prisma.$transaction((tx) =>
+      this.audit.record(tx, {
+        organizationId: orgId, actorUserId: ctx.userId, action: 'connection.configuration_validated',
+        resourceType: 'organization_connection', resourceId: id, correlationId: ctx.correlationId,
+        outcome: configurationValid && credentialPresent && credentialDecryptable && providerCompatible ? 'SUCCESS' : 'FAILURE',
+        metadata: { configurationValid, credentialPresent, credentialDecryptable, providerCompatible, providerVerificationStatus: 'NOT_VERIFIED_WITH_PROVIDER' },
+      }),
+    );
+
+    return {
+      data: {
+        connectionId: id,
+        configurationValid,
+        credentialPresent,
+        credentialDecryptable,
+        providerCompatible,
+        providerVerificationStatus: 'NOT_VERIFIED_WITH_PROVIDER',
+        credentialFingerprint,
+        issues,
+        validatedAt: validatedAt.toISOString(),
+      },
+    };
   }
 
   async list(ctx: AuthenticatedRequestContext, filters: { connectorDefinitionId?: string; status?: ConnectionStatus; search?: string }, limit: number, cursor?: string): Promise<{ data: Connection[]; nextCursor: string | null }> {

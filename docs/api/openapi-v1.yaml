@@ -6052,6 +6052,7 @@ paths:
                   - system.http
                   - system.webhook
                   - internal.test
+                  - system.anthropic
         - name: status
           in: query
           required: false
@@ -6492,6 +6493,93 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TestConnectionRequest'
+  /organizations/{organizationId}/connections/{connectionId}/validate-configuration:
+    post:
+      operationId: connections.validateConfiguration
+      summary: Valida a configuração localmente (sem contatar o provider)
+      tags:
+        - Connectors
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: Identifica o recurso organizacional. A autorização é derivada da sessão e validada no backend.
+          schema:
+            type: string
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionConfigurationValidationResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: connection.test
+      x-idempotent: false
+      x-optimistic-concurrency: false
+      description: >-
+        Validação LOCAL: schema de configuração, presença/decifrabilidade da credencial no cofre e compatibilidade
+        provider/conector. NÃO faz chamada ao provider; declara NOT_VERIFIED_WITH_PROVIDER. Nunca devolve segredo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateConnectionConfigurationRequest'
   /organizations/{organizationId}/connections/{connectionId}/activate:
     post:
       operationId: connections.activate
@@ -7274,6 +7362,7 @@ paths:
                   - system.http
                   - system.webhook
                   - internal.test
+                  - system.anthropic
         - name: toolKey
           in: query
           required: false
@@ -10185,6 +10274,86 @@ paths:
       x-permission: model_provider.view
       x-idempotent: false
       x-optimistic-concurrency: false
+  /model-providers/{providerKey}/versions/{providerVersion}/models:
+    get:
+      operationId: modelProviders.listModels
+      summary: Lista o catálogo persistido de modelos de um provider
+      tags:
+        - Agents
+      parameters:
+        - name: providerKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: providerVersion
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Rastreio fim a fim. O servidor gera quando ausente e ecoa na resposta.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelCatalogListResponse'
+        '401':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '403':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '404':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '422':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '429':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '503':
+          description: Erro padronizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+      security:
+        - bearerAuth: []
+      x-permission: model_provider.view
+      x-idempotent: false
+      x-optimistic-concurrency: false
+      description: >-
+        Leitura system-scoped. Modelos comerciais permanecem DISABLED até verificação/execução (008.3+). Sem segredo,
+        sem preço.
   /organizations/{organizationId}/model-configurations:
     get:
       operationId: modelConfigurations.list
@@ -20560,6 +20729,7 @@ components:
             - system.http
             - system.webhook
             - internal.test
+            - system.anthropic
         version:
           type: string
           minLength: 1
@@ -20581,6 +20751,7 @@ components:
             - MESSAGING
             - BUSINESS_SYSTEM
             - INTERNAL_TEST
+            - MODEL_PROVIDER
         status:
           type: string
           enum:
@@ -20702,6 +20873,7 @@ components:
             - system.http
             - system.webhook
             - internal.test
+            - system.anthropic
         connectorVersion:
           type: string
           minLength: 1
@@ -20821,6 +20993,7 @@ components:
                   - system.http
                   - system.webhook
                   - internal.test
+                  - system.anthropic
               version:
                 type: string
                 minLength: 1
@@ -20842,6 +21015,7 @@ components:
                   - MESSAGING
                   - BUSINESS_SYSTEM
                   - INTERNAL_TEST
+                  - MODEL_PROVIDER
               status:
                 type: string
                 enum:
@@ -20976,6 +21150,7 @@ components:
                 - system.http
                 - system.webhook
                 - internal.test
+                - system.anthropic
             version:
               type: string
               minLength: 1
@@ -20997,6 +21172,7 @@ components:
                 - MESSAGING
                 - BUSINESS_SYSTEM
                 - INTERNAL_TEST
+                - MODEL_PROVIDER
             status:
               type: string
               enum:
@@ -21129,6 +21305,7 @@ components:
                   - system.http
                   - system.webhook
                   - internal.test
+                  - system.anthropic
               connectorVersion:
                 type: string
                 minLength: 1
@@ -21257,6 +21434,7 @@ components:
             - system.http
             - system.webhook
             - internal.test
+            - system.anthropic
         connectorVersion:
           type: string
           minLength: 1
@@ -21427,6 +21605,7 @@ components:
                 - system.http
                 - system.webhook
                 - internal.test
+                - system.anthropic
             connectorVersion:
               type: string
               minLength: 1
@@ -21605,6 +21784,7 @@ components:
                   - system.http
                   - system.webhook
                   - internal.test
+                  - system.anthropic
               connectorVersion:
                 type: string
                 minLength: 1
@@ -21784,6 +21964,7 @@ components:
             - system.http
             - system.webhook
             - internal.test
+            - system.anthropic
         connectorVersion:
           type: string
           minLength: 1
@@ -22037,6 +22218,110 @@ components:
       required:
         - data
       additionalProperties: false
+    ValidateConnectionConfigurationRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          maxLength: 200
+      additionalProperties: false
+    ConnectionConfigurationValidationResult:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        configurationValid:
+          type: boolean
+        credentialPresent:
+          type: boolean
+        credentialDecryptable:
+          type: boolean
+        providerCompatible:
+          type: boolean
+        providerVerificationStatus:
+          type: string
+          enum:
+            - NOT_VERIFIED_WITH_PROVIDER
+            - VERIFIED_WITH_PROVIDER
+        credentialFingerprint:
+          type: string
+          nullable: true
+        issues:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 20
+        validatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time in UTC (Z suffix)
+      required:
+        - connectionId
+        - configurationValid
+        - credentialPresent
+        - credentialDecryptable
+        - providerCompatible
+        - providerVerificationStatus
+        - credentialFingerprint
+        - issues
+        - validatedAt
+      additionalProperties: false
+    ConnectionConfigurationValidationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            connectionId:
+              type: string
+              minLength: 1
+              maxLength: 128
+            configurationValid:
+              type: boolean
+            credentialPresent:
+              type: boolean
+            credentialDecryptable:
+              type: boolean
+            providerCompatible:
+              type: boolean
+            providerVerificationStatus:
+              type: string
+              enum:
+                - NOT_VERIFIED_WITH_PROVIDER
+                - VERIFIED_WITH_PROVIDER
+            credentialFingerprint:
+              type: string
+              nullable: true
+            issues:
+              type: array
+              items:
+                type: string
+                maxLength: 200
+              maxItems: 20
+            validatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 date-time in UTC (Z suffix)
+          required:
+            - connectionId
+            - configurationValid
+            - credentialPresent
+            - credentialDecryptable
+            - providerCompatible
+            - providerVerificationStatus
+            - credentialFingerprint
+            - issues
+            - validatedAt
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
     ConnectionCommandRequest:
       type: object
       properties:
@@ -22058,6 +22343,7 @@ components:
             - system.http
             - system.webhook
             - internal.test
+            - system.anthropic
         status:
           type: string
           enum:
@@ -22652,6 +22938,7 @@ components:
             - system.http
             - system.webhook
             - internal.test
+            - system.anthropic
         toolKey:
           type: string
           minLength: 1
@@ -26071,6 +26358,191 @@ components:
               - capabilities
               - productionAllowed
               - systemManaged
+            additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: {}
+      required:
+        - data
+      additionalProperties: false
+    ModelCatalogEntry:
+      type: object
+      properties:
+        providerKey:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+        providerVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+        modelId:
+          type: string
+          minLength: 1
+          maxLength: 200
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - DEPRECATED
+            - DISABLED
+        productionAllowed:
+          type: boolean
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum:
+              - STRUCTURED_OUTPUT
+              - TOOL_CALLING
+              - STREAMING
+              - VISION
+              - PROMPT_CACHING
+          maxItems: 5
+        maximumInputTokens:
+          type: integer
+          exclusiveMinimum: true
+          minimum: 0
+          nullable: true
+        maximumOutputTokens:
+          type: integer
+          exclusiveMinimum: true
+          minimum: 0
+          nullable: true
+        supportsStructuredOutput:
+          type: boolean
+        supportsToolCalling:
+          type: boolean
+        supportsPromptCaching:
+          type: boolean
+        supportsVision:
+          type: boolean
+        supportsStreaming:
+          type: boolean
+        rateCardKey:
+          type: string
+          maxLength: 120
+          nullable: true
+        sourceReferences:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 300
+      required:
+        - providerKey
+        - providerVersion
+        - modelId
+        - displayName
+        - status
+        - productionAllowed
+        - capabilities
+        - maximumInputTokens
+        - maximumOutputTokens
+        - supportsStructuredOutput
+        - supportsToolCalling
+        - supportsPromptCaching
+        - supportsVision
+        - supportsStreaming
+        - rateCardKey
+        - sourceReferences
+      additionalProperties: false
+    ModelCatalogListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              providerKey:
+                type: string
+                minLength: 1
+                maxLength: 80
+                pattern: ^[a-z0-9]+(?:[._-][a-z0-9]+)*$
+              providerVersion:
+                type: string
+                minLength: 1
+                maxLength: 32
+              modelId:
+                type: string
+                minLength: 1
+                maxLength: 200
+              displayName:
+                type: string
+                minLength: 1
+                maxLength: 120
+              status:
+                type: string
+                enum:
+                  - ACTIVE
+                  - DEPRECATED
+                  - DISABLED
+              productionAllowed:
+                type: boolean
+              capabilities:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - STRUCTURED_OUTPUT
+                    - TOOL_CALLING
+                    - STREAMING
+                    - VISION
+                    - PROMPT_CACHING
+                maxItems: 5
+              maximumInputTokens:
+                type: integer
+                exclusiveMinimum: true
+                minimum: 0
+                nullable: true
+              maximumOutputTokens:
+                type: integer
+                exclusiveMinimum: true
+                minimum: 0
+                nullable: true
+              supportsStructuredOutput:
+                type: boolean
+              supportsToolCalling:
+                type: boolean
+              supportsPromptCaching:
+                type: boolean
+              supportsVision:
+                type: boolean
+              supportsStreaming:
+                type: boolean
+              rateCardKey:
+                type: string
+                maxLength: 120
+                nullable: true
+              sourceReferences:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+                  maxLength: 300
+            required:
+              - providerKey
+              - providerVersion
+              - modelId
+              - displayName
+              - status
+              - productionAllowed
+              - capabilities
+              - maximumInputTokens
+              - maximumOutputTokens
+              - supportsStructuredOutput
+              - supportsToolCalling
+              - supportsPromptCaching
+              - supportsVision
+              - supportsStreaming
+              - rateCardKey
+              - sourceReferences
             additionalProperties: false
         meta:
           type: object

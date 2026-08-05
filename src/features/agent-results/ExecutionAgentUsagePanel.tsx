@@ -9,6 +9,7 @@
  */
 
 import { useTranslation } from 'react-i18next';
+import { ANTHROPIC_PROVIDER_KEY } from '@/contracts';
 import { useExecutionAgentUsage } from '@/hooks/use-agents';
 import { AgentEvaluationBadge, AgentGovernanceBadge, AgentResultStatusBadge } from '@/features/agents/AgentStatusBadge';
 import { COST_UNAVAILABLE, formatCostSummary, formatCount, formatDurationMs } from '@/features/agents/agent-format';
@@ -31,6 +32,8 @@ export function ExecutionAgentUsagePanel({ executionRunId }: { executionRunId: s
             <thead>
               <tr>
                 <th>{t('common.status')}</th>
+                <th>{t('agents.execUsage.provider')}</th>
+                <th>{t('agents.execUsage.model')}</th>
                 <th>{t('agents.results.evaluation')}</th>
                 <th>{t('agents.results.governance')}</th>
                 <th>{t('agents.results.tokens')}</th>
@@ -41,9 +44,15 @@ export function ExecutionAgentUsagePanel({ executionRunId }: { executionRunId: s
             <tbody>
               {results.map((r) => {
                 const cost = formatCostSummary(r.costSummary);
+                const isAnthropic = r.usageSummary.providerKey === ANTHROPIC_PROVIDER_KEY;
                 return (
                   <tr key={r.id}>
                     <td><AgentResultStatusBadge status={r.status} /></td>
+                    <td className="mono">
+                      {r.usageSummary.providerKey}
+                      {isAnthropic && <span className="chip" style={{ marginLeft: 6, color: 'var(--st-waiting)' }}>{t('agents.execUsage.offlineValidated')}</span>}
+                    </td>
+                    <td className="mono">{r.usageSummary.modelId}</td>
                     <td><AgentEvaluationBadge status={r.evaluationStatus} /></td>
                     <td><AgentGovernanceBadge status={r.governanceStatus} /></td>
                     <td className="mono">{formatCount(r.usageSummary.inputTokens + r.usageSummary.outputTokens)}</td>

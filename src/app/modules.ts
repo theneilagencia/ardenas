@@ -66,6 +66,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'risk', path: '/risk', labelKey: 'nav.risk', icon: ShieldAlert, permission: 'risk.view', group: 'control' },
   { key: 'context', path: '/context', labelKey: 'nav.context', icon: Database, permission: 'context.view', group: 'control' },
   { key: 'integrations', path: '/integrations', labelKey: 'nav.integrations', icon: Plug, permission: 'integration.view', group: 'control' },
+  { key: 'anthropic', path: '/anthropic', labelKey: 'nav.anthropic', icon: Sparkles, permission: 'model_provider.view', group: 'control' },
   { key: 'files', path: '/files', labelKey: 'nav.files', icon: FileArchive, permission: 'file.view', group: 'control' },
 
   // AGENTES (ARDEN-BE-007)

@@ -10,7 +10,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 /** Labels permitidas (baixa cardinalidade). Qualquer outra chave é descartada. */
-const ALLOWED_LABELS = new Set(['status', 'provider', 'model', 'risk', 'decision', 'error_code', 'governance', 'evaluation']);
+const ALLOWED_LABELS = new Set(['status', 'provider', 'model', 'risk', 'decision', 'error_code', 'governance', 'evaluation', 'retryable']);
 
 function labelKey(name: string, labels: Record<string, string>): string {
   const parts = Object.keys(labels)

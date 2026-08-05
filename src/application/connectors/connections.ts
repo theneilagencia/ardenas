@@ -8,10 +8,12 @@
 import type {
   Connection,
   ConnectionCommandRequest,
+  ConnectionConfigurationValidationResult,
   CreateConnectionRequest,
   TestConnectionRequest,
   TestConnectionResult,
   UpdateConnectionRequest,
+  ValidateConnectionConfigurationRequest,
 } from '@/contracts';
 import type { CursorPage, ListConnectionsInput } from '@/services/contracts';
 import { getServices } from '@/services/service-container';
@@ -76,6 +78,25 @@ export async function testConnection(
   assertPermission(ctx, 'connection.test');
   try {
     return await getServices().connectors.testConnection(connectionId, body);
+  } catch (err) {
+    throw toRepositoryError(err);
+  }
+}
+
+/**
+ * Validação LOCAL da configuração da conexão (§9). Confirma que a credencial
+ * existe/decifra e que o conector é compatível com o provider — NUNCA prova que
+ * a credencial é válida perante a Anthropic (o resultado sempre traz
+ * `providerVerificationStatus: NOT_VERIFIED_WITH_PROVIDER`). Sem rede externa.
+ */
+export async function validateConnectionConfiguration(
+  ctx: RequestContext,
+  connectionId: string,
+  body: ValidateConnectionConfigurationRequest = {},
+): Promise<ConnectionConfigurationValidationResult> {
+  assertPermission(ctx, 'connection.test');
+  try {
+    return await getServices().connectors.validateConnectionConfiguration(connectionId, body);
   } catch (err) {
     throw toRepositoryError(err);
   }

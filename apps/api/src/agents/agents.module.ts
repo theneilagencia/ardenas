@@ -18,9 +18,11 @@ import { ModelProviderDefinitionsRepository } from './providers/model-providers.
 import { ModelProvidersService } from './providers/model-providers.service';
 import { ModelProvidersController } from './providers/model-providers.controller';
 import { ModelProviderCatalogProjector } from './providers/model-provider-catalog.projector';
+import { ModelCatalogProjector, ModelCatalogRepository } from './providers/project-model-catalog';
 
 import { ModelConfigurationsRepository } from './model-configurations/model-configurations.repository';
 import { ModelConfigurationsService } from './model-configurations/model-configurations.service';
+import { AnthropicConfigurationValidationService } from './model-configurations/anthropic-configuration-validation.service';
 import { ModelConfigurationsController } from './model-configurations/model-configurations.controller';
 
 import { AgentDefinitionsRepository } from './agents/agent-definitions.repository';
@@ -35,6 +37,16 @@ import { AgentVersionsController } from './versions/agent-versions.controller';
 import { AGENT_RUNTIME } from '@arden/contracts';
 import { InternalTestModelProvider } from './runtime/internal-test-model.provider';
 import { InMemoryModelProviderRegistry } from './runtime/model-provider-registry';
+// Provider comercial Anthropic executável sob gate (ARDEN-BE-008.3).
+import { APP_CONFIG } from '../config/config.module';
+import type { AppConfig } from '../config/env.schema';
+import { AnthropicModelProvider } from './providers/anthropic/anthropic-model-provider';
+import { AnthropicProviderCredentialResolver } from './providers/anthropic/anthropic-provider-credential.resolver';
+import { AnthropicNonProdGate } from './providers/anthropic/anthropic-non-prod-gate';
+import { AnthropicSmokeTestService } from './providers/anthropic/anthropic-smoke-test.service';
+import { AnthropicSdkTransport } from './providers/anthropic/sdk/anthropic-sdk-transport';
+import { FakeAnthropicTransport } from './providers/anthropic/anthropic-fake-transport';
+import { ANTHROPIC_TRANSPORT } from './providers/anthropic/anthropic-transport.port';
 import { AgentOutputValidatorV1 } from './runtime/agent-output-validator';
 import { AgentEvaluatorV1 } from './runtime/agent-evaluator';
 import { AgentRuntimeResolverService } from './runtime/agent-runtime-resolver';
@@ -82,15 +94,44 @@ import { AgentResultsController } from './governance/agent-results.controller';
     ModelProviderDefinitionsRepository,
     ModelProvidersService,
     ModelProviderCatalogProjector,
+    ModelCatalogProjector,
+    ModelCatalogRepository,
     ModelConfigurationsRepository,
     ModelConfigurationsService,
+    AnthropicConfigurationValidationService,
     AgentDefinitionsRepository,
     AgentsService,
     AgentVersionsRepository,
     AgentVersionsService,
     // Runtime determinístico + provider interno + registry + validador/avaliador/resolver.
     InternalTestModelProvider,
-    InMemoryModelProviderRegistry,
+    // Provider comercial Anthropic (008.3): transporte real (SDK) por default; resolver de
+    // credencial tenant-scoped; provider executável. Registrado no registry SÓ sob gate.
+    AnthropicSdkTransport,
+    FakeAnthropicTransport,
+    AnthropicProviderCredentialResolver,
+    AnthropicNonProdGate,
+    AnthropicModelProvider,
+    AnthropicSmokeTestService,
+    // Transporte por COMPOSIÇÃO de ambiente: fake OFFLINE em teste (nunca rede), SDK real
+    // caso contrário. Não é backdoor de header/query — é escolha de módulo (§21).
+    {
+      provide: ANTHROPIC_TRANSPORT,
+      inject: [APP_CONFIG, FakeAnthropicTransport, AnthropicSdkTransport],
+      useFactory: (config: AppConfig, fake: FakeAnthropicTransport, sdk: AnthropicSdkTransport) =>
+        config.NODE_ENV === 'test' ? fake : sdk,
+    },
+    // Registry com registro CONDICIONAL do Anthropic: runtime gate ON e fora de produção.
+    {
+      provide: InMemoryModelProviderRegistry,
+      inject: [InternalTestModelProvider, AnthropicModelProvider, APP_CONFIG],
+      useFactory: (test: InternalTestModelProvider, anthropic: AnthropicModelProvider, config: AppConfig) => {
+        const registry = new InMemoryModelProviderRegistry(test);
+        const enabled = config.ANTHROPIC_PROVIDER_RUNTIME_ENABLED && config.NODE_ENV !== 'production';
+        if (enabled) registry.register(anthropic);
+        return registry;
+      },
+    },
     AgentOutputValidatorV1,
     AgentEvaluatorV1,
     AgentRuntimeResolverService,
@@ -125,7 +166,10 @@ import { AgentResultsController } from './governance/agent-results.controller';
   ],
   exports: [
     ModelProviderCatalogProjector,
+    ModelCatalogProjector,
     RateCardCatalogProjector,
+    AnthropicSmokeTestService,
+    AnthropicNonProdGate,
     // Expostos ao motor de execução (ExecutionsModule) — sem ciclo (AgentsModule não
     // importa ExecutionsModule).
     AGENT_RUNTIME,

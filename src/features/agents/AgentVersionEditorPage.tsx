@@ -17,6 +17,7 @@ import {
   AGENT_TOOL_POLICY_SAFE_DEFAULT,
   AGENT_EVALUATION_POLICY_SAFE_DEFAULT,
   AGENT_COST_POLICY_SAFE_DEFAULT,
+  ANTHROPIC_PROVIDER_KEY,
   type AgentVersionDefinition,
 } from '@/contracts';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -62,6 +63,8 @@ export function AgentVersionEditorPage() {
   const { agent } = useAgent(agentId);
   const { version, isLoading } = useAgentVersion(agentId, agentVersionId);
   const { configurations } = useModelConfigurations({ status: 'ACTIVE' });
+  // Lista sem filtro para detectar o provider da configuração selecionada (§16).
+  const { configurations: allConfigurations } = useModelConfigurations();
   const createVersion = useCreateAgentVersion();
   const updateVersion = useUpdateAgentVersion();
   const publish = usePublishAgentVersion();
@@ -77,6 +80,14 @@ export function AgentVersionEditorPage() {
 
   const readOnly = !creating && version != null && version.status !== 'DRAFT';
   const editable = !readOnly && (creating ? can('agent.edit') : can('agent.edit'));
+
+  // §16: versão que referencia uma configuração Anthropic é validada OFFLINE — a
+  // chamada real e o tool calling ao vivo não foram comprovados → publicação BLOQUEADA.
+  const selectedConfig = useMemo(
+    () => [...configurations, ...allConfigurations].find((c) => c.id === def.modelConfigurationId),
+    [configurations, allConfigurations, def.modelConfigurationId],
+  );
+  const isAnthropicVersion = selectedConfig?.providerKey === ANTHROPIC_PROVIDER_KEY;
 
   // Semeia o editor a partir da versão carregada (edição/leitura).
   useEffect(() => {
@@ -136,6 +147,8 @@ export function AgentVersionEditorPage() {
   async function doPublish() {
     if (!agentId || !version) return;
     setErr(null);
+    // §16: publicação bloqueada para versões Anthropic (validado apenas offline).
+    if (isAnthropicVersion) { setErr(t('agents.editor.anthropicPublishBlocked')); return; }
     if (!changeSummary.trim()) { setErr(t('agents.editor.changeSummary')); return; }
     try {
       await publish.mutateAsync({ agentId, agentVersionId: version.id, body: { expectedRevision: version.revision, changeSummary: changeSummary.trim() } });
@@ -162,6 +175,15 @@ export function AgentVersionEditorPage() {
         subtitle={t('agents.editor.title')}
         actions={<div className="row">{version && <AgentVersionStatusBadge status={version.status} />}</div>}
       />
+
+      {/* §16: aviso de validação offline + bloqueio de publicação para Anthropic. */}
+      {isAnthropicVersion && (
+        <div className="card" role="alert" style={{ marginBottom: 'var(--sp-4)', borderColor: 'var(--st-waiting)' }}>
+          <strong>{t('agents.editor.anthropicOfflineTitle')}</strong>
+          <p style={{ color: 'var(--tx2)', marginTop: 6 }}>{t('agents.editor.anthropicOfflineWarning')}</p>
+          <p style={{ color: 'var(--st-failed)', marginTop: 6 }}>{t('agents.editor.anthropicPublishBlocked')}</p>
+        </div>
+      )}
 
       {readOnly && (
         <div className="card" style={{ marginBottom: 'var(--sp-4)', borderColor: 'var(--st-completed)' }}>
@@ -255,7 +277,7 @@ export function AgentVersionEditorPage() {
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: 'var(--sp-4)' }}>
           <button type="button" className="btn btn-ghost" disabled={busy || schemaError} onClick={saveDraft}>{t('agents.editor.saveDraft')}</button>
           {!creating && version?.status === 'DRAFT' && can('agent.publish') && (
-            <button type="button" className="btn btn-primary" disabled={busy || schemaError} onClick={doPublish}>{t('agents.actions.publish')}</button>
+            <button type="button" className="btn btn-primary" disabled={busy || schemaError || isAnthropicVersion} title={isAnthropicVersion ? t('agents.editor.anthropicPublishBlocked') : undefined} onClick={doPublish}>{t('agents.actions.publish')}</button>
           )}
         </div>
       )}

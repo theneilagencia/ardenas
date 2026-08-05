@@ -909,6 +909,7 @@ enum ConnectorCategory {
   MESSAGING
   BUSINESS_SYSTEM
   INTERNAL_TEST
+  MODEL_PROVIDER
 }
 
 enum ConnectorStatus {
@@ -1252,6 +1253,38 @@ model ModelProviderDefinition {
   @@unique([key, version], name: "uniq_model_provider_key_version")
   @@index([status, productionAllowed])
   @@map("model_provider_definitions")
+}
+
+/// Catálogo persistido de modelos de um provider (system-managed, projetado do catálogo
+/// canônico em código). Metadados apenas — nunca segredo, nunca preço. Modelos comerciais
+/// (ex.: Anthropic, ARDEN-BE-008.2) entram DISABLED / productionAllowed=false enquanto a
+/// verificação oficial e a execução estão pendentes. Limites null quando não verificados.
+model ModelCatalogEntry {
+  id                       String              @id @default(uuid()) @db.Uuid
+  providerKey              String              @map("provider_key")
+  providerVersion          String              @map("provider_version")
+  modelId                  String              @map("model_id")
+  displayName              String              @map("display_name")
+  status                   ModelProviderStatus @default(DISABLED)
+  productionAllowed        Boolean             @default(false) @map("production_allowed")
+  capabilities             Json                @default("[]")
+  maximumInputTokens       Int?                @map("maximum_input_tokens")
+  maximumOutputTokens      Int?                @map("maximum_output_tokens")
+  supportsStructuredOutput Boolean             @default(false) @map("supports_structured_output")
+  supportsToolCalling      Boolean             @default(false) @map("supports_tool_calling")
+  supportsPromptCaching    Boolean             @default(false) @map("supports_prompt_caching")
+  supportsVision           Boolean             @default(false) @map("supports_vision")
+  supportsStreaming        Boolean             @default(false) @map("supports_streaming")
+  rateCardKey              String?             @map("rate_card_key")
+  sourceReferences         Json                @default("[]") @map("source_references")
+  systemManaged            Boolean             @default(true) @map("system_managed")
+  catalogHash              String              @map("catalog_hash")
+  createdAt                DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([providerKey, providerVersion, modelId], name: "uniq_model_catalog_entry")
+  @@index([providerKey, providerVersion, status])
+  @@map("model_catalog_entries")
 }
 
 /// Configuração organizacional de um modelo (tenant-scoped). Fixa provider + modelId

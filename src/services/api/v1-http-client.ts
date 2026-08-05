@@ -21,6 +21,7 @@ import type {
   RetireAgentVersionRequest,
   ListAgentVersionsQuery,
   ModelProviderDefinition,
+  ModelCatalogEntry,
   ModelConfiguration,
   CreateModelConfigurationRequest,
   UpdateModelConfigurationRequest,
@@ -534,6 +535,12 @@ export class ApiV1HttpClient implements ArdenApiV1Client {
   }
   getModelProvider(providerKey: string, opts?: CallOptions) {
     return this.get<ModelProviderDefinition>(`/model-providers/${providerKey}`, opts);
+  }
+  listModelCatalog(providerKey: string, providerVersion: string, opts?: CallOptions) {
+    return this.get<ModelCatalogEntry[]>(`/model-providers/${providerKey}/versions/${providerVersion}/models`, opts);
+  }
+  validateConnectionConfiguration(organizationId: string, connectionId: string, body: import('@arden/contracts').ValidateConnectionConfigurationRequest, opts: CallOptions & { idempotencyKey: string }) {
+    return this.send<import('@arden/contracts').ConnectionConfigurationValidationResult>('POST', `${this.base(organizationId)}/connections/${connectionId}/validate-configuration`, body, opts);
   }
 
   // ── Configurações de modelo (tenant-scoped) ──────────────────────────────────

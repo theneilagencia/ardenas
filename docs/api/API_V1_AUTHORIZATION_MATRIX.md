@@ -154,3 +154,13 @@ de modelo completos, `agent.view/suspend/revoke`); `operation_owner` (agentes
 view/create/edit/publish, `agent.execute`, `model_configuration.view`); `supervisor`
 (`agent.view/execute`, `agent.cost.view`); `auditor` (view de agente/config + `agent.cost.view`,
 sem execução).
+
+## ARDEN-BE-008.2 — Provider comercial Anthropic (infra administrativa)
+
+Endpoints **aditivos**, reusando permissões existentes (sem permissão nova). Provider `DISABLED`;
+validação apenas **local** (nunca contata o provider); nenhuma response expõe segredo.
+
+| Endpoint | Método | Path | Permissão | Idem. | Concorr. |
+| --- | --- | --- | --- | --- | --- |
+| connections.validateConfiguration | POST | `.../connections/{id}/validate-configuration` | `connection.test` | sim | não |
+| modelProviders.listModels | GET | `/model-providers/{providerKey}/versions/{providerVersion}/models` | `model_provider.view` | não | não |

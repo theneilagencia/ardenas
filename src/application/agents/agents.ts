@@ -18,6 +18,7 @@ import type {
   CreateAgentRequest,
   CreateAgentVersionRequest,
   CreateModelConfigurationRequest,
+  ModelCatalogEntry,
   ModelConfiguration,
   ModelConfigurationCommandRequest,
   ModelProviderDefinition,
@@ -98,6 +99,9 @@ export function listModelProviders(ctx: RequestContext, signal?: AbortSignal): P
 }
 export function getModelProvider(ctx: RequestContext, providerKey: string, signal?: AbortSignal): Promise<ModelProviderDefinition> {
   return guarded(ctx, 'model_provider.view', () => agents().getModelProvider(providerKey, signal));
+}
+export function listModelCatalog(ctx: RequestContext, providerKey: string, providerVersion: string, signal?: AbortSignal): Promise<ModelCatalogEntry[]> {
+  return guarded(ctx, 'model_provider.view', () => agents().listModelCatalog(providerKey, providerVersion, signal));
 }
 
 // ── Configurações de modelo ──────────────────────────────────────────────────────

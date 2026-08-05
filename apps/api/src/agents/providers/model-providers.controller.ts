@@ -26,4 +26,11 @@ export class ModelProvidersController {
   async get(@Param('providerKey') providerKey: string) {
     return { data: await this.providers.getByKey(providerKey) };
   }
+
+  // Catálogo persistido de modelos (008.2). Modelos comerciais permanecem DISABLED.
+  @Get(':providerKey/versions/:providerVersion/models')
+  @RequirePermission('model_provider.view')
+  async listModels(@Param('providerKey') providerKey: string, @Param('providerVersion') providerVersion: string) {
+    return { data: await this.providers.listModels(providerKey, providerVersion) };
+  }
 }

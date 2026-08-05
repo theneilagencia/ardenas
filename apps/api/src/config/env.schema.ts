@@ -10,6 +10,19 @@ import { z } from 'zod';
 
 const nodeEnv = z.enum(['development', 'test', 'production']);
 
+/**
+ * Chaves-mestras de FIXTURE de teste, conhecidas e públicas (ARDEN-BE-008.7 §6).
+ * NÃO são segredos — existem só para os testes/E2E poderem exercitar o cofre. A
+ * aplicação em `production` DEVE recusar iniciar com qualquer uma delas: são
+ * bloqueadas explicitamente para impossibilitar "production starts with fixture key".
+ * `Buffer.alloc(32, 7)` é a fixture usada por `test/setup-env.ts` e por
+ * `playwright.api.config.ts`.
+ */
+export const WELL_KNOWN_TEST_MASTER_KEYS: readonly string[] = Object.freeze([
+  Buffer.alloc(32, 7).toString('base64'),
+  Buffer.alloc(32, 0).toString('base64'),
+]);
+
 const booleanish = z
   .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
   .transform((v) => v === true || v === 'true' || v === '1');
@@ -56,7 +69,42 @@ export const envSchema = z
     // Keyring opcional (JSON { "<version>": "<base64-32-bytes>" }) para decifrar
     // versões antigas após rotação de master key.
     CONNECTOR_KEYRING_JSON: z.string().optional().default(''),
+
+    // ── Provider comercial Anthropic (ARDEN-BE-008.3) ────────────────────────
+    // Gate de RUNTIME: registra o AnthropicModelProvider no registry. Default false.
+    // Nesta fase só é honrado fora de produção (ver ANTHROPIC_PROVIDER_RUNTIME_ENABLED
+    // no wiring do registry). Habilitar não implica chamada externa.
+    ANTHROPIC_PROVIDER_RUNTIME_ENABLED: booleanish.default(false),
+    // Gate de CHAMADA EXTERNA: autoriza o transporte real (SDK) a alcançar a Anthropic.
+    // Default false. Com false, o transporte real NUNCA chama a rede (erro seguro).
+    ANTHROPIC_PROVIDER_EXTERNAL_CALLS_ENABLED: booleanish.default(false),
+    // Gate de TOOL CALLING (ARDEN-BE-008.5): habilita o mapeamento/loop de ferramentas
+    // Anthropic. Default false; só honrado fora de produção e sob o gate de runtime. Com
+    // false, structured output continua funcionando e request com tools é rejeitado.
+    ANTHROPIC_TOOL_CALLING_ENABLED: booleanish.default(false),
+
+    // ── Smoke test real controlado (ARDEN-BE-008.4) ──────────────────────────
+    // Habilita o comando de smoke test (nunca em suíte normal/CI). Default false.
+    ANTHROPIC_SMOKE_TEST_ENABLED: booleanish.default(false),
+    // Reconhecimento explícito do operador de que uma chamada real pode ocorrer.
+    ANTHROPIC_SMOKE_TEST_ACKNOWLEDGED: booleanish.default(false),
+    // Allowlist server-side de organizações autorizadas a chamadas reais NÃO produtivas
+    // (CSV de UUIDs). Nunca vem do request. Vazio = nenhuma organização autorizada.
+    ANTHROPIC_NON_PROD_ALLOWED_ORGANIZATION_IDS: z.string().default(''),
+    // Quotas conservadoras não produtivas (denial-of-wallet), configuráveis.
+    ANTHROPIC_NON_PROD_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(4096).default(256),
+    ANTHROPIC_NON_PROD_DAILY_CALL_CAP: z.coerce.number().int().min(1).max(10000).default(50),
+    ANTHROPIC_NON_PROD_MAX_CONCURRENCY: z.coerce.number().int().min(1).max(64).default(1),
+    // Circuit breaker: falhas consecutivas para abrir; janela de meio-aberto (ms).
+    ANTHROPIC_CIRCUIT_BREAKER_THRESHOLD: z.coerce.number().int().min(1).max(100).default(5),
+    ANTHROPIC_CIRCUIT_BREAKER_COOLDOWN_MS: z.coerce.number().int().min(1000).max(3600000).default(60000),
   })
+  .transform((env) => ({
+    ...env,
+    anthropicNonProdAllowedOrganizationIds: env.ANTHROPIC_NON_PROD_ALLOWED_ORGANIZATION_IDS.split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  }))
   .transform((env) => ({
     ...env,
     corsOrigins: env.CORS_ORIGINS.split(',')
@@ -116,6 +164,15 @@ export const envSchema = z
             code: z.ZodIssueCode.custom,
             path: ['CONNECTOR_MASTER_KEY'],
             message: 'CONNECTOR_MASTER_KEY deve ser Base64 de exatamente 32 bytes.',
+          });
+        }
+        // Guard: nenhuma fixture de teste conhecida pode iniciar a aplicação em
+        // production (ARDEN-BE-008.7 §6.3). Fora de production é permitida (testes).
+        if (env.NODE_ENV === 'production' && WELL_KNOWN_TEST_MASTER_KEYS.includes(key)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['CONNECTOR_MASTER_KEY'],
+            message: 'CONNECTOR_MASTER_KEY é uma fixture de teste conhecida e não pode ser usada em production.',
           });
         }
       }

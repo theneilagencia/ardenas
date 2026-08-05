@@ -20,6 +20,7 @@ import type {
   RotateConnectionCredentialRequest,
   TestConnectionRequest,
   UpdateConnectionRequest,
+  ValidateConnectionConfigurationRequest,
   UpdateOperationToolBindingRequest,
   UpdateOrganizationToolBindingRequest,
   UpdateWebhookEndpointRequest,
@@ -59,6 +60,7 @@ import {
   updateOperationToolBinding,
   updateToolBinding,
   updateWebhookEndpoint,
+  validateConnectionConfiguration,
   type RequestContext,
 } from '@/application';
 import { useTenant } from '@/app/tenant-context';
@@ -198,6 +200,19 @@ export function useTestConnection() {
     mutationFn: ({ id, body }: { id: string; body?: TestConnectionRequest }) =>
       testConnection(requireCtx(ctx), id, body),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * Validação LOCAL da configuração (§9). NÃO invalida a conexão — não altera
+ * estado; apenas devolve o diagnóstico para exibição. O resultado sempre traz
+ * `providerVerificationStatus: NOT_VERIFIED_WITH_PROVIDER` (nunca "conectado").
+ */
+export function useValidateConnectionConfiguration() {
+  const ctx = useRequestContext();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body?: ValidateConnectionConfigurationRequest }) =>
+      validateConnectionConfiguration(requireCtx(ctx), id, body),
   });
 }
 

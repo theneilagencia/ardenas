@@ -34,6 +34,7 @@ import {
 } from '../agent.state-machines';
 import { ModelConfigurationsRepository } from './model-configurations.repository';
 import { ModelProviderDefinitionsRepository } from '../providers/model-providers.repository';
+import { AnthropicConfigurationValidationService } from './anthropic-configuration-validation.service';
 import { toModelConfigurationContract } from '../agents.serializers';
 
 function isProduction(): boolean {
@@ -46,6 +47,7 @@ export class ModelConfigurationsService {
     private readonly prisma: PrismaService,
     private readonly repo: ModelConfigurationsRepository,
     private readonly providers: ModelProviderDefinitionsRepository,
+    private readonly anthropicValidation: AnthropicConfigurationValidationService,
     private readonly idem: IdempotencyService,
     private readonly audit: AuditRecorder,
   ) {}
@@ -91,7 +93,13 @@ export class ModelConfigurationsService {
       async (tx) => {
         const provider = await this.providers.findByKeyAndVersion(body.providerKey, body.providerVersion, tx);
         if (!provider) throw modelProviderNotAvailable();
-        if (provider.status !== 'ACTIVE') throw modelProviderDisabled();
+        // Preparação (ARDEN-BE-008.2 §24): um DRAFT pode ser preparado contra um provider
+        // catalogado porém DISABLED (ex.: anthropic.direct). A ATIVAÇÃO permanece bloqueada
+        // (transitionStatus exige provider ACTIVE). DEPRECATED não permite nem preparação.
+        if (provider.status === 'DEPRECATED') throw modelProviderDisabled();
+        // Validação específica do provider (§25): Anthropic exige modelId allowlisted e
+        // parâmetros estritos (rejeita apiKey/baseUrl/model/headers/tools/system/etc.).
+        this.anthropicValidation.validate(provider.key, body.modelId, body.parameters);
         if (body.credentialConnectionId) await this.assertConnectionInTenant(orgId, body.credentialConnectionId, tx);
         const created = await this.repo.create(
           {
@@ -126,6 +134,13 @@ export class ModelConfigurationsService {
       if (!current) throw modelConfigurationNotFound();
       if (isModelConfigurationTerminal(current.status)) throw invalidStateTransition('Configuração revogada é imutável.');
       assertRevision({ resourceType: 'model_configuration', resourceId: id, expectedRevision: body.expectedRevision, currentRevision: current.revision });
+      // Revalida modelId/parameters efetivos para o provider (§25) quando algum muda.
+      if (body.modelId !== undefined || body.parameters !== undefined) {
+        const providerNow = await this.providers.findById(current.providerDefinitionId, tx);
+        if (providerNow) {
+          this.anthropicValidation.validate(providerNow.key, body.modelId ?? current.modelId, body.parameters ?? current.parameters);
+        }
+      }
       if (body.credentialConnectionId) await this.assertConnectionInTenant(orgId, body.credentialConnectionId, tx);
       const data: Record<string, unknown> = {};
       if (body.name !== undefined) data.name = body.name;

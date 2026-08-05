@@ -175,6 +175,11 @@ export function createApiV1AgentsRepository(client: ArdenApiV1Client): AgentsRep
         throw toRepositoryError(err);
       }
     },
+    async listModelCatalog(providerKey, providerVersion, signal): Promise<import('@arden/contracts').ModelCatalogEntry[]> {
+      try {
+        return await client.listModelCatalog(providerKey, providerVersion, { signal });
+      } catch (err) { throw toRepositoryError(err); }
+    },
     async getModelProvider(providerKey, signal): Promise<ModelProviderDefinition> {
       try {
         return await client.getModelProvider(providerKey, { signal });

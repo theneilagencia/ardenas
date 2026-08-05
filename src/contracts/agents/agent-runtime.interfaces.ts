@@ -19,9 +19,31 @@ import type { ModelToolDefinition } from './agent-tool-policy.schema';
 import type { AgentContextPolicy } from './agent-context-policy.schema';
 import type { AgentEvaluationPolicy } from './agent-evaluation-policy.schema';
 
+/**
+ * Contexto de execução NÃO SECRETO passado ao provider (ARDEN-BE-008.3). Permite ao
+ * provider comercial resolver a credencial tenant-scoped no cofre ANTES do transporte —
+ * a credencial NUNCA trafega no `ModelGenerationRequest` nem no payload do provider.
+ * Providers determinísticos (ex.: internal.test-model) ignoram o contexto.
+ */
+export interface ModelGenerationContext {
+  organizationId: string;
+  modelConfigurationId: string;
+  /** Conexão que guarda a credencial no cofre (null quando o provider não exige). */
+  credentialConnectionId: string | null;
+  correlationId: string;
+  /** Teto de duração efetivo da etapa (ms); 0 = sem teto de etapa. */
+  deadlineMs?: number;
+  /**
+   * Marca uma chamada de SMOKE TEST controlado (ARDEN-BE-008.4). Só o comando de smoke
+   * define isto; ESTABELECE a verificação da credencial e, por isso, não exige smoke prévio
+   * (mas ainda exige ambiente não produtivo + organização allowlisted + confirmação).
+   */
+  smokeTest?: boolean;
+}
+
 /** Provider de modelo — infraestrutura substituível. */
 export interface ModelProvider {
-  generate(request: ModelGenerationRequest): Promise<ModelGenerationResult>;
+  generate(request: ModelGenerationRequest, context?: ModelGenerationContext): Promise<ModelGenerationResult>;
 }
 
 /** Resolve o provider concreto por chave+versão. */

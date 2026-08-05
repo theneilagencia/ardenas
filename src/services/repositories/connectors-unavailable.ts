@@ -41,6 +41,7 @@ export function createUnavailableConnectorsRepository(): ConnectorsRepository {
     createCredential: async () => unavailable('credentials.create'),
     rotateCredential: async () => unavailable('credentials.rotate'),
     revokeCredential: async () => unavailable('credentials.revoke'),
+    validateConnectionConfiguration: async () => unavailable('connections.validateConfiguration'),
 
     listToolBindings: async () => emptyPage,
     createToolBinding: async () => unavailable('toolBindings.create'),
