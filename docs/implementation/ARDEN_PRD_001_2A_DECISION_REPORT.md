@@ -97,3 +97,14 @@ Com essas três respostas, um finalista é selecionável e o ADR-0001 pode ser m
 - Plano 001.2B: `docs/production/INFRASTRUCTURE_IMPLEMENTATION_PLAN.md`
 - Fontes: `ARDEN_PRD_001_2A_SOURCE_REGISTER.md` · Riscos: `ARDEN_PRD_001_2A_RISK_ASSESSMENT.md`
 - Decisão: `docs/decisions/ADR-0001-PRODUCTION-INFRASTRUCTURE.md` (PROPOSED)
+
+---
+## Atualização ARDEN-PRD-001.2A.1
+- A pendência "decisão objetiva requerida do negócio" desta 2A foi convertida em um
+  **pacote executivo** acionável: formulário de decisão (20 itens), modelo de cotação,
+  matriz de custos, questionário ao fornecedor, checklist jurídico, questionário de
+  residência, checklist de SLA/suporte, matriz lock-in × velocidade, RACI, registro de
+  decisão e checklist de aprovação da ADR. Índice em
+  `ARDEN_PRD_001_2A_1_DECISION_PACKAGE_REPORT.md`.
+- A transição para SELECTED/ACCEPTED e o início de 001.2B ficam condicionados ao
+  `ARDEN_PRD_001_2B_ENTRY_GATE = PASS` (hoje FAIL). Recomendação e finalistas inalterados.

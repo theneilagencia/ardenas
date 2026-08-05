@@ -57,3 +57,11 @@ permanece bloqueado independentemente destes gates (gates próprios em
 - **Bloqueio:** gates BLOCKING permanecem MISSING/UNVERIFIED até 001.2B; 001.2B só inicia
   após decisão de negócio (custo S5 + SLA S4 + jurídico S8) e ADR-0001 → ACCEPTED.
 - **Anthropic:** permanece DISABLED.
+
+---
+## Atualização ARDEN-PRD-001.2A.1 (pacote executivo de decisão)
+- Criado o pacote executivo que converte os gaps de infraestrutura em decisões objetivas,
+  evidências exigidas e campos de aprovação (`ARDEN_PRD_001_2A_1_DECISION_PACKAGE_REPORT.md`).
+- Novo gate documental **`ARDEN_PRD_001_2B_ENTRY_GATE = FAIL`** — condição de início do
+  001.2B (`ARDEN_PRD_001_2B_ENTRY_GATE.md`). Enquanto FAIL, 001.2B não inicia.
+- Nenhum gate mudou de estado; `ADR-0001` permanece **PROPOSED**; Anthropic **DISABLED**.

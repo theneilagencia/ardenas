@@ -75,3 +75,12 @@ comercial Anthropic permanece bloqueada até os gates deferidos próprios.
 - **#4 Backup + restore drill:** política + plano de drill definidos — execução em 001.2B.8.
 - **#7 Rede privada + egress deny:** decisão em `NETWORK_AND_EGRESS_DECISION.md` — 001.2B.2.
 - Todos aguardam a decisão de negócio de infraestrutura (ADR-0001, `REQUIRES_BUSINESS_DECISION`).
+
+---
+## Atualização ARDEN-PRD-001.2A.1
+- Pacote executivo de decisão criado (formulário, cotação, jurídico, residência, SLA,
+  lock-in, RACI, registro de decisão, entry gate). Ver
+  `ARDEN_PRD_001_2A_1_DECISION_PACKAGE_REPORT.md`.
+- Itens P0/P1 dependentes de infraestrutura (secret manager, banco HA+PITR, backup/restore,
+  rede/egress) permanecem STILL_OPEN e agora **bloqueados** pelo
+  `ARDEN_PRD_001_2B_ENTRY_GATE = FAIL` até a decisão de negócio + ADR ACCEPTED.

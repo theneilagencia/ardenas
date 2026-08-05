@@ -47,3 +47,12 @@ Riscos R-18/R-19 são herdados e permanecem **fora** do escopo de resolução de
   `DATABASE_BACKUP_AND_PITR_POLICY.md`) aguardando 001.2B.
 - Novo risco destacado: restore do banco sem master key correta → credenciais ilegíveis
   (RT-04); mitigado pelo desenho do drill (banco + master key + decrypt canário).
+
+---
+## Atualização ARDEN-PRD-001.2A.1
+- Pacote executivo estrutura a resolução dos riscos de decisão (custo/SLA/jurídico) via
+  perguntas objetivas + evidências exigidas (`ARDEN_PRD_001_2A_1_DECISION_PACKAGE_REPORT.md`).
+- Novo controle de governança: `ARDEN_PRD_001_2B_ENTRY_GATE` (FAIL) impede início de 001.2B
+  sem decisão registrada — mitiga RD-02 (preço assumido) e RD-03 (decisão sem jurídico) do
+  `ARDEN_PRD_001_2A_RISK_ASSESSMENT.md`.
+- Critérios eliminatórios binários definidos; `PARTIALLY_VERIFIED` não conta como comprovação.

@@ -50,3 +50,13 @@ gate. Nenhum recurso é criado em 001.2A.
 - Não cria nenhum recurso de nuvem; não executa deploy; não usa credencial real; não
   altera código/Prisma/migrations/OpenAPI/dependências/CI; não habilita Anthropic; não
   inicia 001.2B.
+
+---
+## Atualização ARDEN-PRD-001.2A.1
+- A **pré-condição de arranque** desta implementação é agora formalizada como o gate
+  documental `ARDEN_PRD_001_2B_ENTRY_GATE` (`docs/production/ARDEN_PRD_001_2B_ENTRY_GATE.md`),
+  hoje = **FAIL**.
+- 001.2B.1 (contas/IAM) só inicia quando o entry gate = PASS: `ADR-0001 = ACCEPTED`,
+  arquitetura + região selecionadas, cotação oficial + parecer jurídico anexados, RPO/RTO
+  aprovados e responsável operacional atribuído. Pacote de decisão:
+  `ARDEN_PRD_001_2A_1_DECISION_PACKAGE_REPORT.md`.
