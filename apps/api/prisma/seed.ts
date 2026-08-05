@@ -7,7 +7,7 @@
  * demonstração. Executado fora da API pública (`npm run db:seed`).
  */
 
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { ALL_PERMISSIONS, ROLE_PERMISSIONS } from '../../../src/domain/permissions';
 import type { RoleKey } from '../../../src/domain/types';
 import { runCatalogProjection, type CatalogDbClient } from '../src/connectors/catalog/project-catalog';
@@ -40,40 +40,49 @@ export interface SeedResult {
 
 /** Semeia permissões + papéis de sistema + relação papel→permissão (idempotente). */
 export async function seedIdentityCatalog(prisma: PrismaClient): Promise<SeedResult> {
-  // 1. Permissões (upsert por key).
-  for (const key of ALL_PERMISSIONS) {
-    await prisma.permission.upsert({
-      where: { key },
-      create: { key, description: key },
-      update: {},
-    });
-  }
+  // 1. Permissões (idempotente e concorrência-segura — ARDEN-SCOPE-002 GAP-008).
+  // `createMany` com `skipDuplicates` emite INSERT ... ON CONFLICT DO NOTHING numa única
+  // instrução atômica, eliminando a corrida do `upsert` por-chave (SELECT-then-write) sob
+  // re-seed concorrente. `description` = key (imutável; nada a atualizar).
+  await prisma.permission.createMany({
+    data: ALL_PERMISSIONS.map((key) => ({ key, description: key })),
+    skipDuplicates: true,
+  });
 
   // 2. Papéis de sistema + suas permissões.
   const roleKeys = Object.keys(ROLE_PERMISSIONS) as RoleKey[];
   for (const key of roleKeys) {
-    const existing = await prisma.role.findFirst({ where: { organizationId: null, key } });
-    const role =
-      existing ??
-      (await prisma.role.create({
-        data: {
-          organizationId: null,
-          key,
-          name: SYSTEM_ROLE_NAMES[key] ?? key,
-          system: true,
-          status: 'ACTIVE',
-        },
-      }));
+    // Concorrência-segura (GAP-008): sob re-seed simultâneo, dois `create` para a mesma
+    // system-role colidiriam no índice único parcial `uniq_system_role_key`. Tratamos a
+    // colisão (P2002) re-buscando o papel já criado pelo outro processo — idempotente.
+    let role = await prisma.role.findFirst({ where: { organizationId: null, key } });
+    if (!role) {
+      try {
+        role = await prisma.role.create({
+          data: {
+            organizationId: null,
+            key,
+            name: SYSTEM_ROLE_NAMES[key] ?? key,
+            system: true,
+            status: 'ACTIVE',
+          },
+        });
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          role = await prisma.role.findFirstOrThrow({ where: { organizationId: null, key } });
+        } else {
+          throw err;
+        }
+      }
+    }
 
     const permKeys = ROLE_PERMISSIONS[key];
     const perms = await prisma.permission.findMany({ where: { key: { in: permKeys } } });
-    for (const p of perms) {
-      await prisma.rolePermission.upsert({
-        where: { roleId_permissionId: { roleId: role.id, permissionId: p.id } },
-        create: { roleId: role.id, permissionId: p.id },
-        update: {},
-      });
-    }
+    // Idempotente e concorrência-segura: INSERT ... ON CONFLICT DO NOTHING em lote.
+    await prisma.rolePermission.createMany({
+      data: perms.map((p) => ({ roleId: role.id, permissionId: p.id })),
+      skipDuplicates: true,
+    });
     // Convergência: remove permissões que não pertencem mais ao papel.
     await prisma.rolePermission.deleteMany({
       where: { roleId: role.id, permission: { key: { notIn: permKeys } } },
