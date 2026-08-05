@@ -1,0 +1,33 @@
+<!-- Milestone: ARDEN-PRD-001 -->
+# ARDEN-PRD-001 — Go-live gates
+
+Checklist bloqueante. Classificação de cada gate: **BLOCKING** (qualquer produção),
+**REQUIRED BEFORE PILOT**, **REQUIRED BEFORE COMMERCIAL PRODUCTION**, **POST-LAUNCH**.
+
+| Gate | Estado atual | Classificação |
+| --- | --- | --- |
+| Environments ready (staging+prod) | MISSING | REQUIRED BEFORE PILOT |
+| Deploy reproducible (artefato imutável) | MISSING | REQUIRED BEFORE PILOT |
+| Secrets managed (secret manager) | MISSING | BLOCKING |
+| Database managed (HA) | MISSING | REQUIRED BEFORE PILOT |
+| Backups enabled | MISSING | BLOCKING |
+| Restore drill passed | UNVERIFIED | BLOCKING |
+| Observability external | MISSING | REQUIRED BEFORE PILOT |
+| Alerts active | MISSING | REQUIRED BEFORE PILOT |
+| Runbooks approved | MISSING | REQUIRED BEFORE PILOT |
+| Incident owners assigned | MISSING | REQUIRED BEFORE PILOT |
+| Load test passed | MISSING | REQUIRED BEFORE COMMERCIAL PRODUCTION |
+| Security review passed | PARTIAL | REQUIRED BEFORE COMMERCIAL PRODUCTION |
+| Tenant isolation regression passed | READY (cross-tenant 404 testado) | REQUIRED BEFORE PILOT |
+| Migrations rehearsed | PARTIAL | REQUIRED BEFORE PILOT |
+| Rollback rehearsed | MISSING | REQUIRED BEFORE PILOT |
+| Pilot passed | MISSING | REQUIRED BEFORE COMMERCIAL PRODUCTION |
+| Legal/privacy review | MISSING | REQUIRED BEFORE COMMERCIAL PRODUCTION |
+| Support model defined | MISSING | REQUIRED BEFORE PILOT |
+| **Anthropic production block mantido** | READY (DISABLED) | BLOCKING (deve permanecer) |
+
+## Regra
+Nenhuma produção comercial sem todos os `BLOCKING` + `REQUIRED BEFORE COMMERCIAL
+PRODUCTION`. Nenhum piloto sem os `REQUIRED BEFORE PILOT` + `BLOCKING`. Anthropic
+permanece bloqueado independentemente destes gates (gates próprios em
+`ANTHROPIC_PRODUCTION_DEFERRED_GATES.md`).
