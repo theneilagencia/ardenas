@@ -24,9 +24,7 @@ import { ApiV1HttpClient } from './api/v1-http-client';
 import { createApiV1OperationsRepository } from './api/v1-operations-repository';
 import { createApiV1AuditRepository } from './api/generated/repository-compat';
 import { SnapshotApprovalsRepository } from './repositories/approvals-snapshot';
-import { ApiApprovalsRepository } from './repositories/approvals-api';
 import { SnapshotFilesRepository } from './repositories/files-snapshot';
-import { ApiFilesRepository } from './repositories/files-api';
 import { createApiV1ConnectorsRepository } from './api/v1-connectors-repository';
 import { createUnavailableConnectorsRepository } from './repositories/connectors-unavailable';
 import { createApiV1AgentsRepository } from './api/v1-agents-repository';
@@ -90,9 +88,15 @@ export function getServices(): ArdenServices {
     services = {
       operations: createApiV1OperationsRepository(v1),
       audit: createApiV1AuditRepository(v1),
-      // Aprovações e arquivos permanecem fora do escopo do v1 nesta issue.
-      approvals: new ApiApprovalsRepository(client),
-      files: new ApiFilesRepository(client),
+      // ARDEN-SCOPE-002 GAP-002: os antigos ApiApprovalsRepository/ApiFilesRepository eram
+      // código morto (nunca chamados; contrato legado `/approvals` `/files` de docs/handoff,
+      // ausente da API v1 real). Removidos. Aprovações e arquivos são features de
+      // DEMONSTRAÇÃO sem backend v1 canônico: o fluxo de aprovação REAL vive no backend
+      // (`/approval-requests`, enforcement/agent-resume, coberto por testes) e não nesta
+      // camada; arquivos não têm domínio backend aprovado. Em modo api usam o repositório
+      // de snapshot (demo), sem endpoint inexistente. Ver ARDEN_SCOPE_002_BACKEND_UI_INTEGRATION.md.
+      approvals: new SnapshotApprovalsRepository(getSnapshotStore()),
+      files: new SnapshotFilesRepository(getSnapshotStore()),
       // Conectores/conexões/credenciais/vínculos/webhooks (ARDEN-BE-006.8).
       connectors: createApiV1ConnectorsRepository(v1),
       // Agentes/modelos/resultados/uso (ARDEN-BE-007) — API v1 é a fonte de verdade.
