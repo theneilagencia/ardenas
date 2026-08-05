@@ -1,0 +1,13 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo observability (provider-neutro, NÃO executável).
+module: observability
+inputs:
+  selectedProduct: TBD
+  signals: [logs, metrics, traces, errors, uptime, synthetics]
+  protocol: OpenTelemetry    # justificado; backend não escolhido
+outputs:
+  exporterReference: <ref>
+  dashboardsReference: <ref>
+invariants:
+  externalExport: true
+  redactionEnabled: true
+  releaseShaLabel: true

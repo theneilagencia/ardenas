@@ -1,0 +1,26 @@
+{
+  "$schema": "./alert-definitions.schema.json",
+  "milestone": "ARDEN-PRD-001.2A.2",
+  "note": "Definições machine-readable dos 19 alertas. Sem backend específico. ownerRole é PAPEL (nunca nome pessoal); pode ser TBD quando depender de decisão humana.",
+  "alerts": [
+    { "id": "api-unavailable", "severity": "SEV-1", "signal": "uptime", "condition": "uptime check falha", "window": "2m", "ownerRole": "platform", "runbook": "API_NOT_READY_MASTER_KEY", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "high-5xx-rate", "severity": "SEV-2", "signal": "http_5xx_rate", "condition": "5xx > limiar por N min", "window": "5m", "ownerRole": "platform", "runbook": "INCIDENT_RESPONSE", "notificationPolicy": "page", "productionBlocking": false },
+    { "id": "high-latency", "severity": "SEV-2", "signal": "http_p95_latency", "condition": "p95 > SLO", "window": "5m", "ownerRole": "platform", "runbook": "INCIDENT_RESPONSE", "notificationPolicy": "page", "productionBlocking": false },
+    { "id": "database-unavailable", "severity": "SEV-1", "signal": "readyz", "condition": "/readyz 503 ou ping falha", "window": "1m", "ownerRole": "platform", "runbook": "database-unavailable", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "db-storage-threshold", "severity": "SEV-2", "signal": "db_storage_used", "condition": "uso > 80%", "window": "10m", "ownerRole": "platform", "runbook": "DATABASE_OPERATIONS", "notificationPolicy": "ticket", "productionBlocking": false },
+    { "id": "worker-unavailable", "severity": "SEV-1", "signal": "worker_heartbeat", "condition": "sem heartbeat", "window": "3m", "ownerRole": "platform", "runbook": "WORKER_NOT_READY_MASTER_KEY", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "queue-age-threshold", "severity": "SEV-2", "signal": "queue_oldest_job_age", "condition": "oldest job age > limiar", "window": "5m", "ownerRole": "platform", "runbook": "pool-exhaustion", "notificationPolicy": "page", "productionBlocking": false },
+    { "id": "retry-storm", "severity": "SEV-2", "signal": "job_retry_rate", "condition": "taxa de retry > limiar", "window": "5m", "ownerRole": "platform", "runbook": "pool-exhaustion", "notificationPolicy": "ticket", "productionBlocking": false },
+    { "id": "job-stuck", "severity": "SEV-3", "signal": "job_lease_expired", "condition": "lease expirado sem progresso", "window": "10m", "ownerRole": "platform", "runbook": "worker-not-ready", "notificationPolicy": "ticket", "productionBlocking": false },
+    { "id": "migration-failure", "severity": "SEV-1", "signal": "migration_gate", "condition": "gate de migration falha", "window": "1m", "ownerRole": "release", "runbook": "migration", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "backup-failure", "severity": "SEV-1", "signal": "backup_job", "condition": "job de backup falha", "window": "1m", "ownerRole": "platform", "runbook": "backup-failure", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "restore-verification-failure", "severity": "SEV-1", "signal": "restore_drill", "condition": "drill de restore falha", "window": "1m", "ownerRole": "platform", "runbook": "restore-drill", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "secret-decryption-failure", "severity": "SEV-1", "signal": "vault_decrypt", "condition": "vault falha ao decifrar", "window": "1m", "ownerRole": "security", "runbook": "master-key-recovery", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "connector-master-key-error", "severity": "SEV-1", "signal": "master_key_preflight", "condition": "chave indisponível/inválida", "window": "1m", "ownerRole": "security", "runbook": "master-key-recovery", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "auth-anomaly", "severity": "SEV-2", "signal": "auth_failure_rate", "condition": "pico de falhas de auth", "window": "5m", "ownerRole": "security", "runbook": "security-incident", "notificationPolicy": "page", "productionBlocking": false },
+    { "id": "cross-tenant-security-signal", "severity": "SEV-1", "signal": "cross_tenant_access", "condition": "acesso cruzado detectado", "window": "1m", "ownerRole": "security", "runbook": "cross-tenant-suspicion", "notificationPolicy": "page", "productionBlocking": true },
+    { "id": "unexpected-cost-spike", "severity": "SEV-2", "signal": "cost_baseline", "condition": "custo/uso acima do baseline", "window": "1h", "ownerRole": "product", "runbook": "INCIDENT_RESPONSE", "notificationPolicy": "ticket", "productionBlocking": false },
+    { "id": "resource-saturation", "severity": "SEV-2", "signal": "cpu_mem_saturation", "condition": "recurso > limiar", "window": "10m", "ownerRole": "platform", "runbook": "INCIDENT_RESPONSE", "notificationPolicy": "page", "productionBlocking": false },
+    { "id": "certificate-expiration", "severity": "SEV-3", "signal": "tls_cert_validity", "condition": "validade < 14 dias", "window": "1d", "ownerRole": "platform", "runbook": "security-incident", "notificationPolicy": "ticket", "productionBlocking": false }
+  ]
+}

@@ -1,0 +1,21 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo postgres (provider-neutro, NÃO executável).
+module: postgres
+inputs:
+  version: "16"
+  storage: TBD
+  ha: true
+  backupRetention: TBD
+  pitrWindow: TBD
+  privateNetworking: true
+  connectionLimits: TBD
+  maintenanceWindow: TBD
+outputs:
+  runtimeConnectionReference: <ref-pooler>   # DATABASE_URL (transaction pooling)
+  migrationConnectionReference: <ref-direct> # DIRECT_URL (conexão direta)
+  backupPolicyReference: <ref>
+invariants:
+  managed: true
+  publicAccess: false
+  tls: required
+  automaticBackups: true
+  pitr: required

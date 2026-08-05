@@ -1,0 +1,23 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo de rede (provider-neutro, NÃO executável).
+module: network
+inputs:
+  provider: TBD            # GCP | AWS | SPECIALIZED_PAAS
+  regions: TBD
+  cidrs: TBD
+  publicApiExposure: minimal
+  databasePrivateAccess: true
+  egressPolicy: DENY
+  dns: TBD
+  waf: TBD
+outputs:
+  networkId: <ref>
+  privateSubnetIds: <ref[]>
+  publicIngressEndpoint: <ref>
+  databaseConnectivityReference: <ref>
+  egressPolicyReference: <ref>
+invariants:
+  databasePublicAccess: false
+  defaultEgress: DENY
+  workerPublicIngress: false
+  tlsRequired: true
+  anthropicEgress: BLOCKED

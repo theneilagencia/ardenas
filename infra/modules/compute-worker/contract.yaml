@@ -1,0 +1,19 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo compute-worker (provider-neutro, NÃO executável).
+module: compute-worker
+inputs:
+  immutableImageSha: TBD    # MESMA imagem da API
+  workerCommand: "node apps/api/dist/worker.js"
+  cpu: TBD
+  memory: TBD
+  concurrency: TBD
+  autoscalingSignals: TBD
+  platformSecretReferences: [DATABASE_URL, CONNECTOR_MASTER_KEY_PRIMARY, OBSERVABILITY_TOKEN]
+outputs:
+  deploymentRevision: <ref>
+  identityReference: <ref>
+invariants:
+  publicIngress: false
+  cryptographicReadiness: true      # não consome job com keyring inválido
+  gracefulShutdown: true
+  leaseSafety: true
+  jobConsumptionBlockedWhenNotReady: true

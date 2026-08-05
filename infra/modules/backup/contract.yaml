@@ -1,0 +1,14 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo backup (provider-neutro, NÃO executável).
+module: backup
+inputs:
+  retention: TBD
+  pitrWindow: TBD
+  encryptionAtRest: true
+  crossRegionCopy: REQUIRES_LEGAL_REVIEW
+outputs:
+  backupPolicyReference: <ref>
+  pitrReference: <ref>
+invariants:
+  automaticBackups: true
+  pitr: required
+  neverDeleteWhileSustainingPitr: true

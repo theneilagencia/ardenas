@@ -1,0 +1,18 @@
+# ARDEN-PRD-001.2A.2 — Contrato do ambiente recovery (isolado, provider-neutro).
+environment: recovery
+isolation:
+  projectOrAccount: isolated
+  network: isolated
+  database: isolated
+  secrets: isolated
+  domain: isolated
+  logs: isolated
+  identities: isolated
+  budget: isolated
+forbidden:
+  - recovery aponta para banco de outro ambiente
+  - recovery usa secrets de outro ambiente
+  - recovery consome fila de outro ambiente
+recoverySpecific:
+  usesRuntimeCredentials: false     # recovery nunca usa credenciais de runtime
+  neverWritesProduction: true

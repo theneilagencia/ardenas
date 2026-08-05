@@ -1,0 +1,15 @@
+# ARDEN-PRD-001.2A.2 — Contrato do ambiente production (isolado, provider-neutro).
+environment: production
+isolation:
+  projectOrAccount: isolated
+  network: isolated
+  database: isolated
+  secrets: isolated
+  domain: isolated
+  logs: isolated
+  identities: isolated
+  budget: isolated
+forbidden:
+  - production aponta para banco de outro ambiente
+  - production usa secrets de outro ambiente
+  - production consome fila de outro ambiente

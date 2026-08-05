@@ -1,0 +1,12 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo registry (provider-neutro, NÃO executável).
+module: registry
+inputs:
+  selectedProduct: TBD
+  imageIdentity: commit-sha    # nunca `latest`
+  imageScanEnabled: true
+outputs:
+  imageReference: <ref-by-sha>
+invariants:
+  identityByCommitSha: true
+  latestTag: forbidden
+  noSecretInImage: true

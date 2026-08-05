@@ -1,0 +1,20 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo compute-api (provider-neutro, NÃO executável).
+module: compute-api
+inputs:
+  immutableImageSha: TBD
+  cpu: TBD
+  memory: TBD
+  replicaMinimum: TBD
+  replicaMaximum: TBD
+  healthEndpoints: ["/live", "/ready"]
+  platformSecretReferences: [DATABASE_URL, CONNECTOR_MASTER_KEY_PRIMARY, SESSION_JWT_MATERIAL, OBSERVABILITY_TOKEN]
+outputs:
+  serviceUrl: <ref>
+  deploymentRevision: <ref>
+  identityReference: <ref>
+invariants:
+  stateless: true
+  liveEndpoint: "/live"
+  readyEndpoint: "/ready"
+  noLocalPersistentStorage: true
+  noCloudStaticAccessKey: true

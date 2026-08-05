@@ -1,0 +1,12 @@
+# ARDEN-PRD-001.2A.2 — Contrato do módulo restore-drill (provider-neutro, NÃO executável).
+module: restore-drill
+inputs:
+  environment: recovery-drill      # nunca production
+  pitrTargetUtc: TBD
+  masterKeyWrappingKeyRef: CONNECTOR_MASTER_KEY_BACKUP_WRAPPING_KEY
+outputs:
+  drillEvidenceReference: <ref>
+invariants:
+  neverWritesProduction: true
+  provesBankPlusMasterKeyPlusDecrypt: true
+  failClosedWithoutProvider: true
