@@ -65,3 +65,13 @@ comercial Anthropic permanece bloqueada até os gates deferidos próprios.
 - **#1 Secret manager:** PARTIALLY_CLOSED (fronteira/fail-closed/keyring/preflight); adapter de
   produção BLOCKED_BY_EXTERNAL_DECISION.
 - Métricas externas + auditoria dedicada de recriptografia + gate de CI de recuperação: STILL_OPEN.
+
+---
+## Atualização ARDEN-PRD-001.2A
+- **#1 Secret manager:** opções analisadas (`SECRET_MANAGER_OPTIONS.md`); adapter
+  `EXTERNAL_SECRET_MANAGER` do contrato existente — implementação em 001.2B.5.
+- **#3 Banco gerenciado HA+PITR:** opções (`MANAGED_POSTGRESQL_OPTIONS.md`) + pooling
+  (`POSTGRESQL_POOLING_DECISION.md`) — habilitação em 001.2B.3/2B.4.
+- **#4 Backup + restore drill:** política + plano de drill definidos — execução em 001.2B.8.
+- **#7 Rede privada + egress deny:** decisão em `NETWORK_AND_EGRESS_DECISION.md` — 001.2B.2.
+- Todos aguardam a decisão de negócio de infraestrutura (ADR-0001, `REQUIRES_BUSINESS_DECISION`).

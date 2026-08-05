@@ -36,3 +36,14 @@ Riscos R-18/R-19 são herdados e permanecem **fora** do escopo de resolução de
 - **R-05** (secrets sem manager): PARTIALLY_CLOSED (fronteira + fail-closed de produção; adapter
   externo BLOCKED_BY_EXTERNAL_DECISION).
 - Demais riscos: STILL_OPEN.
+
+---
+## Atualização ARDEN-PRD-001.2A
+- Avaliação de risco específica da decisão de infraestrutura e da implementação futura em
+  `ARDEN_PRD_001_2A_RISK_ASSESSMENT.md` (RD-01..05 decisão/evidência; RT-01..08 técnicos;
+  RL-01..04 jurídicos — REQUIRES_LEGAL_REVIEW).
+- **R-06** (banco gerenciado HA+PITR) e **R-07** (rede privada + egress) permanecem
+  STILL_OPEN, mas agora com decisão/política proposta (ADR-0001, `NETWORK_AND_EGRESS_DECISION.md`,
+  `DATABASE_BACKUP_AND_PITR_POLICY.md`) aguardando 001.2B.
+- Novo risco destacado: restore do banco sem master key correta → credenciais ilegíveis
+  (RT-04); mitigado pelo desenho do drill (banco + master key + decrypt canário).

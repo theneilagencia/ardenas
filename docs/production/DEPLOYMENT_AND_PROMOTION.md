@@ -46,3 +46,13 @@ compliance, suporte, lock-in. Opções: AWS, Google Cloud, Azure, PaaS (Fly.io/R
 Railway), híbrido. **Não** se conclui AWS por padrão. Hipótese registrada: uma PaaS com
 Postgres gerenciado + secret manager acelera piloto com menor custo operacional; cloud
 grande favorece escala/compliance de longo prazo. Decisão pertence ao dono do produto.
+
+---
+## Atualização ARDEN-PRD-001.2A
+- A "Decisão de infraestrutura" acima passa a ter análise formal: `REQUIRES_BUSINESS_DECISION`
+  com finalistas B (GCP), D (PaaS), A (AWS) — `ADR-0001` (PROPOSED) e
+  `ARDEN_PRD_001_2A_DECISION_REPORT.md`.
+- Promoção por **artefato imutável** (mesma imagem OCI) entre staging→production
+  (`ENVIRONMENT_ISOLATION.md`); registro de imagem em `ARDEN_PRD_001_2A_SOURCE_REGISTER.md` (S7).
+- Pipeline de deploy/rollback + migration job (conexão **direta**) especificados no plano
+  faseado `INFRASTRUCTURE_IMPLEMENTATION_PLAN.md` (fase 001.2B.6). Não implementado nesta fase.

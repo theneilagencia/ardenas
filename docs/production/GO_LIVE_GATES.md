@@ -40,3 +40,20 @@ permanece bloqueado independentemente destes gates (gates próprios em
 - **Backups enabled / Restore drill:** keyring: PARTIALLY_CLOSED (backup cifrado + restore
   verify + drill offline); **DATABASE** backup/PITR/restore: STILL_OPEN / UNVERIFIED (PRD-001.2).
 - Demais gates: inalterados.
+
+---
+## Atualização ARDEN-PRD-001.2A (decisão de infraestrutura — documental)
+- **Decisão registrada:** `INFRASTRUCTURE_DECISION: REQUIRES_BUSINESS_DECISION`
+  (`docs/decisions/ADR-0001-PRODUCTION-INFRASTRUCTURE.md`, status PROPOSED). Finalistas:
+  B (GCP), D (PaaS), A (AWS). Ver `ARDEN_PRD_001_2A_DECISION_REPORT.md`.
+- Nenhum gate mudou de estado (fase documental). O que 001.2A **destrava** ao ser decidido:
+  - *Database managed (HA)* / *Backups enabled* / *Restore drill*: políticas e plano de
+    drill definidos (`DATABASE_BACKUP_AND_PITR_POLICY.md`, `DATABASE_RESTORE_DRILL_PLAN.md`)
+    — habilitação em 001.2B.
+  - *Secrets managed*: opções + adapter neutro (`SECRET_MANAGER_OPTIONS.md`) — implementação
+    em 001.2B.
+  - *Rede privada + egress deny*: decisão em `NETWORK_AND_EGRESS_DECISION.md` — aplicação
+    em 001.2B.
+- **Bloqueio:** gates BLOCKING permanecem MISSING/UNVERIFIED até 001.2B; 001.2B só inicia
+  após decisão de negócio (custo S5 + SLA S4 + jurídico S8) e ADR-0001 → ACCEPTED.
+- **Anthropic:** permanece DISABLED.

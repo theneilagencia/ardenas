@@ -28,3 +28,14 @@
 Instância **PostgreSQL gerenciada** (RDS / Cloud SQL / Neon / Supabase-managed) com HA,
 PITR, pooling, encryption at rest e monitoramento nativos — evita reimplementar operação
 de banco. Rede privada (banco não exposto publicamente — ver `SECURITY_OPERATIONS.md`).
+
+---
+## Atualização ARDEN-PRD-001.2A
+- Análise das opções de PostgreSQL gerenciado detalhada em `MANAGED_POSTGRESQL_OPTIONS.md`
+  (RDS / Cloud SQL / Azure Flexible Server / Neon / Supabase; PG16, HA, PITR, backup —
+  `PARTIALLY_VERIFIED`, ver `ARDEN_PRD_001_2A_SOURCE_REGISTER.md`).
+- **Pooling decidido:** `TRANSACTION_POOLING` para a app + conexão **direta** para
+  migrations (`POSTGRESQL_POOLING_DECISION.md`). Requer `directUrl` no Prisma em 001.2B.
+- **Backup/PITR:** política em `DATABASE_BACKUP_AND_PITR_POLICY.md`; restore drill em
+  `DATABASE_RESTORE_DRILL_PLAN.md` (banco + master key + decrypt canário).
+- Provedor final: `REQUIRES_BUSINESS_DECISION` (ADR-0001). Nada provisionado nesta fase.

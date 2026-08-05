@@ -48,3 +48,13 @@ padronização em `OBSERVABILITY_STRATEGY.md`.
 (não-root), `EXPOSE 3000`, `CMD node apps/api/dist/main.js`. **Sem `HEALTHCHECK`**; sem
 execução de migration no entrypoint (correto — migration deve ser gate separado).
 `docker-compose.yml` para dev local.
+
+---
+## Atualização ARDEN-PRD-001.2A
+- Decisão de infraestrutura consolidada em `docs/decisions/ADR-0001-PRODUCTION-INFRASTRUCTURE.md`
+  (PROPOSED, `REQUIRES_BUSINESS_DECISION`) e `ARDEN_PRD_001_2A_DECISION_REPORT.md`.
+- Documentos de arquitetura de produção adicionados: comparação de opções, PostgreSQL
+  gerenciado, pooling, secret manager, IAM, rede/egress, isolamento de ambientes, custo,
+  backup/PITR, restore drill e plano de implementação 001.2B (todos em `docs/production/`).
+- Contrato `PlatformSecretSource` acomoda qualquer secret manager (adapter
+  `EXTERNAL_SECRET_MANAGER`) sem redesenho. Anthropic permanece DISABLED.
