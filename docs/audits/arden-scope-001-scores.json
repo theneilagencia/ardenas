@@ -1,0 +1,58 @@
+{
+ "commit": "756b244",
+ "branch": "claude/arden-scope-001-completeness-audit",
+ "weights": {
+  "COMPLETE": 1.0,
+  "PARTIAL": 0.5,
+  "PREPARED": 0.35,
+  "DOCUMENTED_ONLY": 0.2,
+  "MOCK_ONLY": 0.2,
+  "TEST_ONLY": 0.2,
+  "DISABLED": 0.25,
+  "MISSING": 0.0,
+  "UNVERIFIED": 0.0,
+  "BLOCKED_BY_DECISION": 0.0,
+  "BLOCKED_BY_EXTERNAL_PROVIDER": 0.0
+ },
+ "totals": {
+  "total": 105,
+  "mandatory": 100,
+  "optional": 5,
+  "by_status": {
+   "COMPLETE": 76,
+   "MOCK_ONLY": 8,
+   "PARTIAL": 3,
+   "BLOCKED_BY_EXTERNAL_PROVIDER": 2,
+   "PREPARED": 6,
+   "BLOCKED_BY_DECISION": 9,
+   "DOCUMENTED_ONLY": 1
+  }
+ },
+ "IMPLEMENTATION_COMPLETENESS": 86.6,
+ "APPROVED_SCOPE_READINESS": 77.5,
+ "FUNCTIONAL_SCOPE_COMPLETENESS": 89.9,
+ "sub_scores": {
+  "FRONTEND": 71.0,
+  "BACKEND": 89.3,
+  "API": 100.0,
+  "DATABASE": 83.3,
+  "EXECUTION": 86.7,
+  "CONNECTOR": 100.0,
+  "AGENT": 93.3,
+  "SECURITY": 95.0,
+  "OPERATIONAL": 19.2,
+  "PRODUCTION": 0.0
+ },
+ "sub_score_counts": {
+  "FRONTEND": 10,
+  "BACKEND": 27,
+  "API": 3,
+  "DATABASE": 3,
+  "EXECUTION": 6,
+  "CONNECTOR": 8,
+  "AGENT": 15,
+  "SECURITY": 16,
+  "OPERATIONAL": 12,
+  "PRODUCTION": 5
+ }
+}
