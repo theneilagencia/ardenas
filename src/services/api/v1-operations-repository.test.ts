@@ -107,6 +107,22 @@ describe('createApiV1OperationsRepository', () => {
     expect(calls.updateAuthority).toHaveLength(1);
   });
 
+  it('createFromAssessment cria operação real em modo api (GAP-005, sem lançar UNAVAILABLE)', async () => {
+    const calls: Calls = { updateVersion: [], updateAuthority: [] };
+    const repo = createApiV1OperationsRepository(fakeClient(calls));
+    const op = await repo.createFromAssessment({
+      assessmentId: 'a-1',
+      operationName: 'Op do Assessment',
+      discipline: 'seguranca',
+      execScore: 90,
+      responsibleId: 'u-9',
+      organizationId: ORG,
+    });
+    expect(op.id).toBe('op-1');
+    // Deriva rascunho a partir do assessment: define a versão (não lança).
+    expect(calls.updateVersion).toHaveLength(1);
+  });
+
   it('sem organização ativa lança erro tipado (sem fallback)', async () => {
     setActiveOrganizationId(null);
     const repo = createApiV1OperationsRepository(fakeClient({ updateVersion: [], updateAuthority: [] }));

@@ -288,12 +288,37 @@ export function createApiV1OperationsRepository(client: ArdenApiV1Client): Opera
       }
     },
 
-    async createFromAssessment(): Promise<DomainOperation> {
-      // Assessment → operação é fluxo de um marco posterior (fora do ARDEN-BE-003).
-      throw new ArdenRepositoryError(
-        'UNAVAILABLE',
-        'createFromAssessment não faz parte do v1 (marco posterior).',
-      );
+    async createFromAssessment(input): Promise<DomainOperation> {
+      // ARDEN-SCOPE-002 GAP-005: assessment → operação real (antes lançava UNAVAILABLE em
+      // modo api, divergindo do modo demo). Deriva um rascunho a partir do assessment e o
+      // cria pelo caminho canônico `createOperation` + atualização de rascunho.
+      const orgId = requireOrg();
+      try {
+        const op = await client.createOperation(
+          orgId,
+          { name: input.operationName, description: null, ownerId: input.responsibleId || undefined },
+          { idempotencyKey: idem() },
+        );
+        const draftId = op.currentDraftVersionId;
+        const draftFields: Partial<DomainOperation> = {
+          name: input.operationName,
+          ownerId: input.responsibleId,
+          criticality: input.execScore >= 80 ? 'moderate' : 'elevated',
+          tags: [input.discipline],
+        };
+        let version: ApiOperationVersion | null = null;
+        if (draftId) {
+          version = await getVersion(orgId, op.id, draftId);
+          version = await client.updateOperationVersion(orgId, op.id, draftId, {
+            definition: toDefinition(draftFields),
+            expectedRevision: version.revision,
+          });
+        }
+        const fresh = await client.getOperation(orgId, op.id);
+        return mergeOperation(fresh, version);
+      } catch (err) {
+        throw toRepositoryError(err);
+      }
     },
   };
 }
