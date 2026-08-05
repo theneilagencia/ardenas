@@ -4,11 +4,12 @@
  * controller nunca processa etapas — apenas cria/comanda; este loop é quem executa.
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ExecutionQueue } from './execution.queue';
 import { ExecutionProcessor } from './execution.processor';
 import { ExecutionRecorder } from './execution.recorder';
 import { ExecutionsRepository } from './executions.repository';
+import { ConnectorMasterKeyPreflightService } from '../security/connector-master-key-preflight.service';
 
 export interface WorkerOptions {
   workerId: string;
@@ -21,12 +22,37 @@ export class ExecutionWorker {
   private readonly logger = new Logger(ExecutionWorker.name);
   private running = false;
 
+  private keyringUnavailableLogged = false;
+
   constructor(
     private readonly queue: ExecutionQueue,
     private readonly processor: ExecutionProcessor,
     private readonly recorder: ExecutionRecorder,
     private readonly repo: ExecutionsRepository,
+    // ARDEN-PRD-001.1D: preflight criptográfico. @Optional para não quebrar contextos de
+    // teste que montam o worker sem o SecurityModule.
+    @Optional() private readonly masterKeyPreflight?: ConnectorMasterKeyPreflightService,
   ) {}
+
+  /**
+   * Fail-closed: quando o keyring é inválido/incompleto, o worker NÃO adquire jobs, NÃO
+   * renova leases e NÃO os marca como FAILED (é configuração global, não defeito do job).
+   */
+  private async keyringReady(): Promise<boolean> {
+    if (!this.masterKeyPreflight) return true; // sem serviço injetado → não bloqueia (testes)
+    let ready = false;
+    try {
+      ready = await this.masterKeyPreflight.isReady();
+    } catch {
+      ready = false;
+    }
+    if (!ready && !this.keyringUnavailableLogged) {
+      this.keyringUnavailableLogged = true; // evita loop de logs
+      this.logger.error('Worker não pronto: preflight da master key inválido (fail-closed; sem consumir jobs).');
+    }
+    if (ready) this.keyringUnavailableLogged = false;
+    return ready;
+  }
 
   /** Recupera leases expirados; registra evento de recuperação por execução. */
   async recoverLeases(): Promise<number> {
@@ -43,6 +69,8 @@ export class ExecutionWorker {
 
   /** Processa no máximo um job. Retorna true se processou algo. Usado em testes. */
   async runOnce(opts: WorkerOptions): Promise<boolean> {
+    // Preflight fail-closed: sem keyring válido, não consome nem recupera jobs.
+    if (!(await this.keyringReady())) return false;
     await this.recoverLeases();
     const job = await this.queue.acquire(opts.workerId, opts.leaseSeconds);
     if (!job) return false;

@@ -11,6 +11,7 @@ import { IdempotencyModule } from '../modules/idempotency/idempotency.module';
 import { EnforcementModule } from '../enforcement/enforcement.module';
 import { ConnectorsModule } from '../connectors/connectors.module';
 import { AgentsModule } from '../agents/agents.module';
+import { SecurityModule } from '../security/security.module';
 import { ExecutionsController } from './executions.controller';
 import { ExecutionsService } from './executions.service';
 import { ExecutionsRepository } from './executions.repository';
@@ -26,7 +27,7 @@ import { StepExecutorRegistry } from './step-executor-registry';
   // ConnectorsModule fornece o ExternalToolExecutor (ARDEN-BE-006.6); AgentsModule fornece
   // o AGENT_RUNTIME (ARDEN-BE-007.3). O worker roteia por action key registrada — nunca por
   // classe vinda do banco. AgentsModule NÃO importa ExecutionsModule (sem ciclo).
-  imports: [AuthzModule, AuditModule, IdempotencyModule, EnforcementModule, ConnectorsModule, AgentsModule],
+  imports: [AuthzModule, AuditModule, IdempotencyModule, EnforcementModule, ConnectorsModule, AgentsModule, SecurityModule],
   controllers: [ExecutionsController],
   providers: [
     ExecutionsService, ExecutionsRepository, ExecutionRecorder, ExecutionQueue, ExecutionProcessor, ExecutionWorker,

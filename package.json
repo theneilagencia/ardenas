@@ -40,6 +40,13 @@
     "db:migrate:deploy": "npm -w @arden/api run db:migrate:deploy",
     "db:migrate:status": "npm -w @arden/api run db:migrate:status",
     "db:reset:test": "npm -w @arden/api run db:reset:test",
+    "secrets:verify": "npm -w @arden/api run secrets:verify",
+    "master-key:status": "npm -w @arden/api run master-key:status",
+    "master-key:verify": "npm -w @arden/api run master-key:verify",
+    "master-key:reencrypt": "npm -w @arden/api run master-key:reencrypt",
+    "master-key:backup": "npm -w @arden/api run master-key:backup",
+    "master-key:restore:verify": "npm -w @arden/api run master-key:restore:verify",
+    "master-key:drill": "npm -w @arden/api run master-key:drill",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"
   },

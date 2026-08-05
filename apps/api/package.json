@@ -23,7 +23,14 @@
     "db:reset:test": "prisma migrate reset --force --skip-seed",
     "db:seed": "ARDEN_CLI=seed vite-node prisma/seed.ts",
     "bootstrap:organization": "ARDEN_CLI=bootstrap vite-node prisma/bootstrap-organization.ts",
-    "smoke:anthropic": "ARDEN_CLI=anthropic-smoke vite-node src/scripts/anthropic-smoke-test.cli.ts"
+    "smoke:anthropic": "ARDEN_CLI=anthropic-smoke vite-node src/scripts/anthropic-smoke-test.cli.ts",
+    "secrets:verify": "ARDEN_CLI=master-key vite-node src/scripts/master-key.cli.ts secrets:verify",
+    "master-key:status": "ARDEN_CLI=master-key vite-node src/scripts/master-key.cli.ts status",
+    "master-key:verify": "ARDEN_CLI=master-key vite-node src/scripts/master-key.cli.ts verify",
+    "master-key:reencrypt": "ARDEN_CLI=master-key vite-node src/scripts/master-key.cli.ts reencrypt",
+    "master-key:backup": "ARDEN_CLI=master-key vite-node src/scripts/master-key.cli.ts backup",
+    "master-key:restore:verify": "ARDEN_CLI=master-key vite-node src/scripts/master-key.cli.ts restore:verify",
+    "master-key:drill": "ARDEN_CLI=master-key vite-node src/scripts/master-key.cli.ts drill"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"

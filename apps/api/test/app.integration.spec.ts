@@ -30,7 +30,9 @@ describe('health & readiness', () => {
   it('GET /ready retorna 200 com banco disponível', async () => {
     const res = await request(server).get('/ready');
     expect(res.status).toBe(200);
-    expect(res.body.checks.database).toBe(true);
+    // ARDEN-PRD-001.1D: checks sanitizados 'pass'/'fail'; inclui o preflight do keyring.
+    expect(res.body.checks.database).toBe('pass');
+    expect(res.body.checks.connectorMasterKeyring).toBe('pass');
   });
 });
 

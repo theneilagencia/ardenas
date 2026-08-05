@@ -49,4 +49,17 @@ export class ConnectorKeyProvider {
     if (!key) throw new Error(`vault key version unavailable: ${version}`);
     return { version, key };
   }
+
+  /**
+   * Descrição SANITIZADA do keyring — NUNCA expõe material de chave (ARDEN-PRD-001.1D).
+   * `primaryVersion` = versão corrente (PRIMARY); `availableVersions` inclui todas as
+   * versões carregadas (primária + DECRYPT_ONLY). Usada por preflight/status.
+   */
+  describeKeyring(): { primaryVersion: string; availableVersions: string[]; hasPrimary: boolean } {
+    return {
+      primaryVersion: this.currentVersion,
+      availableVersions: Array.from(this.keyring.keys()).sort(),
+      hasPrimary: this.keyring.has(this.currentVersion),
+    };
+  }
 }
