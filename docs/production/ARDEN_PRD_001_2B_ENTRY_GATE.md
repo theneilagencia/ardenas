@@ -34,3 +34,11 @@ Motivo: a decisão de negócio ainda não foi tomada nem registrada; `ADR-0001` 
 
 - Anthropic **DISABLED**; `productionAllowed=false`.
 - Nenhum secret no repositório; master key nunca no banco; sem endpoint HTTP de secrets.
+
+---
+## Atualização ARDEN-PRD-001.2A.2 — forma machine-checkable
+O gate agora é verificável por ferramenta offline: **`npm run infrastructure:decision:validate`**
+(lê `config/infrastructure/production-decision.yaml`, ou cai ao exemplo). Retorna **exit ≠ 0**
+enquanto qualquer campo bloqueante for sentinela ou a ADR não for ACCEPTED. Estado atual:
+**FAIL** (exemplo com sentinelas; ADR PROPOSED). Sem bypass. O job de CI `infrastructure`
+falha se o manifesto passar sem decisão humana.

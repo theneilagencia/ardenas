@@ -84,3 +84,11 @@ comercial Anthropic permanece bloqueada até os gates deferidos próprios.
 - Itens P0/P1 dependentes de infraestrutura (secret manager, banco HA+PITR, backup/restore,
   rede/egress) permanecem STILL_OPEN e agora **bloqueados** pelo
   `ARDEN_PRD_001_2B_ENTRY_GATE = FAIL` até a decisão de negócio + ADR ACCEPTED.
+
+---
+## Atualização ARDEN-PRD-001.2A.2
+- Itens de infraestrutura agora possuem **contratos + automação offline** prontos
+  (manifesto/validador, IaC contracts, connection budget, artifact, migração/deploy
+  fail-closed, recovery adapter, IAM, rede/egress, observabilidade, alertas, runbooks).
+- Todos permanecem STILL_OPEN para **execução**, bloqueados pelo
+  `ARDEN_PRD_001_2B_ENTRY_GATE = FAIL` até decisão humana + ADR ACCEPTED.

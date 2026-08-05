@@ -60,3 +60,13 @@ gate. Nenhum recurso é criado em 001.2A.
   arquitetura + região selecionadas, cotação oficial + parecer jurídico anexados, RPO/RTO
   aprovados e responsável operacional atribuído. Pacote de decisão:
   `ARDEN_PRD_001_2A_1_DECISION_PACKAGE_REPORT.md`.
+
+---
+## Atualização ARDEN-PRD-001.2A.2
+- Repositório tecnicamente preparado: manifesto de decisão + validador
+  (`npm run infrastructure:decision:validate`), IaC contracts (`infra/`), estratégia de
+  container/artefato, migração e deploy fail-closed, smoke suite, recovery adapter, IAM,
+  rede/egress, observabilidade, alertas e runbooks. Ver
+  `ARDEN_PRD_001_2A_2_PREPARATION_REPORT.md`.
+- Cada fase 001.2B.N passa a ter contratos/validadores offline correspondentes; a
+  materialização real ainda depende do `ARDEN_PRD_001_2B_ENTRY_GATE = PASS`.

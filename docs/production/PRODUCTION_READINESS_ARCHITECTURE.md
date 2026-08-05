@@ -58,3 +58,10 @@ execução de migration no entrypoint (correto — migration deve ser gate separ
   backup/PITR, restore drill e plano de implementação 001.2B (todos em `docs/production/`).
 - Contrato `PlatformSecretSource` acomoda qualquer secret manager (adapter
   `EXTERNAL_SECRET_MANAGER`) sem redesenho. Anthropic permanece DISABLED.
+
+---
+## Atualização ARDEN-PRD-001.2A.2
+- Camada de preparação de infraestrutura adicionada (provider-neutra, offline): `infra/`
+  (contratos), `config/infrastructure/` (manifesto + alertas), `tooling/infrastructure/`
+  (validadores + fail-closed ops + testes). Separação `DATABASE_URL` (pooler) / `DIRECT_URL`
+  (migrations) no Prisma. Job de CI `infrastructure` (offline). Anthropic permanece DISABLED.

@@ -100,3 +100,16 @@ operacional atribuído; riscos aceitos; aprovadores registrados). Ao mover, regi
 `ARDEN_PRD_001_2B_ENTRY_GATE = PASS` (`docs/production/ARDEN_PRD_001_2B_ENTRY_GATE.md`).
 
 **Estado atual:** ADR = `PROPOSED`; entry gate = `FAIL`. Nenhuma pré-condição satisfeita.
+
+## Preparação técnica (ARDEN-PRD-001.2A.2)
+
+O repositório está tecnicamente preparado para implementar a infraestrutura **assim que**
+esta ADR for movida para `ACCEPTED` — sem nova fase de descoberta/redesenho. Estão prontos
+(provider-neutros, offline): manifesto de decisão + validador
+(`npm run infrastructure:decision:validate`), contratos de IaC (`infra/`), estratégia de
+container/artefato imutável por SHA, migração e deploy **fail-closed**, smoke suite,
+adapter de recuperação, IAM de menor privilégio, catálogo de rede/egress (Anthropic
+BLOCKED), contrato de observabilidade, definições de alerta e runbooks. Índice:
+`docs/implementation/ARDEN_PRD_001_2A_2_PREPARATION_REPORT.md`. A ADR **permanece PROPOSED**;
+o `ARDEN_PRD_001_2B_ENTRY_GATE` permanece `FAIL` (machine-checkable). Nenhum fornecedor,
+região ou produto foi selecionado.

@@ -56,3 +56,12 @@ Riscos R-18/R-19 são herdados e permanecem **fora** do escopo de resolução de
   sem decisão registrada — mitiga RD-02 (preço assumido) e RD-03 (decisão sem jurídico) do
   `ARDEN_PRD_001_2A_RISK_ASSESSMENT.md`.
 - Critérios eliminatórios binários definidos; `PARTIALLY_VERIFIED` não conta como comprovação.
+
+---
+## Atualização ARDEN-PRD-001.2A.2
+- Novos controles offline reduzem risco de execução: validador de manifesto fail-closed
+  (impede bypass), fail-closed em deploy/migração/backup/restore, egress DENY com Anthropic
+  bloqueado, artefato por SHA sem secret, IAM de menor privilégio testado.
+- Mitiga RT-01/RT-03 (pooling/migração e conexões) via separação `DATABASE_URL`/`DIRECT_URL`
+  + connection budget; RT-05 (egress) via catálogo + validador; RT-06 (wrapping key) via
+  contrato de IAM testado. Riscos permanecem STILL_OPEN até a implementação real (001.2B).

@@ -56,3 +56,11 @@ grande favorece escala/compliance de longo prazo. Decisão pertence ao dono do p
   (`ENVIRONMENT_ISOLATION.md`); registro de imagem em `ARDEN_PRD_001_2A_SOURCE_REGISTER.md` (S7).
 - Pipeline de deploy/rollback + migration job (conexão **direta**) especificados no plano
   faseado `INFRASTRUCTURE_IMPLEMENTATION_PLAN.md` (fase 001.2B.6). Não implementado nesta fase.
+
+---
+## Atualização ARDEN-PRD-001.2A.2
+- Estratégia de deploy preparada como comandos **fail-closed** (`deploy:staging|production|
+  verify|rollback`, `production:migrate`) que exigem manifesto de decisão aprovado — hoje
+  bloqueados. Artefato **imutável por SHA** (`artifact:build`/`artifact:verify`), sem `latest`.
+- Migração usa **conexão direta** (`DIRECT_URL`, separada do pooler) — implementada e testada.
+  Ver `PRODUCTION_MIGRATION_JOB.md` e `IMMUTABLE_ARTIFACT_MANIFEST.md`.

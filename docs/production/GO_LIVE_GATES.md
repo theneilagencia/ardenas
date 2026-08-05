@@ -65,3 +65,12 @@ permanece bloqueado independentemente destes gates (gates próprios em
 - Novo gate documental **`ARDEN_PRD_001_2B_ENTRY_GATE = FAIL`** — condição de início do
   001.2B (`ARDEN_PRD_001_2B_ENTRY_GATE.md`). Enquanto FAIL, 001.2B não inicia.
 - Nenhum gate mudou de estado; `ADR-0001` permanece **PROPOSED**; Anthropic **DISABLED**.
+
+---
+## Atualização ARDEN-PRD-001.2A.2
+- Preparação técnica integral concluída (contratos + validadores offline + fail-closed).
+  Novos checklists executáveis: `STAGING_ENTRY_CHECKLIST.md` e `PRODUCTION_ENTRY_CHECKLIST.md`
+  (ambos **BLOCKED**). Produção é gate **independente** de staging.
+- `ARDEN_PRD_001_2B_ENTRY_GATE` agora tem forma **machine-checkable**
+  (`npm run infrastructure:decision:validate` → FAIL). Nenhum gate mudou de estado; Anthropic
+  permanece DISABLED.
