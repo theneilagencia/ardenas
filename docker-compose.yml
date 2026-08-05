@@ -31,6 +31,8 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-arden_dev}?schema=public
+      # Conexão direta (ARDEN-PRD-001.2A.2): sem pooler local, igual à DATABASE_URL.
+      DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-arden_dev}?schema=public
       LOG_LEVEL: ${LOG_LEVEL:-info}
       APP_VERSION: ${APP_VERSION:-0.1.0}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:4173}

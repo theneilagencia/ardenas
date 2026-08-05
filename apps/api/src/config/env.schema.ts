@@ -37,6 +37,16 @@ export const envSchema = z
       .refine((v) => v.startsWith('postgres://') || v.startsWith('postgresql://'), {
         message: 'DATABASE_URL deve ser uma conexão PostgreSQL (postgres://…).',
       }),
+    // Conexão DIRETA (sem pooler) para migrations/admin/restore (ARDEN-PRD-001.2A.2).
+    // Opcional: quando ausente, cai para DATABASE_URL (cenário sem pooler). Em produção
+    // com pooler, DIRECT_URL DEVE apontar à conexão direta do banco.
+    DIRECT_URL: z
+      .string()
+      .optional()
+      .default('')
+      .refine((v) => v === '' || v.startsWith('postgres://') || v.startsWith('postgresql://'), {
+        message: 'DIRECT_URL, se definida, deve ser uma conexão PostgreSQL (postgres://…).',
+      }),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
@@ -110,6 +120,11 @@ export const envSchema = z
     corsOrigins: env.CORS_ORIGINS.split(',')
       .map((o) => o.trim())
       .filter(Boolean),
+  }))
+  .transform((env) => ({
+    ...env,
+    // Conexão direta efetiva: DIRECT_URL quando definida, senão DATABASE_URL (sem pooler).
+    directUrl: env.DIRECT_URL && env.DIRECT_URL.length > 0 ? env.DIRECT_URL : env.DATABASE_URL,
   }))
   .superRefine((env, ctx) => {
     // Production não pode aceitar CORS permissivo por padrão.

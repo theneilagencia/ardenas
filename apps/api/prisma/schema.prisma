@@ -10,7 +10,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Runtime da aplicação: DATABASE_URL aponta ao POOLER (transaction pooling em produção).
+  url       = env("DATABASE_URL")
+  // Migrations/admin/restore: DIRECT_URL aponta à conexão DIRETA (sem pooler). O Schema
+  // Engine do Prisma exige conexão direta (ARDEN-PRD-001.2A.2). Fora de produção, quando
+  // não há pooler, DIRECT_URL == DATABASE_URL (ver env.schema.ts / setup-env.ts).
+  directUrl = env("DIRECT_URL")
 }
 
 /// Infraestrutura de idempotência (Idempotency-Key). Ainda NÃO aplicada a

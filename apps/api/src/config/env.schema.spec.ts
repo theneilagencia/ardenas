@@ -38,6 +38,23 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...base, DATABASE_URL: 'mysql://x' })).toThrow(/PostgreSQL/);
   });
 
+  // ── Separação DATABASE_URL / DIRECT_URL (ARDEN-PRD-001.2A.2) ────────────────
+  it('directUrl cai para DATABASE_URL quando DIRECT_URL ausente (sem pooler)', () => {
+    const cfg = loadConfig(base);
+    expect(cfg.directUrl).toBe(base.DATABASE_URL);
+  });
+
+  it('directUrl usa DIRECT_URL quando definida (conexão direta separada)', () => {
+    const direct = 'postgresql://u:p@direct-host:5432/db';
+    const cfg = loadConfig({ ...base, DIRECT_URL: direct });
+    expect(cfg.directUrl).toBe(direct);
+    expect(cfg.directUrl).not.toBe(cfg.DATABASE_URL);
+  });
+
+  it('falha quando DIRECT_URL definida não é PostgreSQL', () => {
+    expect(() => loadConfig({ ...base, DIRECT_URL: 'mysql://x' })).toThrow(/DIRECT_URL/);
+  });
+
   it('em production, rejeita CORS permissivo (*)', () => {
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', CORS_ORIGINS: '*' })).toThrow(
       /allowlist/,
